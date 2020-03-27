@@ -49,6 +49,31 @@ public struct AssignStmt: Stmt {
   }
 }
 
+/// A code block that contains multiple statements inside braces.
+public struct CodeBlockStmt: Stmt {
+  public let body: [Stmt]
+  
+  public let range: Range<Position>
+  
+  public init(body: [Stmt], range: Range<Position>) {
+    self.body = body
+    self.range = range
+  }
+}
+
+public struct IfStmt: Stmt {
+  public let condition: Expr
+  public let body: CodeBlockStmt
+  
+  public let range: Range<Position>
+  
+  public init(condition: Expr, body: CodeBlockStmt, range: Range<Position>) {
+    self.condition = condition
+    self.body = body
+    self.range = range
+  }
+}
+
 // MARK: - Equality ignoring ranges
 
 extension VariableDeclStmt {
@@ -72,6 +97,30 @@ extension AssignStmt {
   }
 }
 
+extension CodeBlockStmt {
+  public func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? CodeBlockStmt else {
+      return false
+    }
+    if self.body.count != other.body.count {
+      return false
+    }
+    return zip(self.body, other.body).allSatisfy({
+      $0.0.equalsIgnoringRange(other: $0.1)
+    })
+  }
+}
+
+extension IfStmt {
+  public func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? IfStmt else {
+      return false
+    }
+    return self.condition.equalsIgnoringRange(other: other.condition) &&
+      self.body.equalsIgnoringRange(other: other.body)
+  }
+}
+
 // MARK: - Debug descriptions
 
 extension VariableDeclStmt {
@@ -91,3 +140,24 @@ extension AssignStmt {
       """
   }
 }
+
+extension CodeBlockStmt {
+  public var debugDescription: String {
+    return """
+      ▽ CodeBlockStmt
+      \(body.map({ $0.debugDescription }).joined(separator: "\n").indented())
+      """
+  }
+}
+
+extension IfStmt {
+  public var debugDescription: String {
+    return """
+      ▽ IfStmt"
+        ▽ Condition
+      \(condition.debugDescription.indented(2))
+      \(body.debugDescription.indented())
+      """
+  }
+}
+

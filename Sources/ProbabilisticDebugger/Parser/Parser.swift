@@ -95,6 +95,8 @@ public class Parser {
       return try parseVariableDecl()
     case .identifier:
       return try parseAssignStmt()
+    case .if:
+      return try parseIfStmt()
     case nil:
       return nil
     default:
@@ -134,6 +136,34 @@ public class Parser {
     let expr = try parseExpr()
     
     return AssignStmt(variableName: variableName, expr: expr, range: variableIdentifier.range.lowerBound..<expr.range.upperBound)
+  }
+  
+  private func parseIfStmt() throws -> IfStmt {
+    let ifToken = try consumeToken()!
+    assert(ifToken.content == .if)
+    
+    let condition = try parseExpr()
+    
+    let body = try parseCodeBlock()
+    
+    return IfStmt(condition: condition, body: body, range: ifToken.range.lowerBound..<body.range.upperBound)
+  }
+  
+  private func parseCodeBlock() throws -> CodeBlockStmt {
+    let leftBrace = try consumeToken(condition: { $0 == .leftBrace }, errorMessage: "Expected '{' to start a code block")
+    var stmts = [Stmt]()
+    while let token = try peekToken(), token.content != .rightBrace {
+      guard let stmt = try parseStmt() else {
+        throw ParserError(position: lexer.position, message: "Reached end of file while inside a '{}' code block")
+      }
+      stmts.append(stmt)
+    }
+    guard let rightBrace = try consumeToken() else {
+      throw ParserError(position: lexer.position, message: "Reached end of file while inside a '{}' code block")
+    }
+    assert(rightBrace.content == .rightBrace)
+    
+    return CodeBlockStmt(body: stmts, range: leftBrace.range.lowerBound..<rightBrace.range.upperBound)
   }
   
   // MARK: - Parse expressions

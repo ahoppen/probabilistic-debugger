@@ -157,4 +157,69 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast!, declExpr)
     }())
   }
+  
+  func testParseIfStmt() {
+    XCTAssertNoThrow(try {
+      let sourceCode = """
+      if x == 1 {
+        int y = 2
+        y = y + 1
+      }
+      """
+      let parser = Parser(sourceCode: sourceCode)
+      let ast = try parser.parseStmt()
+      
+      let varDecl = VariableDeclStmt(variableType: .int,
+                                     variableName: "y",
+                                     expr: IntegerExpr(value: 2, range: .whatever),
+                                     range: .whatever)
+      let addExpr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "y", range: .whatever),
+                                       operator: .plus,
+                                       rhs: IntegerExpr(value: 1, range: .whatever),
+                                       range: .whatever)
+      let assign = AssignStmt(variableName: "y",
+                              expr: addExpr,
+                              range: .whatever)
+      let codeBlock = CodeBlockStmt(body: [varDecl, assign], range: .whatever)
+      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+                                         operator: .equal,
+                                         rhs: IntegerExpr(value: 1, range: .whatever),
+                                         range: .whatever)
+      let ifStmt = IfStmt(condition: condition, body: codeBlock, range: .whatever)
+      XCTAssertEqualASTIgnoringRanges(ast!, ifStmt)
+    }())
+  }
+  
+  func testParseIfStmtWithParanthesInCondition() {
+    XCTAssertNoThrow(try {
+      let sourceCode = """
+      if (x == 1) {
+        int y = 2
+        y = y + 1
+      }
+      """
+      let parser = Parser(sourceCode: sourceCode)
+      let ast = try parser.parseStmt()
+      
+      let varDecl = VariableDeclStmt(variableType: .int,
+                                     variableName: "y",
+                                     expr: IntegerExpr(value: 2, range: .whatever),
+                                     range: .whatever)
+      let addExpr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "y", range: .whatever),
+                                       operator: .plus,
+                                       rhs: IntegerExpr(value: 1, range: .whatever),
+                                       range: .whatever)
+      let assign = AssignStmt(variableName: "y",
+                              expr: addExpr,
+                              range: .whatever)
+      let codeBlock = CodeBlockStmt(body: [varDecl, assign], range: .whatever)
+      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+                                         operator: .equal,
+                                         rhs: IntegerExpr(value: 1, range: .whatever),
+                                         range: .whatever)
+      let parenCondition = ParenExpr(subExpr: condition, range: .whatever)
+      let ifStmt = IfStmt(condition: parenCondition, body: codeBlock, range: .whatever)
+      XCTAssertEqualASTIgnoringRanges(ast!, ifStmt)
+    }())
+  }
 }
