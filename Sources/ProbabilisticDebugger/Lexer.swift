@@ -99,7 +99,7 @@ public final class Lexer {
     case "-":
       content = .minus
     case let char? where char.isNumber:
-      content = lexIntegerLiteralContent(firstChar: char)
+      content = lexNumberLiteralContent(firstChar: char)
     case let char? where char.isLetter:
       content = lexIdentifierOrKeywordContents(firstChar: char)
     case let char? where char.isWhitespace:
@@ -113,22 +113,40 @@ public final class Lexer {
     return Token(content: content, range: start..<end)
   }
   
-  /// Lexes the next token as an integer literal.
+  /// Lexes the next token as an integer or float literal.
   /// Assumes that the current lexing character is a number.
-  /// - Parameter firstChar: The first character of the integer literal which has already been consumed
-  /// - Returns: The lexed integer literal
-  private func lexIntegerLiteralContent(firstChar: Character) -> TokenContent {
+  /// - Parameter firstChar: The first character of the integer/float literal which has already been consumed
+  /// - Returns: The lexed number literal
+  private func lexNumberLiteralContent(firstChar: Character) -> TokenContent {
     assert(firstChar.isNumber, "Lexing an integer literal that didn't start with a number")
     
+    var consumedDot = false
     var stringContent = String(firstChar)
-    while peek()?.isNumber == true {
-      stringContent.append(consume()!)
+    while true {
+      guard let char = peek() else {
+        break
+      }
+      if char.isNumber {
+        stringContent.append(consume()!)
+      } else if char == "." && !consumedDot {
+        stringContent.append(consume()!)
+        consumedDot = true
+      } else {
+        break
+      }
     }
     
-    assert(stringContent.allSatisfy({ $0.isNumber }))
-    let intContent = Int(stringContent)!
-    
-    return .integerLiteral(value: intContent)
+    if consumedDot {
+      // Parse a float literal
+      assert(stringContent.allSatisfy({ $0.isNumber || $0 == "." }))
+      let floatContent = Double(stringContent)!
+      return .floatLiteral(value: floatContent)
+    } else {
+      // Parse an integer literal
+      assert(stringContent.allSatisfy({ $0.isNumber }))
+      let intContent = Int(stringContent)!
+      return .integerLiteral(value: intContent)
+    }
   }
   
   /// Lexes the next token as an identifier or keyword.

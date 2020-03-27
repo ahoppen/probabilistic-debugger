@@ -86,7 +86,7 @@ class LexerTests: XCTestCase {
     }())
   }
   
-  func testParserError() {
+  func testLexerError() {
     let sourceCode = """
     a = 1 % 2
     """
@@ -95,6 +95,45 @@ class LexerTests: XCTestCase {
       let parserError = error as? ParserError
       XCTAssertNotNil(parserError)
       let errorPosition = Position(line: 1, column: 7, offset: sourceCode.index(atOffset: 6))
+      XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)
+    }
+  }
+  
+  func testLexFloatLiteral() {
+    let sourceCode = "0.1"
+    let lexer = Lexer(sourceCode: sourceCode)
+    XCTAssertNoThrow(try {
+      let tokens = try lexer.lexFile()
+      XCTAssertEqual(tokens, [
+        Token(
+          content: .floatLiteral(value: 0.1),
+          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
+        )
+      ])
+    }())
+  }
+  
+  func testLexFloatLiteralWithTrailingDot() {
+    let sourceCode = "1."
+    let lexer = Lexer(sourceCode: sourceCode)
+    XCTAssertNoThrow(try {
+      let tokens = try lexer.lexFile()
+      XCTAssertEqual(tokens, [
+        Token(
+          content: .floatLiteral(value: 1),
+          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 3, offset: sourceCode.index(atOffset: 2))
+        )
+      ])
+    }())
+  }
+  
+  func testLexFloatLiteralWithTwoDots() {
+    let sourceCode = "1.2.3"
+    let lexer = Lexer(sourceCode: sourceCode)
+    XCTAssertThrowsError(try lexer.lexFile()) { (error) in
+      let parserError = error as? ParserError
+      XCTAssertNotNil(parserError)
+      let errorPosition = Position(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
       XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)
     }
   }

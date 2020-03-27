@@ -22,6 +22,9 @@ public enum TokenContent: Equatable {
   /// An integer literal
   case integerLiteral(value: Int)
   
+  /// A floating-point literal
+  case floatLiteral(value: Double)
+  
   // MARK: Keywords
   
   /// The `if` keyword
