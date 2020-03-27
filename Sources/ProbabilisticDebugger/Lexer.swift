@@ -1,6 +1,6 @@
 public final class Lexer {
   /// The source code to be lexed
-  let sourceCode: String
+  private let sourceCode: String
   
   /// The position of the next character to be lexed
   var position: Position
@@ -61,7 +61,7 @@ public final class Lexer {
   
   /// Lexes the next token in the source file and returns it.
   /// If the end of the file has been reached, returns `nil`.
-  public func lexToken() throws -> Token? {
+  public func nextToken() throws -> Token? {
     consumeWhitespace()
     
     let start = position
@@ -175,7 +175,7 @@ public final class Lexer {
     case "observe":
       return .observe
     default:
-      return .identifier(content: content)
+      return .identifier(name: content)
     }
   }
 }

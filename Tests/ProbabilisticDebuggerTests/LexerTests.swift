@@ -6,7 +6,7 @@ fileprivate extension Lexer {
   func lexFile() throws -> [Token] {
     var tokens: [Token] = []
     
-    while let token = try lexToken() {
+    while let token = try nextToken() {
       tokens.append(token)
     }
     
@@ -42,7 +42,7 @@ class LexerTests: XCTestCase {
       let tokens = try lexer.lexFile()
       XCTAssertEqual(tokens, [
         Token(
-          content: .identifier(content: "test"),
+          content: .identifier(name: "test"),
           range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 5, offset: sourceCode.index(atOffset: 4))
         ),
         Token(
@@ -67,19 +67,19 @@ class LexerTests: XCTestCase {
       let tokens = try lexer.lexFile()
       XCTAssertEqual(tokens, [
         Token(
-          content: .identifier(content: "a"),
+          content: .identifier(name: "a"),
           range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 2, offset: sourceCode.index(atOffset: 1))
         ),
         Token(
-          content: .identifier(content: "b"),
+          content: .identifier(name: "b"),
           range: Position(line: 1, column: 3, offset: sourceCode.index(atOffset: 2))..<Position(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
         ),
         Token(
-          content: .identifier(content: "x"),
+          content: .identifier(name: "x"),
           range: Position(line: 2, column: 1, offset: sourceCode.index(atOffset: 4))..<Position(line: 2, column: 2, offset: sourceCode.index(atOffset: 5))
         ),
         Token(
-          content: .identifier(content: "y"),
+          content: .identifier(name: "y"),
           range: Position(line: 2, column: 3, offset: sourceCode.index(atOffset: 6))..<Position(line: 2, column: 4, offset: sourceCode.index(atOffset: 7))
         ),
       ])

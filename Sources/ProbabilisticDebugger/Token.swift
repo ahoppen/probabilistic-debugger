@@ -1,4 +1,4 @@
-public struct Token: Equatable {
+public struct Token: Equatable, CustomStringConvertible {
   /// The content of the token
   public let content: TokenContent
   
@@ -9,13 +9,18 @@ public struct Token: Equatable {
     self.content = content
     self.range = range
   }
+  
+  public var description: String {
+    return content.description
+  }
 }
 
-public enum TokenContent: Equatable {
+public enum TokenContent: Equatable, CustomStringConvertible {
+  
   // MARK: Identifier
   
   /// An identifier
-  case identifier(content: String)
+  case identifier(name: String)
   
   // MARK: Literals
   
@@ -79,4 +84,49 @@ public enum TokenContent: Equatable {
   
   /// The `-` operator
   case minus
+  
+  public var description: String {
+    switch self {
+    case .identifier(name: let name):
+      return name
+    case .integerLiteral(value: let value):
+      return String(value)
+    case .floatLiteral(value: let value):
+      return String(value)
+    case .if:
+      return "if"
+    case .else:
+      return "else"
+    case .while:
+      return "while"
+    case .int:
+      return "int"
+    case .observe:
+      return "observer"
+    case .leftParen:
+      return "("
+    case .rightParen:
+      return ")"
+    case .leftBrace:
+      return "{"
+    case .rightBrace:
+      return "}"
+    case .colon:
+      return ":"
+    case .comma:
+      return ","
+    case .semicolon:
+      return ";"
+    case .equal:
+      return "="
+    case .equalEqual:
+      return "=="
+    case .lessThan:
+      return "<"
+    case .plus:
+      return "+"
+    case .minus:
+      return "-"
+    }
+  }
 }
