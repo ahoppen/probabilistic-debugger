@@ -282,4 +282,14 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast!, observeStmt)
     }())
   }
+  
+  func testParseEmptyCodeBlock() {
+    XCTAssertNoThrow(try {
+      let parser = Parser.init(sourceCode: "{}")
+      let ast = try parser.parseStmt()
+      
+      let codeBlock = CodeBlockStmt(body: [], range: .whatever)
+      XCTAssertEqualASTIgnoringRanges(ast!, codeBlock)
+    }())
+  }
 }

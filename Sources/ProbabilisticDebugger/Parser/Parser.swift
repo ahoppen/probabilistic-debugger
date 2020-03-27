@@ -101,6 +101,8 @@ public class Parser {
       return try parseIfStmt()
     case .while:
       return try parseWhileStmt()
+    case .leftBrace:
+      return try parseCodeBlock()
     case nil:
       return nil
     default:
