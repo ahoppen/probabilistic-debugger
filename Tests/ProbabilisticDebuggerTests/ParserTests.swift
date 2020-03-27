@@ -222,4 +222,31 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast!, ifStmt)
     }())
   }
+  
+  func testParseWhileStmt() {
+    XCTAssertNoThrow(try {
+      let sourceCode = """
+      while 1 < x {
+        x = x - 1
+      }
+      """
+      let parser = Parser(sourceCode: sourceCode)
+      let ast = try parser.parseStmt()
+      
+      let subExpr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+                                       operator: .minus,
+                                       rhs: IntegerExpr(value: 1, range: .whatever),
+                                       range: .whatever)
+      let assign = AssignStmt(variableName: "x",
+                              expr: subExpr,
+                              range: .whatever)
+      let codeBlock = CodeBlockStmt(body: [assign], range: .whatever)
+      let condition = BinaryOperatorExpr(lhs: IntegerExpr(value: 1, range: .whatever),
+                                         operator: .lessThan,
+                                         rhs: IdentifierExpr(name: "x", range: .whatever),
+                                         range: .whatever)
+      let ifStmt = WhileStmt(condition: condition, body: codeBlock, range: .whatever)
+      XCTAssertEqualASTIgnoringRanges(ast!, ifStmt)
+    }())
+  }
 }

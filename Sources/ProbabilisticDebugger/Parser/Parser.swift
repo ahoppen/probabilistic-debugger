@@ -97,6 +97,8 @@ public class Parser {
       return try parseAssignStmt()
     case .if:
       return try parseIfStmt()
+    case .while:
+      return try parseWhileStmt()
     case nil:
       return nil
     default:
@@ -147,6 +149,17 @@ public class Parser {
     let body = try parseCodeBlock()
     
     return IfStmt(condition: condition, body: body, range: ifToken.range.lowerBound..<body.range.upperBound)
+  }
+  
+  private func parseWhileStmt() throws -> WhileStmt {
+    let whileToken = try consumeToken()!
+    assert(whileToken.content == .while)
+    
+    let condition = try parseExpr()
+    
+    let body = try parseCodeBlock()
+    
+    return WhileStmt(condition: condition, body: body, range: whileToken.range.lowerBound..<body.range.upperBound)
   }
   
   private func parseCodeBlock() throws -> CodeBlockStmt {

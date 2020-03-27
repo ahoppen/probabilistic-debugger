@@ -74,6 +74,19 @@ public struct IfStmt: Stmt {
   }
 }
 
+public struct WhileStmt: Stmt {
+  public let condition: Expr
+  public let body: CodeBlockStmt
+  
+  public let range: Range<Position>
+  
+  public init(condition: Expr, body: CodeBlockStmt, range: Range<Position>) {
+    self.condition = condition
+    self.body = body
+    self.range = range
+  }
+}
+
 // MARK: - Equality ignoring ranges
 
 extension VariableDeclStmt {
@@ -121,6 +134,16 @@ extension IfStmt {
   }
 }
 
+extension WhileStmt {
+  public func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? WhileStmt else {
+      return false
+    }
+    return self.condition.equalsIgnoringRange(other: other.condition) &&
+      self.body.equalsIgnoringRange(other: other.body)
+  }
+}
+
 // MARK: - Debug descriptions
 
 extension VariableDeclStmt {
@@ -161,3 +184,13 @@ extension IfStmt {
   }
 }
 
+extension WhileStmt {
+  public var debugDescription: String {
+    return """
+      ▽ WhileStmt"
+        ▽ Condition
+      \(condition.debugDescription.indented(2))
+      \(body.debugDescription.indented())
+      """
+  }
+}
