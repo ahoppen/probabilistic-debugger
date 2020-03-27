@@ -49,6 +49,17 @@ public struct AssignStmt: Stmt {
   }
 }
 
+public struct ObserveStmt: Stmt {
+  public let condition: Expr
+  
+  public let range: Range<Position>
+  
+  public init(condition: Expr, range: Range<Position>) {
+    self.condition = condition
+    self.range = range
+  }
+}
+
 /// A code block that contains multiple statements inside braces.
 public struct CodeBlockStmt: Stmt {
   public let body: [Stmt]
@@ -110,6 +121,15 @@ extension AssignStmt {
   }
 }
 
+extension ObserveStmt {
+  public func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? ObserveStmt else {
+      return false
+    }
+    return self.condition.equalsIgnoringRange(other: other.condition)
+  }
+}
+
 extension CodeBlockStmt {
   public func equalsIgnoringRange(other: ASTNode) -> Bool {
     guard let other = other as? CodeBlockStmt else {
@@ -160,6 +180,15 @@ extension AssignStmt {
     return """
       ▽ AssignStmt(name: \(variableName))"
       \(expr.debugDescription.indented())
+      """
+  }
+}
+
+extension ObserveStmt {
+  public var debugDescription: String {
+    return """
+      ▽ ObserveStmt
+      \(condition.debugDescription.indented())
       """
   }
 }

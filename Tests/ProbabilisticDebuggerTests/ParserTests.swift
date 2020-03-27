@@ -249,4 +249,37 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast!, ifStmt)
     }())
   }
+  
+  func testParseObserveWithoutParan() {
+    XCTAssertNoThrow(try {
+      let stmt = "observe x < 0"
+      let parser = Parser(sourceCode: stmt)
+      let ast = try parser.parseStmt()
+      
+      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+                                         operator: .lessThan,
+                                         rhs: IntegerExpr(value: 0, range: .whatever),
+                                         range: .whatever)
+      let observeStmt = ObserveStmt(condition: condition, range: .whatever)
+      
+      XCTAssertEqualASTIgnoringRanges(ast!, observeStmt)
+    }())
+  }
+  
+  func testParseObserveWithParan() {
+    XCTAssertNoThrow(try {
+      let stmt = "observe(x < 0)"
+      let parser = Parser(sourceCode: stmt)
+      let ast = try parser.parseStmt()
+      
+      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+                                         operator: .lessThan,
+                                         rhs: IntegerExpr(value: 0, range: .whatever),
+                                         range: .whatever)
+      let parenCondition = ParenExpr(subExpr: condition, range: .whatever)
+      let observeStmt = ObserveStmt(condition: parenCondition, range: .whatever)
+      
+      XCTAssertEqualASTIgnoringRanges(ast!, observeStmt)
+    }())
+  }
 }

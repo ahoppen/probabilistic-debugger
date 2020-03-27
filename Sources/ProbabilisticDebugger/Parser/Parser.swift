@@ -95,6 +95,8 @@ public class Parser {
       return try parseVariableDecl()
     case .identifier:
       return try parseAssignStmt()
+    case .observe:
+      return try parseObserverStmt()
     case .if:
       return try parseIfStmt()
     case .while:
@@ -177,6 +179,16 @@ public class Parser {
     assert(rightBrace.content == .rightBrace)
     
     return CodeBlockStmt(body: stmts, range: leftBrace.range.lowerBound..<rightBrace.range.upperBound)
+  }
+  
+  private func parseObserverStmt() throws -> ObserveStmt {
+    let observeToken = try consumeToken()!
+    assert(observeToken.content == .observe)
+    
+    // We can parse the paranthesis of the obser
+    let condition = try parseExpr()
+    
+    return ObserveStmt(condition: condition, range: observeToken.range.lowerBound..<observeToken.range.upperBound)
   }
   
   // MARK: - Parse expressions
