@@ -47,6 +47,9 @@ public enum TokenContent: Equatable, CustomStringConvertible {
   /// The `observe` keyword
   case observe
   
+  /// The `discrete` keyword to build a discrete variable distribution
+  case discrete
+  
   // MARK: Special characters
   
   /// The `(` character
@@ -131,7 +134,9 @@ public enum TokenContent: Equatable, CustomStringConvertible {
     case .int:
       return "int"
     case .observe:
-      return "observer"
+      return "observe"
+    case .discrete:
+      return "discrete"
     case .leftParen:
       return "("
     case .rightParen:

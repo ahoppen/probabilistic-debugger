@@ -174,6 +174,8 @@ public final class Lexer {
       return .int
     case "observe":
       return .observe
+    case "discrete":
+      return .discrete
     default:
       return .identifier(name: content)
     }

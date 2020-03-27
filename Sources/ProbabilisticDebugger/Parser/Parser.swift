@@ -62,6 +62,7 @@ public class Parser {
   /// Consume the next token if it matches the given condition.
   /// If the condition is not satisfied, throw a `ParserError` with the given error message.
   /// If the end of file is reached, returns a generic error message that the end of file was unexpectedly reached.
+  @discardableResult
   private func consumeToken(condition: (TokenContent) -> Bool, errorMessage: String) throws -> Token {
     guard let token = try consumeToken() else {
       throw ParserError(position: lexer.position, message: "Unexpectedly reached end of file")
@@ -175,6 +176,8 @@ public class Parser {
       return IntegerExpr(value: value, range: nextToken.range)
     case .identifier(name: let name):
       return IdentifierExpr(name: name, range: nextToken.range)
+    case .discrete:
+      return try parseDiscreteProbabilityDistribution(discreteKeyword: nextToken)
     case .leftParen:
       let subExpr = try parseExpr()
       guard let rParen = try consumeToken() else {
@@ -187,5 +190,67 @@ public class Parser {
     default:
       throw ParserError(range: nextToken.range, message: "Expected an identifier or literal, found '\(nextToken)'.")
     }
+  }
+  
+  /// Parse a discrete integer distribution. E.g. `discrete({1: 0.2, 2: 0.8})`.
+  /// Assumes that the `discrete` keyword has already been parsed and is parsed as the `firstToken` parameter.
+  private func parseDiscreteProbabilityDistribution(discreteKeyword: Token) throws -> DiscreteIntegerDistributionExpr {
+    assert(discreteKeyword.content == .discrete)
+    
+    _ = try consumeToken(condition: { $0 == .leftParen }, errorMessage: "Expected '(' to specify discrete integer distribution")
+    
+    let distribution = try parseDiscreteIntegerDistributionSpecification()
+    
+    let rightParen = try consumeToken(condition: { $0 == .rightParen }, errorMessage: "Expected ')' to end discrete integer distribution")
+    
+    return DiscreteIntegerDistributionExpr(distribution: distribution, range: discreteKeyword.range.lowerBound..<rightParen.range.upperBound)
+  }
+  
+  /// Parse a discrete probability distribution into a Swift dictionary. E.g.
+  /// ```
+  /// {
+  ///   1: 0.2,
+  ///   2: 0.8
+  /// }
+  /// ```
+  /// gets parsed into `[1: 0.2, 2: 0.8]`
+  private func parseDiscreteIntegerDistributionSpecification() throws -> [Int: Double] {
+    try consumeToken(condition: { $0 == .leftBrace }, errorMessage: "Expected '{' to specify discrete integer distribution")
+    var distribution = [Int: Double]()
+    while true {
+      let integerToken = try consumeToken(condition: { $0.isIntegerLiteral }, errorMessage: "Expected an integer literal to specify an integer value that the discrete variable distribution may take.")
+      guard case .integerLiteral(let value) = integerToken.content else {
+        fatalError()
+      }
+      if distribution[value] != nil {
+        throw ParserError(range: integerToken.range, message: "Probability of value '\(value)' was already declared")
+      }
+      
+      _ = try consumeToken(condition: { $0 == .colon }, errorMessage: "Expected a colon to separate a distribution value from its probability")
+      
+      let probabilityToken = try consumeToken(condition: { $0.isFloatLiteral || $0.isIntegerLiteral }, errorMessage: "Expected a number between 0 and 1 that specifies the proabability of the discrete value")
+      let probability: Double
+      if case .floatLiteral(let value) = probabilityToken.content {
+        probability = value
+      } else if case .integerLiteral(let value) = probabilityToken.content {
+        probability = Double(value)
+      } else {
+        fatalError("We only accepted tokens of type float or integer before")
+      }
+      if probability < 0 || probability > 1 {
+        throw ParserError(range: probabilityToken.range, message: "\(probability) is not a valid proability value (between 0 and 1)")
+      }
+      
+      distribution[value] = probability
+      
+      if try peekToken()?.content == .comma {
+        // Consume the comma and parse the next entry
+        try consumeToken()
+      } else {
+        break
+      }
+    }
+    try consumeToken(condition: { $0 == .rightBrace }, errorMessage: "Expected '}' to end discrete probability distribution")
+    return distribution
   }
 }

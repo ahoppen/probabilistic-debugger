@@ -137,4 +137,18 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)
     }
   }
+  
+  func testLexDiscreteKeyword() {
+    let sourceCode = "discrete"
+    let lexer = Lexer(sourceCode: sourceCode)
+    XCTAssertNoThrow(try {
+      let tokens = try lexer.lexFile()
+      XCTAssertEqual(tokens, [
+        Token(
+          content: .discrete,
+          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 9, offset: sourceCode.index(atOffset: 8))
+        )
+      ])
+    }())
+  }
 }

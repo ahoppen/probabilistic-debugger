@@ -104,6 +104,19 @@ class ParserTests: XCTestCase {
     }())
   }
   
+  func testDiscreteIntegerDistribution() {
+    XCTAssertNoThrow(try {
+      let expr = "discrete({1: 0.2, 2: 0.8})"
+      let parser = Parser(sourceCode: expr)
+      let ast = try parser.parseExpr()
+      let distribution = DiscreteIntegerDistributionExpr(distribution: [
+        1: 0.2,
+        2: 0.8
+      ], range: .whatever)
+      XCTAssertEqualASTIgnoringRanges(ast, distribution)
+    }())
+  }
+  
   func testParseVariableDeclaration() {
     XCTAssertNoThrow(try {
       let stmt = "int x = y + 2"

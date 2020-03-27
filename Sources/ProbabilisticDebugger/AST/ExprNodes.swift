@@ -64,6 +64,16 @@ public struct ParenExpr: Expr {
   }
 }
 
+public struct DiscreteIntegerDistributionExpr: Expr {
+  public let distribution: [Int: Double]
+  public let range: Range<Position>
+  
+  public init(distribution: [Int: Double], range: Range<Position>) {
+    self.distribution = distribution
+    self.range = range
+  }
+}
+
 // MARK: - Equality ignoring ranges
 
 
@@ -105,6 +115,15 @@ public extension ParenExpr {
   }
 }
 
+public extension DiscreteIntegerDistributionExpr {
+  func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? DiscreteIntegerDistributionExpr else {
+      return false
+    }
+    return self.distribution == other.distribution
+  }
+}
+
 
 // MARK: - Debug Descriptions
 
@@ -135,6 +154,16 @@ public extension ParenExpr {
     return """
       ▽ ParenExpr
       \(subExpr.debugDescription.indented())
+      """
+  }
+}
+
+public extension DiscreteIntegerDistributionExpr {
+  var debugDescription: String {
+    let distributionDescription = self.distribution.map({ "\($0.key): \($0.value)"}).joined(separator: "\n")
+    return """
+      ▽ DiscreteIntegerDistributionExpr
+      \(distributionDescription.indented())
       """
   }
 }
