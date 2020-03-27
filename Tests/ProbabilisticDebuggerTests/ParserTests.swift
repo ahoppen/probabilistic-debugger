@@ -11,6 +11,14 @@ func XCTAssertEqualASTIgnoringRanges(_ lhs: ASTNode, _ rhs: ASTNode) {
   XCTAssert(lhs.equalsIgnoringRange(other: rhs), "\n\(lhs.debugDescription)\nis not equal to \n\n\(rhs.debugDescription)")
 }
 
+/// Check that the two ASTs are equal while ignoring their ranges.
+func XCTAssertEqualASTIgnoringRanges(_ lhs: [ASTNode], _ rhs: [ASTNode]) {
+  XCTAssertEqual(lhs.count, rhs.count)
+  for (lhs, rhs) in zip(lhs, rhs) {
+    XCTAssertEqualASTIgnoringRanges(lhs, rhs)
+  }
+}
+
 class ParserTests: XCTestCase {
   func testSimpleExpr() {
     XCTAssertNoThrow(try {
@@ -290,6 +298,91 @@ class ParserTests: XCTestCase {
       
       let codeBlock = CodeBlockStmt(body: [], range: .whatever)
       XCTAssertEqualASTIgnoringRanges(ast!, codeBlock)
+    }())
+  }
+  
+  func testParseFileWithoutSemicolons() {
+    XCTAssertNoThrow(try {
+      let parser = Parser.init(sourceCode: """
+      int a = discrete({0: 0.5, 1: 0.5})
+      int b = discrete({0: 0.5, 1: 0.5})
+      int c = a + b
+      observe 0 < c
+      """)
+      let ast = try parser.parseFile()
+      
+      let discreteDistribution = DiscreteIntegerDistributionExpr(distribution: [
+        0: 0.5,
+        1: 0.5
+      ], range: .whatever)
+      let aDecl = VariableDeclStmt(variableType: .int,
+                                   variableName: "a",
+                                   expr: discreteDistribution,
+                                   range: .whatever)
+      let bDecl = VariableDeclStmt(variableType: .int,
+                                   variableName: "b",
+                                   expr: discreteDistribution,
+                                   range: .whatever)
+      let addition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "a", range: .whatever),
+                                        operator: .plus,
+                                        rhs: IdentifierExpr(name: "b", range: .whatever),
+                                        range: .whatever)
+      let cDecl = VariableDeclStmt(variableType: .int,
+                                   variableName: "c",
+                                   expr: addition,
+                                   range: .whatever)
+      let observeCondition = BinaryOperatorExpr(lhs: IntegerExpr(value: 0, range: .whatever),
+                                                operator: .lessThan,
+                                                rhs: IdentifierExpr(name: "c", range: .whatever),
+                                                range: .whatever)
+      let observeStmt = ObserveStmt(condition: observeCondition, range: .whatever)
+      
+      let stmts: [Stmt] = [aDecl, bDecl, cDecl, observeStmt]
+      
+      XCTAssertEqualASTIgnoringRanges(ast, stmts)
+    }())
+  }
+  
+  func testParseFileWithSemicolons() {
+    XCTAssertNoThrow(try {
+      let parser = Parser.init(sourceCode: """
+      int a = discrete({0: 0.5, 1: 0.5});
+      int b = discrete({0: 0.5, 1: 0.5});
+      int c = a + b;
+      observe(0 < c)
+      """)
+      let ast = try parser.parseFile()
+      
+      let discreteDistribution = DiscreteIntegerDistributionExpr(distribution: [
+        0: 0.5,
+        1: 0.5
+      ], range: .whatever)
+      let aDecl = VariableDeclStmt(variableType: .int,
+                                   variableName: "a",
+                                   expr: discreteDistribution,
+                                   range: .whatever)
+      let bDecl = VariableDeclStmt(variableType: .int,
+                                   variableName: "b",
+                                   expr: discreteDistribution,
+                                   range: .whatever)
+      let addition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "a", range: .whatever),
+                                        operator: .plus,
+                                        rhs: IdentifierExpr(name: "b", range: .whatever),
+                                        range: .whatever)
+      let cDecl = VariableDeclStmt(variableType: .int,
+                                   variableName: "c",
+                                   expr: addition,
+                                   range: .whatever)
+      let observeCondition = BinaryOperatorExpr(lhs: IntegerExpr(value: 0, range: .whatever),
+                                                operator: .lessThan,
+                                                rhs: IdentifierExpr(name: "c", range: .whatever),
+                                                range: .whatever)
+      let observeStmt = ObserveStmt(condition: ParenExpr(subExpr: observeCondition, range: .whatever),
+                                    range: .whatever)
+      
+      let stmts: [Stmt] = [aDecl, bDecl, cDecl, observeStmt]
+      
+      XCTAssertEqualASTIgnoringRanges(ast, stmts)
     }())
   }
 }

@@ -45,6 +45,19 @@ public class Parser {
     self.lexer = Lexer(sourceCode: sourceCode)
   }
   
+  // MARK: - Parse the entire file
+  
+  public func parseFile() throws -> [Stmt] {
+    var stmts = [Stmt]()
+    while true {
+      guard let stmt = try parseStmt() else {
+        break
+      }
+      stmts.append(stmt)
+    }
+    return stmts
+  }
+  
   // MARK: - Retrieving tokens
   
   /// Consume the next token and return it.
@@ -90,24 +103,30 @@ public class Parser {
   /// Returns the parsed statment or `nil` if the end of the file has been reached
   public func parseStmt() throws -> Stmt? {
     let token = try peekToken()
+    let stmt: Stmt?
     switch token?.content {
     case .int:
-      return try parseVariableDecl()
+      stmt = try parseVariableDecl()
     case .identifier:
-      return try parseAssignStmt()
+      stmt = try parseAssignStmt()
     case .observe:
-      return try parseObserverStmt()
+      stmt = try parseObserverStmt()
     case .if:
-      return try parseIfStmt()
+      stmt = try parseIfStmt()
     case .while:
-      return try parseWhileStmt()
+      stmt = try parseWhileStmt()
     case .leftBrace:
-      return try parseCodeBlock()
+      stmt = try parseCodeBlock()
     case nil:
-      return nil
+      stmt = nil
     default:
       throw ParserError(range: token!.range, message: "Expected start of statement")
     }
+    // Consume any semicolons that are separating statements
+    while try peekToken()?.content == .semicolon {
+      try consumeToken()
+    }
+    return stmt
   }
   
   /// Parse a variable declaration of the form `int x = y + 2`.
