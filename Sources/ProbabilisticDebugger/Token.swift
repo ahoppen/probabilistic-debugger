@@ -85,6 +85,35 @@ public enum TokenContent: Equatable, CustomStringConvertible {
   /// The `-` operator
   case minus
   
+  // MARK: - Checks for types with associated values
+  
+  var isIdentifier: Bool {
+    switch self {
+    case .identifier:
+      return true
+    default:
+      return false
+    }
+  }
+  
+  var isIntegerLiteral: Bool {
+    switch self {
+    case .integerLiteral:
+      return true
+    default:
+      return false
+    }
+  }
+  
+  var isFloatLiteral: Bool {
+    switch self {
+    case .floatLiteral:
+      return true
+    default:
+      return false
+    }
+  }
+  
   public var description: String {
     switch self {
     case .identifier(name: let name):

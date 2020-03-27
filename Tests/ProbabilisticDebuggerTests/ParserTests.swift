@@ -103,4 +103,45 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast, expectedAst)
     }())
   }
+  
+  func testParseVariableDeclaration() {
+    XCTAssertNoThrow(try {
+      let stmt = "int x = y + 2"
+      let parser = Parser(sourceCode: stmt)
+      let ast = try parser.parseStmt()
+      
+      let expr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "y", range: .whatever),
+                                    operator: .plus,
+                                    rhs: IntegerExpr(value: 2, range: .whatever),
+                                    range: .whatever)
+      
+      let declExpr = VariableDeclStmt(variableType: .int,
+                                      variableName: "x",
+                                      expr: expr,
+                                      range: .whatever)
+      
+      XCTAssertNotNil(ast)
+      XCTAssertEqualASTIgnoringRanges(ast!, declExpr)
+    }())
+  }
+  
+  func testVariableAssignemnt() {
+    XCTAssertNoThrow(try {
+      let stmt = "x = x + 1"
+      let parser = Parser(sourceCode: stmt)
+      let ast = try parser.parseStmt()
+      
+      let expr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+                                    operator: .plus,
+                                    rhs: IntegerExpr(value: 1, range: .whatever),
+                                    range: .whatever)
+      
+      let declExpr = AssignStmt(variableName: "x",
+                                expr: expr,
+                                range: .whatever)
+      
+      XCTAssertNotNil(ast)
+      XCTAssertEqualASTIgnoringRanges(ast!, declExpr)
+    }())
+  }
 }

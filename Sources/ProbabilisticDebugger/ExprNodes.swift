@@ -8,21 +8,6 @@ public enum BinaryOperator {
   case equal
   case lessThan
   
-  internal init?(token: TokenContent) {
-    switch token {
-    case .plus:
-      self = .plus
-    case .minus:
-      self = .minus
-    case .equalEqual:
-      self = .equal
-    case .lessThan:
-      self = .lessThan
-    default:
-      return nil
-    }
-  }
-  
   /// Returns the precedence of the operator. A greater value means higher precedence.
   internal var precedence: Int {
     switch self {
@@ -122,16 +107,6 @@ public extension ParenExpr {
 
 
 // MARK: - Debug Descriptions
-
-fileprivate extension String {
-  /// Indent each line in the given string to the given indentaiton level
-  func indented(_ level: Int = 1) -> String {
-    // Split by newline, prepend indentaiton characters and join using newline again.
-    return self.split(separator: "\n")
-      .map({ String(repeating: "  ", count: level) + $0 })
-      .joined(separator: "\n")
-  }
-}
 
 public extension BinaryOperatorExpr {
   var debugDescription: String {
