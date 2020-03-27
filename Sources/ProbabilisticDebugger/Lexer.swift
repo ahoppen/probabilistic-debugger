@@ -1,0 +1,163 @@
+public final class Lexer {
+  /// The source code to be lexed
+  let sourceCode: String
+  
+  /// The position of the next character to be lexed
+  var position: Position
+  
+  public init(sourceCode: String) {
+    self.sourceCode = sourceCode
+    self.position = Position(line: 1, column: 1, offset: sourceCode.startIndex)
+  }
+  
+  // MARK: Consume characters
+  
+  /// Returns the current character and advance the position to the next character.
+  /// If the end of the file has been reached, returns `nil`.
+  private func consume() -> Character? {
+    guard position.offset != sourceCode.endIndex else {
+      return nil
+    }
+    let char = sourceCode[position.offset]
+    position = position.advanced(in: sourceCode)
+    return char
+  }
+  
+  /// If the next character to be lexed matches the given condition, consume it and returns `true`.
+  /// If the character does not match the condition, does nothing and returns `false`.
+  /// If the end of the file has been reached, returns `false` and does not consume anything.
+  private func consume(if condition: (Character) -> Bool) -> Bool {
+    guard let char = peek() else {
+      // Nothing to consume
+      return false
+    }
+    if condition(char) {
+      _ = consume()
+      return true
+    } else {
+      return false
+    }
+  }
+  
+  /// Return the current character or `nil` if the end of the file has been reached.
+  private func peek() -> Character? {
+    guard position.offset != sourceCode.endIndex else {
+      return nil
+    }
+    return sourceCode[position.offset]
+  }
+  
+  /// Consumes all whitespace until the next non-whitespace character.
+  private func consumeWhitespace() {
+    while true {
+      let whitespaceConsumed = consume(if: { $0.isWhitespace })
+      if !whitespaceConsumed {
+        break
+      }
+    }
+  }
+  
+  // MARK: Lex single tokens
+  
+  /// Lexes the next token in the source file and returns it.
+  /// If the end of the file has been reached, returns `nil`.
+  public func lexToken() throws -> Token? {
+    consumeWhitespace()
+    
+    let start = position
+    let char = consume()
+    
+    let content: TokenContent
+    switch char {
+    case nil:
+      // Reached the end of the file
+      return nil
+    case "(":
+      content = .leftParen
+    case ")":
+      content = .rightParen
+    case "{":
+      content = .leftBrace
+    case "}":
+      content = .rightBrace
+    case "=":
+      if consume(if: { $0 == "=" }) {
+        content = .equalEqual
+      } else {
+        content = .equal
+      }
+    case ":":
+      content = .colon
+    case ",":
+      content = .comma
+    case ";":
+      content = .semicolon
+    case "<":
+      content = .lessThan
+    case "+":
+      content = .plus
+    case "-":
+      content = .minus
+    case let char? where char.isNumber:
+      content = lexIntegerLiteralContent(firstChar: char)
+    case let char? where char.isLetter:
+      content = lexIdentifierOrKeywordContents(firstChar: char)
+    case let char? where char.isWhitespace:
+      fatalError("This should have been consumed by consumeWhitespace before")
+    default:
+      throw ParserError(position: start, message: "Unexpected character \(char!)")
+    }
+    
+    let end = position
+    
+    return Token(content: content, range: start..<end)
+  }
+  
+  /// Lexes the next token as an integer literal.
+  /// Assumes that the current lexing character is a number.
+  /// - Parameter firstChar: The first character of the integer literal which has already been consumed
+  /// - Returns: The lexed integer literal
+  private func lexIntegerLiteralContent(firstChar: Character) -> TokenContent {
+    assert(firstChar.isNumber, "Lexing an integer literal that didn't start with a number")
+    
+    var stringContent = String(firstChar)
+    while peek()?.isNumber == true {
+      stringContent.append(consume()!)
+    }
+    
+    assert(stringContent.allSatisfy({ $0.isNumber }))
+    let intContent = Int(stringContent)!
+    
+    return .integerLiteral(value: intContent)
+  }
+  
+  /// Lexes the next token as an identifier or keyword.
+  /// Assumes that the current lexing character is a letter.
+  /// - Parameter firstChar: The first character of the identifier/keyword which has already been consumed
+  /// - Returns: The lexed keyword/identifier
+  private func lexIdentifierOrKeywordContents(firstChar: Character) -> TokenContent {
+    assert(firstChar.isLetter, "Lexing an identifier or keyword token that didn't start with a letter")
+    
+    var content = String(firstChar)
+    while peek()?.isLetter == true {
+      content.append(consume()!)
+    }
+    
+    assert(content.allSatisfy({ $0.isLetter }))
+    
+    switch content {
+    case "if":
+      return .if
+    case "else":
+      return .else
+    case "while":
+      return .while
+    case "int":
+      return .int
+    case "observe":
+      return .observe
+    default:
+      return .identifier(content: content)
+    }
+  }
+}
