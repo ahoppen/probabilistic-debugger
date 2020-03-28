@@ -28,14 +28,6 @@ public struct VariableDeclStmt: Stmt {
     self.expr = expr
     self.range = range
   }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
-  }
 }
 
 /// An assignment to an already declared variable. E.g. `x = x + 1`
@@ -52,14 +44,6 @@ public struct AssignStmt: Stmt {
     self.expr = expr
     self.range = range
   }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
-  }
 }
 
 public struct ObserveStmt: Stmt {
@@ -70,14 +54,6 @@ public struct ObserveStmt: Stmt {
   public init(condition: Expr, range: Range<Position>) {
     self.condition = condition
     self.range = range
-  }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
   }
 }
 
@@ -90,14 +66,6 @@ public struct CodeBlockStmt: Stmt {
   public init(body: [Stmt], range: Range<Position>) {
     self.body = body
     self.range = range
-  }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
   }
 }
 
@@ -112,14 +80,6 @@ public struct IfStmt: Stmt {
     self.body = body
     self.range = range
   }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
-  }
 }
 
 public struct WhileStmt: Stmt {
@@ -133,9 +93,87 @@ public struct WhileStmt: Stmt {
     self.body = body
     self.range = range
   }
-  
+}
+
+// MARK: - AST Visitation
+
+extension VariableDeclStmt {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension AssignStmt {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension ObserveStmt {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension CodeBlockStmt {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension IfStmt {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension WhileStmt {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
   }
   
   public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {

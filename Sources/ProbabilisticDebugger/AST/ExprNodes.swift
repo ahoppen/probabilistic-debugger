@@ -32,14 +32,6 @@ public struct BinaryOperatorExpr: Expr {
     self.operator = op
     self.range = range
   }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
-  }
 }
 
 public struct IntegerExpr: Expr {
@@ -49,14 +41,6 @@ public struct IntegerExpr: Expr {
   public init(value: Int, range: Range<Position>) {
     self.value = value
     self.range = range
-  }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
   }
 }
 
@@ -68,14 +52,6 @@ public struct VariableExpr: Expr {
     self.variable = variable
     self.range = range
   }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
-  }
 }
 
 public struct ParenExpr: Expr {
@@ -85,14 +61,6 @@ public struct ParenExpr: Expr {
   public init(subExpr: Expr, range: Range<Position>) {
     self.subExpr = subExpr
     self.range = range
-  }
-  
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
-    visitor.visit(self)
-  }
-  
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
   }
 }
 
@@ -104,9 +72,74 @@ public struct DiscreteIntegerDistributionExpr: Expr {
     self.distribution = distribution
     self.range = range
   }
-  
+}
+
+// MARK: - Visitation
+
+
+extension BinaryOperatorExpr {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension IntegerExpr {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension VariableExpr {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension ParenExpr {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
+}
+
+extension DiscreteIntegerDistributionExpr {
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+    try visitor.visit(self)
   }
   
   public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
