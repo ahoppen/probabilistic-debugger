@@ -36,6 +36,10 @@ public struct BinaryOperatorExpr: Expr {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
 }
 
 public struct IntegerExpr: Expr {
@@ -50,19 +54,27 @@ public struct IntegerExpr: Expr {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
 }
 
-public struct IdentifierExpr: Expr {
-  public let name: String
+public struct VariableExpr: Expr {
+  public let variable: UnresolvedVariable
   public let range: Range<Position>
   
-  public init(name: String, range: Range<Position>) {
-    self.name = name
+  public init(variable: UnresolvedVariable, range: Range<Position>) {
+    self.variable = variable
     self.range = range
   }
   
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
   }
 }
 
@@ -78,6 +90,10 @@ public struct ParenExpr: Expr {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
 }
 
 public struct DiscreteIntegerDistributionExpr: Expr {
@@ -91,6 +107,10 @@ public struct DiscreteIntegerDistributionExpr: Expr {
   
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
   }
 }
 
@@ -117,12 +137,12 @@ public extension IntegerExpr {
   }
 }
 
-public extension IdentifierExpr {
+public extension VariableExpr {
   func equalsIgnoringRange(other: ASTNode) -> Bool {
-    guard let other = other as? IdentifierExpr else {
+    guard let other = other as? VariableExpr else {
       return false
     }
-    return self.name == other.name
+    return self.variable.hasSameName(as: other.variable)
   }
 }
 

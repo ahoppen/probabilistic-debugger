@@ -7,6 +7,7 @@ public protocol ASTNode: CustomDebugStringConvertible {
   func equalsIgnoringRange(other: ASTNode) -> Bool
   
   func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self
 }
 
 public extension ASTNode {

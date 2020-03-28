@@ -144,7 +144,7 @@ public class Parser {
     
     let expr = try parseExpr()
     
-    return VariableDeclStmt(variableType: type, variableName: variableName, expr: expr, range: variableTypeToken.range.lowerBound..<expr.range.upperBound)
+    return VariableDeclStmt(variable: Variable(name: variableName, type: type), expr: expr, range: variableTypeToken.range.lowerBound..<expr.range.upperBound)
   }
   
   /// Parse an assignment to an already declared variable. E.g. `x = x + 1`
@@ -160,7 +160,7 @@ public class Parser {
     
     let expr = try parseExpr()
     
-    return AssignStmt(variableName: variableName, expr: expr, range: variableIdentifier.range.lowerBound..<expr.range.upperBound)
+    return AssignStmt(variable: .unresolved(name: variableName), expr: expr, range: variableIdentifier.range.lowerBound..<expr.range.upperBound)
   }
   
   private func parseIfStmt() throws -> IfStmt {
@@ -251,7 +251,7 @@ public class Parser {
     case .integerLiteral(let value):
       return IntegerExpr(value: value, range: nextToken.range)
     case .identifier(name: let name):
-      return IdentifierExpr(name: name, range: nextToken.range)
+      return VariableExpr(variable: .unresolved(name: name), range: nextToken.range)
     case .discrete:
       return try parseDiscreteProbabilityDistribution(discreteKeyword: nextToken)
     case .leftParen:

@@ -13,8 +13,8 @@ struct ASTDebugDescriptionGenerator: ASTVisitor {
     return "▷ IntegerExpr(\(expr.value))"
   }
   
-  func visit(_ expr: IdentifierExpr) -> String {
-    return "▷ IdentifierExpr(\(expr.name))"
+  func visit(_ expr: VariableExpr) -> String {
+    return "▷ VariableExpr(\(expr.variable.debugDescription))"
   }
   
   func visit(_ expr: ParenExpr) -> String {
@@ -34,14 +34,14 @@ struct ASTDebugDescriptionGenerator: ASTVisitor {
   
   func visit(_ stmt: VariableDeclStmt) -> String {
     return """
-      ▽ VariableDeclStmt(name: \(stmt.variableName), type: \(stmt.variableType))
+      ▽ VariableDeclStmt(name: \(stmt.variable.name), type: \(stmt.variable.type))
       \(stmt.expr.debugDescription.indented())
       """
   }
   
   func visit(_ stmt: AssignStmt) -> String {
     return """
-      ▽ AssignStmt(name: \(stmt.variableName))
+      ▽ AssignStmt(name: \(stmt.variable.debugDescription))
       \(stmt.expr.debugDescription.indented())
       """
   }

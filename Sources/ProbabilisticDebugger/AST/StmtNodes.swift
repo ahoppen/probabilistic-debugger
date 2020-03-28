@@ -16,44 +16,49 @@ public enum Type: CustomStringConvertible, Equatable {
 
 /// A declaration of a new variable. E.g. `int x = y + 2`
 public struct VariableDeclStmt: Stmt {
-  /// The type of the variable that's being declaredn
-  public let variableType: Type
-  /// The name of the variable that's being declared
-  public let variableName: String
+  /// The variable that's being declared
+  public let variable: Variable
   /// The expression that's assigned to the variable
   public let expr: Expr
   
   public let range: Range<Position>
   
-  public init(variableType: Type, variableName: String, expr: Expr, range: Range<Position>) {
-    self.variableType = variableType
-    self.variableName = variableName
+  public init(variable: Variable, expr: Expr, range: Range<Position>) {
+    self.variable = variable
     self.expr = expr
     self.range = range
   }
   
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
   }
 }
 
 /// An assignment to an already declared variable. E.g. `x = x + 1`
 public struct AssignStmt: Stmt {
   /// The variable that's being assigned a value
-  public let variableName: String
+  public let variable: UnresolvedVariable
   /// The expression that's assigned to the variable
   public let expr: Expr
   
   public let range: Range<Position>
   
-  public init(variableName: String, expr: Expr, range: Range<Position>) {
-    self.variableName = variableName
+  public init(variable: UnresolvedVariable, expr: Expr, range: Range<Position>) {
+    self.variable = variable
     self.expr = expr
     self.range = range
   }
   
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
   }
 }
 
@@ -70,6 +75,10 @@ public struct ObserveStmt: Stmt {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
 }
 
 /// A code block that contains multiple statements inside braces.
@@ -85,6 +94,10 @@ public struct CodeBlockStmt: Stmt {
   
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
+  }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
   }
 }
 
@@ -103,6 +116,10 @@ public struct IfStmt: Stmt {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
 }
 
 public struct WhileStmt: Stmt {
@@ -120,6 +137,10 @@ public struct WhileStmt: Stmt {
   public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
+  
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
+    return visitor.visit(self)
+  }
 }
 
 // MARK: - Equality ignoring ranges
@@ -129,8 +150,7 @@ extension VariableDeclStmt {
     guard let other = other as? VariableDeclStmt else {
       return false
     }
-    return self.variableType == other.variableType &&
-      self.variableName == other.variableName &&
+    return self.variable.name == other.variable.name &&
       self.expr.equalsIgnoringRange(other: other.expr)
   }
 }
@@ -140,7 +160,7 @@ extension AssignStmt {
     guard let other = other as? AssignStmt else {
       return false
     }
-    return self.variableName == other.variableName &&
+    return self.variable.hasSameName(as: other.variable) &&
       self.expr.equalsIgnoringRange(other: other.expr)
   }
 }

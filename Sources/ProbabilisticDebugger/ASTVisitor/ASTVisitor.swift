@@ -3,7 +3,7 @@ public protocol ASTVisitor {
   
   func visit(_ expr: BinaryOperatorExpr) -> ReturnType
   func visit(_ expr: IntegerExpr) -> ReturnType
-  func visit(_ expr: IdentifierExpr) -> ReturnType
+  func visit(_ expr: VariableExpr) -> ReturnType
   func visit(_ expr: ParenExpr) -> ReturnType
   func visit(_ expr: DiscreteIntegerDistributionExpr) -> ReturnType
   func visit(_ stmt: VariableDeclStmt) -> ReturnType

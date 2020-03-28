@@ -1,23 +1,6 @@
 import ProbabilisticDebugger
 import XCTest
 
-fileprivate extension Range where Bound == Position {
-  /// Some range whoe value is not important because it will not be used when comparing ASTs using `equalsIgnoringRange`.
-  static let whatever = Position(line: 0, column: 0, offset: "".startIndex)..<Position(line: 0, column: 0, offset: "".startIndex)
-}
-
-/// Check that the two ASTs are equal while ignoring their ranges.
-func XCTAssertEqualASTIgnoringRanges(_ lhs: ASTNode, _ rhs: ASTNode) {
-  XCTAssert(lhs.equalsIgnoringRange(other: rhs), "\n\(lhs.debugDescription)\nis not equal to \n\n\(rhs.debugDescription)")
-}
-
-/// Check that the two ASTs are equal while ignoring their ranges.
-func XCTAssertEqualASTIgnoringRanges(_ lhs: [ASTNode], _ rhs: [ASTNode]) {
-  XCTAssertEqual(lhs.count, rhs.count)
-  for (lhs, rhs) in zip(lhs, rhs) {
-    XCTAssertEqualASTIgnoringRanges(lhs, rhs)
-  }
-}
 
 class ParserTests: XCTestCase {
   func testSimpleExpr() {
@@ -71,7 +54,7 @@ class ParserTests: XCTestCase {
     XCTAssertNoThrow(try {
       let parser = Parser(sourceCode: "x")
       let ast = try parser.parseExpr()
-      let expectedAst = IdentifierExpr(name: "x", range: .whatever)
+      let expectedAst = VariableExpr(variable: .unresolved(name: "x"), range: .whatever)
       
       XCTAssertEqualASTIgnoringRanges(ast, expectedAst)
     }())
@@ -131,13 +114,12 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: stmt)
       let ast = try parser.parseStmt()
       
-      let expr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "y", range: .whatever),
+      let expr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "y"), range: .whatever),
                                     operator: .plus,
                                     rhs: IntegerExpr(value: 2, range: .whatever),
                                     range: .whatever)
       
-      let declExpr = VariableDeclStmt(variableType: .int,
-                                      variableName: "x",
+      let declExpr = VariableDeclStmt(variable: Variable(name: "x", type: .int),
                                       expr: expr,
                                       range: .whatever)
       
@@ -152,12 +134,12 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: stmt)
       let ast = try parser.parseStmt()
       
-      let expr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+      let expr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                     operator: .plus,
                                     rhs: IntegerExpr(value: 1, range: .whatever),
                                     range: .whatever)
       
-      let declExpr = AssignStmt(variableName: "x",
+      let declExpr = AssignStmt(variable: .unresolved(name: "x"),
                                 expr: expr,
                                 range: .whatever)
       
@@ -177,19 +159,18 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: sourceCode)
       let ast = try parser.parseStmt()
       
-      let varDecl = VariableDeclStmt(variableType: .int,
-                                     variableName: "y",
+      let varDecl = VariableDeclStmt(variable: Variable(name: "y", type: .int),
                                      expr: IntegerExpr(value: 2, range: .whatever),
                                      range: .whatever)
-      let addExpr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "y", range: .whatever),
+      let addExpr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "y"), range: .whatever),
                                        operator: .plus,
                                        rhs: IntegerExpr(value: 1, range: .whatever),
                                        range: .whatever)
-      let assign = AssignStmt(variableName: "y",
+      let assign = AssignStmt(variable: .unresolved(name: "y"),
                               expr: addExpr,
                               range: .whatever)
       let codeBlock = CodeBlockStmt(body: [varDecl, assign], range: .whatever)
-      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+      let condition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                          operator: .equal,
                                          rhs: IntegerExpr(value: 1, range: .whatever),
                                          range: .whatever)
@@ -209,19 +190,18 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: sourceCode)
       let ast = try parser.parseStmt()
       
-      let varDecl = VariableDeclStmt(variableType: .int,
-                                     variableName: "y",
+      let varDecl = VariableDeclStmt(variable: Variable(name: "y", type: .int),
                                      expr: IntegerExpr(value: 2, range: .whatever),
                                      range: .whatever)
-      let addExpr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "y", range: .whatever),
+      let addExpr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "y"), range: .whatever),
                                        operator: .plus,
                                        rhs: IntegerExpr(value: 1, range: .whatever),
                                        range: .whatever)
-      let assign = AssignStmt(variableName: "y",
+      let assign = AssignStmt(variable: .unresolved(name: "y"),
                               expr: addExpr,
                               range: .whatever)
       let codeBlock = CodeBlockStmt(body: [varDecl, assign], range: .whatever)
-      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+      let condition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                          operator: .equal,
                                          rhs: IntegerExpr(value: 1, range: .whatever),
                                          range: .whatever)
@@ -241,20 +221,20 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: sourceCode)
       let ast = try parser.parseStmt()
       
-      let subExpr = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+      let subExpr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                        operator: .minus,
                                        rhs: IntegerExpr(value: 1, range: .whatever),
                                        range: .whatever)
-      let assign = AssignStmt(variableName: "x",
+      let assign = AssignStmt(variable: .unresolved(name: "x"),
                               expr: subExpr,
                               range: .whatever)
       let codeBlock = CodeBlockStmt(body: [assign], range: .whatever)
       let condition = BinaryOperatorExpr(lhs: IntegerExpr(value: 1, range: .whatever),
                                          operator: .lessThan,
-                                         rhs: IdentifierExpr(name: "x", range: .whatever),
+                                         rhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                          range: .whatever)
-      let ifStmt = WhileStmt(condition: condition, body: codeBlock, range: .whatever)
-      XCTAssertEqualASTIgnoringRanges(ast!, ifStmt)
+      let whileStmt = WhileStmt(condition: condition, body: codeBlock, range: .whatever)
+      XCTAssertEqualASTIgnoringRanges(ast!, whileStmt)
     }())
   }
   
@@ -264,7 +244,7 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: stmt)
       let ast = try parser.parseStmt()
       
-      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+      let condition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                          operator: .lessThan,
                                          rhs: IntegerExpr(value: 0, range: .whatever),
                                          range: .whatever)
@@ -280,7 +260,7 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: stmt)
       let ast = try parser.parseStmt()
       
-      let condition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "x", range: .whatever),
+      let condition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "x"), range: .whatever),
                                          operator: .lessThan,
                                          rhs: IntegerExpr(value: 0, range: .whatever),
                                          range: .whatever)
@@ -315,25 +295,22 @@ class ParserTests: XCTestCase {
         0: 0.5,
         1: 0.5
       ], range: .whatever)
-      let aDecl = VariableDeclStmt(variableType: .int,
-                                   variableName: "a",
+      let aDecl = VariableDeclStmt(variable: Variable(name: "a", type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
-      let bDecl = VariableDeclStmt(variableType: .int,
-                                   variableName: "b",
+      let bDecl = VariableDeclStmt(variable: Variable(name: "b", type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
-      let addition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "a", range: .whatever),
+      let addition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "a"), range: .whatever),
                                         operator: .plus,
-                                        rhs: IdentifierExpr(name: "b", range: .whatever),
+                                        rhs: VariableExpr(variable: .unresolved(name: "b"), range: .whatever),
                                         range: .whatever)
-      let cDecl = VariableDeclStmt(variableType: .int,
-                                   variableName: "c",
+      let cDecl = VariableDeclStmt(variable: Variable(name: "c", type: .int),
                                    expr: addition,
                                    range: .whatever)
       let observeCondition = BinaryOperatorExpr(lhs: IntegerExpr(value: 0, range: .whatever),
                                                 operator: .lessThan,
-                                                rhs: IdentifierExpr(name: "c", range: .whatever),
+                                                rhs: VariableExpr(variable: .unresolved(name: "c"), range: .whatever),
                                                 range: .whatever)
       let observeStmt = ObserveStmt(condition: observeCondition, range: .whatever)
       
@@ -357,25 +334,22 @@ class ParserTests: XCTestCase {
         0: 0.5,
         1: 0.5
       ], range: .whatever)
-      let aDecl = VariableDeclStmt(variableType: .int,
-                                   variableName: "a",
+      let aDecl = VariableDeclStmt(variable: Variable(name: "a", type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
-      let bDecl = VariableDeclStmt(variableType: .int,
-                                   variableName: "b",
+      let bDecl = VariableDeclStmt(variable: Variable(name: "b", type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
-      let addition = BinaryOperatorExpr(lhs: IdentifierExpr(name: "a", range: .whatever),
+      let addition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "a"), range: .whatever),
                                         operator: .plus,
-                                        rhs: IdentifierExpr(name: "b", range: .whatever),
+                                        rhs: VariableExpr(variable: .unresolved(name: "b"), range: .whatever),
                                         range: .whatever)
-      let cDecl = VariableDeclStmt(variableType: .int,
-                                   variableName: "c",
+      let cDecl = VariableDeclStmt(variable: Variable(name: "c", type: .int),
                                    expr: addition,
                                    range: .whatever)
       let observeCondition = BinaryOperatorExpr(lhs: IntegerExpr(value: 0, range: .whatever),
                                                 operator: .lessThan,
-                                                rhs: IdentifierExpr(name: "c", range: .whatever),
+                                                rhs: VariableExpr(variable: .unresolved(name: "c"), range: .whatever),
                                                 range: .whatever)
       let observeStmt = ObserveStmt(condition: ParenExpr(subExpr: observeCondition, range: .whatever),
                                     range: .whatever)

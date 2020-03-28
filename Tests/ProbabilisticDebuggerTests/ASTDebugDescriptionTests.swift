@@ -16,11 +16,11 @@ class ASTDebugDescriptionTests: XCTestCase {
         ▽ Condition
           ▽ BinaryOperatorExpr(lessThan)
             ▷ IntegerExpr(1)
-            ▷ IdentifierExpr(x)
+            ▷ VariableExpr(x (unresolved))
         ▽ CodeBlockStmt
-          ▽ AssignStmt(name: x)
+          ▽ AssignStmt(name: x (unresolved))
             ▽ BinaryOperatorExpr(minus)
-              ▷ IdentifierExpr(x)
+              ▷ VariableExpr(x (unresolved))
               ▷ IntegerExpr(1)
       """)
   }
