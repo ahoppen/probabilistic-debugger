@@ -32,6 +32,10 @@ public struct BinaryOperatorExpr: Expr {
     self.operator = op
     self.range = range
   }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
 }
 
 public struct IntegerExpr: Expr {
@@ -41,6 +45,10 @@ public struct IntegerExpr: Expr {
   public init(value: Int, range: Range<Position>) {
     self.value = value
     self.range = range
+  }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
   }
 }
 
@@ -52,6 +60,10 @@ public struct IdentifierExpr: Expr {
     self.name = name
     self.range = range
   }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
 }
 
 public struct ParenExpr: Expr {
@@ -62,6 +74,10 @@ public struct ParenExpr: Expr {
     self.subExpr = subExpr
     self.range = range
   }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
 }
 
 public struct DiscreteIntegerDistributionExpr: Expr {
@@ -71,6 +87,10 @@ public struct DiscreteIntegerDistributionExpr: Expr {
   public init(distribution: [Int: Double], range: Range<Position>) {
     self.distribution = distribution
     self.range = range
+  }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
   }
 }
 
@@ -121,49 +141,5 @@ public extension DiscreteIntegerDistributionExpr {
       return false
     }
     return self.distribution == other.distribution
-  }
-}
-
-
-// MARK: - Debug Descriptions
-
-public extension BinaryOperatorExpr {
-  var debugDescription: String {
-    return """
-      ▽ BinaryOperatorExpr(\(self.operator))
-      \(lhs.debugDescription.indented())
-      \(rhs.debugDescription.indented())
-      """
-  }
-}
-
-public extension IntegerExpr {
-  var debugDescription: String {
-    return "▷ IntegerExpr(\(value))"
-  }
-}
-
-public extension IdentifierExpr {
-  var debugDescription: String {
-    return "▷ IdentifierExpr(\(name))"
-  }
-}
-
-public extension ParenExpr {
-  var debugDescription: String {
-    return """
-      ▽ ParenExpr
-      \(subExpr.debugDescription.indented())
-      """
-  }
-}
-
-public extension DiscreteIntegerDistributionExpr {
-  var debugDescription: String {
-    let distributionDescription = self.distribution.map({ "\($0.key): \($0.value)"}).joined(separator: "\n")
-    return """
-      ▽ DiscreteIntegerDistributionExpr
-      \(distributionDescription.indented())
-      """
   }
 }

@@ -31,6 +31,10 @@ public struct VariableDeclStmt: Stmt {
     self.expr = expr
     self.range = range
   }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
 }
 
 /// An assignment to an already declared variable. E.g. `x = x + 1`
@@ -47,6 +51,10 @@ public struct AssignStmt: Stmt {
     self.expr = expr
     self.range = range
   }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
 }
 
 public struct ObserveStmt: Stmt {
@@ -57,6 +65,10 @@ public struct ObserveStmt: Stmt {
   public init(condition: Expr, range: Range<Position>) {
     self.condition = condition
     self.range = range
+  }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
   }
 }
 
@@ -69,6 +81,10 @@ public struct CodeBlockStmt: Stmt {
   public init(body: [Stmt], range: Range<Position>) {
     self.body = body
     self.range = range
+  }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
   }
 }
 
@@ -83,6 +99,10 @@ public struct IfStmt: Stmt {
     self.body = body
     self.range = range
   }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
+  }
 }
 
 public struct WhileStmt: Stmt {
@@ -95,6 +115,10 @@ public struct WhileStmt: Stmt {
     self.condition = condition
     self.body = body
     self.range = range
+  }
+  
+  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+    visitor.visit(self)
   }
 }
 
@@ -161,65 +185,5 @@ extension WhileStmt {
     }
     return self.condition.equalsIgnoringRange(other: other.condition) &&
       self.body.equalsIgnoringRange(other: other.body)
-  }
-}
-
-// MARK: - Debug descriptions
-
-extension VariableDeclStmt {
-  public var debugDescription: String {
-    return """
-      ▽ VariableDeclStmt(name: \(variableName), type: \(variableType))"
-      \(expr.debugDescription.indented())
-      """
-  }
-}
-
-extension AssignStmt {
-  public var debugDescription: String {
-    return """
-      ▽ AssignStmt(name: \(variableName))"
-      \(expr.debugDescription.indented())
-      """
-  }
-}
-
-extension ObserveStmt {
-  public var debugDescription: String {
-    return """
-      ▽ ObserveStmt
-      \(condition.debugDescription.indented())
-      """
-  }
-}
-
-extension CodeBlockStmt {
-  public var debugDescription: String {
-    return """
-      ▽ CodeBlockStmt
-      \(body.map({ $0.debugDescription }).joined(separator: "\n").indented())
-      """
-  }
-}
-
-extension IfStmt {
-  public var debugDescription: String {
-    return """
-      ▽ IfStmt"
-        ▽ Condition
-      \(condition.debugDescription.indented(2))
-      \(body.debugDescription.indented())
-      """
-  }
-}
-
-extension WhileStmt {
-  public var debugDescription: String {
-    return """
-      ▽ WhileStmt"
-        ▽ Condition
-      \(condition.debugDescription.indented(2))
-      \(body.debugDescription.indented())
-      """
   }
 }
