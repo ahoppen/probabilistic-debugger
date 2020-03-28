@@ -8,7 +8,7 @@ public protocol ASTNode: CustomDebugStringConvertible {
   
   func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType
   func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType
-  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self
 }
 
 public extension ASTNode {

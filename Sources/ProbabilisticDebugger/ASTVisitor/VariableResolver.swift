@@ -32,15 +32,9 @@ fileprivate class VariableScope {
 /// While doing it, checks that no variable is declared twice or used before being defined.
 internal class VariableResolver: ASTRewriter {
   private var variableScope = VariableScope(outerScope: nil)
-  private var errors: [ParserError] = []
   
   public func resolveVariables(in stmts: [Stmt]) throws -> [Stmt] {
-    let resolvedStmts = stmts.map({ $0.accept(self) })
-    // We are gathering all errors but our current approach of throwing the first error does not allow us to return all errors.
-    if let firstError = errors.first {
-      throw firstError
-    }
-    return resolvedStmts
+    return try stmts.map({ try $0.accept(self) })
   }
   
   // MARK: - Handle scopes
@@ -58,46 +52,43 @@ internal class VariableResolver: ASTRewriter {
   
   // MARK: - Visit nodes
   
-  func visit(_ stmt: CodeBlockStmt) -> CodeBlockStmt {
+  func visit(_ stmt: CodeBlockStmt) throws -> CodeBlockStmt {
     pushScope()
     defer { popScope() }
     
-    return CodeBlockStmt(body: stmt.body.map( { $0.accept(self) }),
+    return CodeBlockStmt(body: try stmt.body.map( { try $0.accept(self) }),
                          range: stmt.range)
   }
   
-  func visit(_ stmt: VariableDeclStmt) -> VariableDeclStmt {
+  func visit(_ stmt: VariableDeclStmt) throws -> VariableDeclStmt {
     guard !variableScope.isDeclared(name: stmt.variable.name) else {
-      errors.append(ParserError(range: stmt.range, message: "Variable '\(stmt.variable.name)' is already declared."))
-      return stmt
+      throw ParserError(range: stmt.range, message: "Variable '\(stmt.variable.name)' is already declared.")
     }
-    let resolvedExpr = stmt.expr.accept(self)
+    let resolvedExpr = try stmt.expr.accept(self)
     variableScope.declare(variable: stmt.variable)
     return VariableDeclStmt(variable: stmt.variable,
                             expr: resolvedExpr,
                             range: stmt.range)
   }
   
-  func visit(_ stmt: AssignStmt) -> AssignStmt {
+  func visit(_ stmt: AssignStmt) throws -> AssignStmt {
     guard case .unresolved(let name) = stmt.variable else {
       fatalError("Variable has already been resolved")
     }
     guard let variable = variableScope.lookup(name: name) else {
-      errors.append(ParserError(range: stmt.range, message: "Variable '\(name)' has not been declared"))
-      return stmt
+      throw ParserError(range: stmt.range, message: "Variable '\(name)' has not been declared")
     }
     return AssignStmt(variable: .resolved(variable),
-                      expr: stmt.expr.accept(self),
+                      expr: try stmt.expr.accept(self),
                       range: stmt.range)
   }
   
-  func visit(_ expr: VariableExpr) -> VariableExpr {
+  func visit(_ expr: VariableExpr) throws -> VariableExpr {
     guard case .unresolved(let name) = expr.variable else {
       fatalError("Variable has already been resolved")
     }
     guard let variable = variableScope.lookup(name: name) else {
-      errors.append(ParserError(range: expr.range, message: "Variable '\(name)' has not been declared"))
-      return expr
+      throw ParserError(range: expr.range, message: "Variable '\(name)' has not been declared")
     }
     return VariableExpr(variable: .resolved(variable),
                           range: expr.range)

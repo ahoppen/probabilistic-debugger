@@ -106,8 +106,8 @@ extension VariableDeclStmt {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -120,8 +120,8 @@ extension AssignStmt {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -134,8 +134,8 @@ extension ObserveStmt {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -148,8 +148,8 @@ extension CodeBlockStmt {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -162,8 +162,8 @@ extension IfStmt {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -176,8 +176,8 @@ extension WhileStmt {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 

@@ -86,8 +86,8 @@ extension BinaryOperatorExpr {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -100,8 +100,8 @@ extension IntegerExpr {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -114,8 +114,8 @@ extension VariableExpr {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -128,8 +128,8 @@ extension ParenExpr {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
@@ -142,8 +142,8 @@ extension DiscreteIntegerDistributionExpr {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) -> Self {
-    return visitor.visit(self)
+  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
   }
 }
 
