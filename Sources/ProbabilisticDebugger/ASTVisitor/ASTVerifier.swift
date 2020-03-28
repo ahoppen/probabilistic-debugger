@@ -14,3 +14,48 @@ public protocol ASTVerifier {
   func visit(_ stmt: IfStmt) throws -> ReturnType
   func visit(_ stmt: WhileStmt) throws -> ReturnType
 }
+
+extension ASTVerifier where ReturnType == Void {
+  func visit(_ expr: BinaryOperatorExpr) throws {
+    try expr.lhs.accept(self)
+    try expr.rhs.accept(self)
+  }
+  
+  func visit(_ expr: IntegerExpr) throws {}
+  
+  func visit(_ expr: VariableExpr) throws {}
+  
+  func visit(_ expr: ParenExpr) throws {
+    try expr.subExpr.accept(self)
+  }
+  
+  func visit(_ expr: DiscreteIntegerDistributionExpr) throws {}
+  
+  func visit(_ stmt: VariableDeclStmt) throws {
+    try stmt.expr.accept(self)
+  }
+  
+  func visit(_ stmt: AssignStmt) throws {
+    try stmt.expr.accept(self)
+  }
+  
+  func visit(_ stmt: ObserveStmt) throws {
+    try stmt.condition.accept(self)
+  }
+  
+  func visit(_ codeBlock: CodeBlockStmt) throws {
+    for stmt in codeBlock.body {
+      try stmt.accept(self)
+    }
+  }
+  
+  func visit(_ stmt: IfStmt) throws {
+    try stmt.condition.accept(self)
+    try stmt.body.accept(self)
+  }
+  
+  func visit(_ stmt: WhileStmt) throws {
+    try stmt.condition.accept(self)
+    try stmt.body.accept(self)
+  }
+}
