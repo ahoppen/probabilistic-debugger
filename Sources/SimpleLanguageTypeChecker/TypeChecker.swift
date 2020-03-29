@@ -1,4 +1,7 @@
-class TypeChecker: ASTVerifier {
+import SimpleLanguageAST
+import SimpleLanguageParser
+
+internal class TypeChecker: ASTVerifier {
   /// The type of an expression or `nil` if the verifier runs on a statement (which naturally doesn't have a type).
   typealias ReturnType = Type?
   

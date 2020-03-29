@@ -1,4 +1,7 @@
-@testable import ProbabilisticDebugger
+import SimpleLanguageParser
+
+@testable import SimpleLanguageTypeChecker
+
 import XCTest
 
 class TypeCheckerTests: XCTestCase {

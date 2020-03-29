@@ -1,4 +1,6 @@
-import ProbabilisticDebugger
+@testable import SimpleLanguageParser
+
+import SimpleLanguageAST
 import XCTest
 
 fileprivate extension Lexer {

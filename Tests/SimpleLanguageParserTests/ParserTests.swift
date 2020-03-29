@@ -1,4 +1,8 @@
-import ProbabilisticDebugger
+import SimpleLanguageAST
+import TestUtils
+
+@testable import SimpleLanguageParser
+
 import XCTest
 
 

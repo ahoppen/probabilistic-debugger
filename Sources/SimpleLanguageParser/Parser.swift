@@ -1,4 +1,6 @@
-extension Token {
+import SimpleLanguageAST
+
+fileprivate extension Token {
   var isOperator: Bool {
     return BinaryOperator(token: self.content) != nil
   }
@@ -101,7 +103,7 @@ public class Parser {
   
   /// Parse a statement.
   /// Returns the parsed statment or `nil` if the end of the file has been reached
-  public func parseStmt() throws -> Stmt? {
+  internal func parseStmt() throws -> Stmt? {
     let token = try peekToken()
     let stmt: Stmt?
     switch token?.content {
@@ -215,7 +217,7 @@ public class Parser {
   // MARK: - Parse expressions
   
   /// Parse an expression
-  public func parseExpr() throws -> Expr {
+  internal func parseExpr() throws -> Expr {
     return try parseExprImpl(precedenceHigherThan: 0)
   }
   

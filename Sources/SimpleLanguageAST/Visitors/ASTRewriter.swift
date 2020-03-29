@@ -14,7 +14,7 @@ public protocol ASTRewriter {
   func visit(_ stmt: WhileStmt) throws -> WhileStmt
 }
 
-extension ASTRewriter {
+public extension ASTRewriter {
   func visit(_ expr: BinaryOperatorExpr) throws -> BinaryOperatorExpr {
     return BinaryOperatorExpr(lhs: try expr.lhs.accept(self),
                               operator: expr.operator,

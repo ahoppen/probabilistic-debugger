@@ -15,7 +15,7 @@ public protocol ASTVerifier {
   func visit(_ stmt: WhileStmt) throws -> ReturnType
 }
 
-extension ASTVerifier where ReturnType == Void {
+public extension ASTVerifier where ReturnType == Void {
   func visit(_ expr: BinaryOperatorExpr) throws {
     try expr.lhs.accept(self)
     try expr.rhs.accept(self)

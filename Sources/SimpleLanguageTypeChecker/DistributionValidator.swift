@@ -1,5 +1,8 @@
+import SimpleLanguageAST
+import SimpleLanguageParser
+
 /// Checks that the probability in discrete distributions add up to 1.
-class DistributionValidator: ASTVerifier {
+internal class DistributionValidator: ASTVerifier {
   typealias ReturnType = Void
   
   func validate(stmts: [Stmt]) throws {

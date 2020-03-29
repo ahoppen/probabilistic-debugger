@@ -90,7 +90,7 @@ public enum TokenContent: Equatable, CustomStringConvertible {
   
   // MARK: - Checks for types with associated values
   
-  var isIdentifier: Bool {
+  public var isIdentifier: Bool {
     switch self {
     case .identifier:
       return true
@@ -99,7 +99,7 @@ public enum TokenContent: Equatable, CustomStringConvertible {
     }
   }
   
-  var isIntegerLiteral: Bool {
+  public var isIntegerLiteral: Bool {
     switch self {
     case .integerLiteral:
       return true
@@ -108,7 +108,7 @@ public enum TokenContent: Equatable, CustomStringConvertible {
     }
   }
   
-  var isFloatLiteral: Bool {
+  public var isFloatLiteral: Bool {
     switch self {
     case .floatLiteral:
       return true

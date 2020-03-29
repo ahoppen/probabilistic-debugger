@@ -1,3 +1,6 @@
+import SimpleLanguageAST
+import SimpleLanguageParser
+
 /// A scope in which variables are declared.
 /// Can be queried for variable declarations in itself or any of its parent scopes.
 fileprivate class VariableScope {

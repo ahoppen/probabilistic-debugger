@@ -1,4 +1,9 @@
-@testable import ProbabilisticDebugger
+import SimpleLanguageParser
+import SimpleLanguageAST
+import TestUtils
+
+@testable import SimpleLanguageTypeChecker
+
 import XCTest
 
 class VariableResolverTests: XCTestCase {

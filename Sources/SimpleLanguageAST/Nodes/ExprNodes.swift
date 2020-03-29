@@ -9,7 +9,7 @@ public enum BinaryOperator {
   case lessThan
   
   /// Returns the precedence of the operator. A greater value means higher precedence.
-  internal var precedence: Int {
+  public var precedence: Int {
     switch self {
     case .plus, .minus:
       return 2
@@ -77,72 +77,72 @@ public struct DiscreteIntegerDistributionExpr: Expr {
 // MARK: - Visitation
 
 
-extension BinaryOperatorExpr {
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+public extension BinaryOperatorExpr {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
     return try visitor.visit(self)
   }
 }
 
-extension IntegerExpr {
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+public extension IntegerExpr {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
     return try visitor.visit(self)
   }
 }
 
-extension VariableExpr {
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+public extension VariableExpr {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
     return try visitor.visit(self)
   }
 }
 
-extension ParenExpr {
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+public extension ParenExpr {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
     return try visitor.visit(self)
   }
 }
 
-extension DiscreteIntegerDistributionExpr {
-  public func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+public extension DiscreteIntegerDistributionExpr {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
     visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
     try visitor.visit(self)
   }
   
-  public func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
     return try visitor.visit(self)
   }
 }

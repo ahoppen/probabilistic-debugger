@@ -24,7 +24,7 @@ public struct Position: Comparable {
     }
   }
   
-  public static func < (lhs: Position, rhs: Position) -> Bool {
+  public static func <(lhs: Position, rhs: Position) -> Bool {
     let offsetBasedResult = (lhs.offset < rhs.offset)
 #if DEBUG
     let lineColumnBasedResult: Bool

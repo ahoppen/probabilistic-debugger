@@ -1,9 +1,11 @@
-public final class Lexer {
+import SimpleLanguageAST
+
+internal class Lexer {
   /// The source code to be lexed
   private let sourceCode: String
   
   /// The position of the next character to be lexed
-  var position: Position
+  internal var position: Position
   
   public init(sourceCode: String) {
     self.sourceCode = sourceCode
@@ -61,7 +63,7 @@ public final class Lexer {
   
   /// Lexes the next token in the source file and returns it.
   /// If the end of the file has been reached, returns `nil`.
-  public func nextToken() throws -> Token? {
+  internal func nextToken() throws -> Token? {
     consumeWhitespace()
     
     let start = position
