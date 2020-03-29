@@ -13,6 +13,10 @@ let package = Package(
   
   targets: [
     .target(
+      name: "IR",
+      dependencies: []
+    ),
+    .target(
       name: "SimpleLanguageAST",
       dependencies: []
     ),
