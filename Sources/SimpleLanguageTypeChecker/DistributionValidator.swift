@@ -3,7 +3,8 @@ import SimpleLanguageParser
 
 /// Checks that the probability in discrete distributions add up to 1.
 internal class DistributionValidator: ASTVerifier {
-  typealias ReturnType = Void
+  typealias ExprReturnType = Void
+  typealias StmtReturnType = Void
   
   func validate(stmts: [Stmt]) throws {
     for stmt in stmts {

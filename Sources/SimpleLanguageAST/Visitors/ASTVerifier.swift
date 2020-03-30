@@ -1,21 +1,27 @@
-/// An `ASTVisitor` that can throw errors while visiting
+/// An `ASTVisitor` that can throw errors while visiting.
+/// It can have two different return types for the different node types: `Stmt` and `Expr`.
 public protocol ASTVerifier {
-  associatedtype ReturnType
   
-  func visit(_ expr: BinaryOperatorExpr) throws -> ReturnType
-  func visit(_ expr: IntegerExpr) throws -> ReturnType
-  func visit(_ expr: VariableExpr) throws -> ReturnType
-  func visit(_ expr: ParenExpr) throws -> ReturnType
-  func visit(_ expr: DiscreteIntegerDistributionExpr) throws -> ReturnType
-  func visit(_ stmt: VariableDeclStmt) throws -> ReturnType
-  func visit(_ stmt: AssignStmt) throws -> ReturnType
-  func visit(_ stmt: ObserveStmt) throws -> ReturnType
-  func visit(_ stmt: CodeBlockStmt) throws -> ReturnType
-  func visit(_ stmt: IfStmt) throws -> ReturnType
-  func visit(_ stmt: WhileStmt) throws -> ReturnType
+  /// The type returned when visiting `Expr` nodes
+  associatedtype ExprReturnType
+  
+  /// The type returned when visiting `Stmt` nodes
+  associatedtype StmtReturnType
+  
+  func visit(_ expr: BinaryOperatorExpr) throws -> ExprReturnType
+  func visit(_ expr: IntegerExpr) throws -> ExprReturnType
+  func visit(_ expr: VariableExpr) throws -> ExprReturnType
+  func visit(_ expr: ParenExpr) throws -> ExprReturnType
+  func visit(_ expr: DiscreteIntegerDistributionExpr) throws -> ExprReturnType
+  func visit(_ stmt: VariableDeclStmt) throws -> StmtReturnType
+  func visit(_ stmt: AssignStmt) throws -> StmtReturnType
+  func visit(_ stmt: ObserveStmt) throws -> StmtReturnType
+  func visit(_ stmt: CodeBlockStmt) throws -> StmtReturnType
+  func visit(_ stmt: IfStmt) throws -> StmtReturnType
+  func visit(_ stmt: WhileStmt) throws -> StmtReturnType
 }
 
-public extension ASTVerifier where ReturnType == Void {
+public extension ASTVerifier where ExprReturnType == Void, StmtReturnType == Void {
   func visit(_ expr: BinaryOperatorExpr) throws {
     try expr.lhs.accept(self)
     try expr.rhs.accept(self)

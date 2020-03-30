@@ -1,4 +1,7 @@
-public protocol Stmt: ASTNode {}
+public protocol Stmt: ASTNode {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType
+}
 
 public enum Type: CustomStringConvertible, Equatable {
   case int
@@ -98,11 +101,11 @@ public struct WhileStmt: Stmt {
 // MARK: - AST Visitation
 
 public extension VariableDeclStmt {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
     try visitor.visit(self)
   }
   
@@ -112,11 +115,11 @@ public extension VariableDeclStmt {
 }
 
 public extension AssignStmt {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
     try visitor.visit(self)
   }
   
@@ -126,11 +129,11 @@ public extension AssignStmt {
 }
 
 public extension ObserveStmt {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
     try visitor.visit(self)
   }
   
@@ -140,11 +143,11 @@ public extension ObserveStmt {
 }
 
 public extension CodeBlockStmt {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
     try visitor.visit(self)
   }
   
@@ -154,11 +157,11 @@ public extension CodeBlockStmt {
 }
 
 public extension IfStmt {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
     try visitor.visit(self)
   }
   
@@ -168,11 +171,11 @@ public extension IfStmt {
 }
 
 public extension WhileStmt {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
     try visitor.visit(self)
   }
   

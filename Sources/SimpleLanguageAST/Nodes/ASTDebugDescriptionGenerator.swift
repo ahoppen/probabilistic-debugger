@@ -9,7 +9,8 @@ fileprivate extension String {
 }
 
 internal struct ASTDebugDescriptionGenerator: ASTVisitor {
-  typealias ReturnType = String
+  typealias ExprReturnType = String
+  typealias StmtReturnType = String
   
   func visit(_ expr: BinaryOperatorExpr) -> String {
     return """

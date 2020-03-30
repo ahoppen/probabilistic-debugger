@@ -1,4 +1,7 @@
-public protocol Expr: ASTNode {}
+public protocol Expr: ASTNode {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType
+}
 
 // MARK: - Expression nodes
 
@@ -78,11 +81,11 @@ public struct DiscreteIntegerDistributionExpr: Expr {
 
 
 public extension BinaryOperatorExpr {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType {
     try visitor.visit(self)
   }
   
@@ -92,11 +95,11 @@ public extension BinaryOperatorExpr {
 }
 
 public extension IntegerExpr {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType {
     try visitor.visit(self)
   }
   
@@ -106,11 +109,11 @@ public extension IntegerExpr {
 }
 
 public extension VariableExpr {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType {
     try visitor.visit(self)
   }
   
@@ -120,11 +123,11 @@ public extension VariableExpr {
 }
 
 public extension ParenExpr {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType {
     try visitor.visit(self)
   }
   
@@ -134,11 +137,11 @@ public extension ParenExpr {
 }
 
 public extension DiscreteIntegerDistributionExpr {
-  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
   
-  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ReturnType {
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType {
     try visitor.visit(self)
   }
   
