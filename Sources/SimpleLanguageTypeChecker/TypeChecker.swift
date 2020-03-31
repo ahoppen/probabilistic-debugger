@@ -22,7 +22,7 @@ internal class TypeChecker: ASTVerifier {
       return .int
     case (.equal, .int, .int), (.lessThan, .int, .int):
       return .bool
-    default:
+    case (.plus, _, _), (.minus, _, _), (.equal, _, _), (.lessThan, _, _):
       throw ParserError(range: expr.range, message: "Cannot apply '\(expr.operator)' to '\(lhsType)' and '\(rhsType)'")
     }
   }
