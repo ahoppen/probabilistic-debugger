@@ -63,12 +63,18 @@ public class IRGen: ASTVisitor {
   
   // MARK: - Generate IR
   
-  public func generateIR(for stmts: [Stmt]) -> IRProgram {
+  public func generateIRWithoutVerification(for stmts: [Stmt]) -> IRProgram {
     for stmt in stmts {
       stmt.accept(self)
     }
     finishedBasicBlocks.append(currentBasicBlock)
-    return IRProgram(basicBlocks: finishedBasicBlocks)
+    return IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks)
+  }
+  
+  public func generateIR(for stmts: [Stmt]) -> IRProgram {
+    let program = generateIRWithoutVerification(for: stmts)
+    IRVerifier.verify(ir: program)
+    return program
   }
   
   public func visit(_ expr: BinaryOperatorExpr) -> Value {

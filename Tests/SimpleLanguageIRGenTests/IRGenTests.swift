@@ -17,20 +17,22 @@ class IRGenTests: XCTestCase {
     
     let ir = IRGen().generateIR(for: typeCheckedFile)
     
+    let bb1Name = BasicBlockName("bb1")
+    
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .int)
     let var3 = IRVariable(name: "3", type: .int)
     let var4 = IRVariable(name: "4", type: .int)
     let var5 = IRVariable(name: "5", type: .int)
     
-    let bb0 = BasicBlock(name: BasicBlockName("bb1"), instructions: [
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
       AssignInstr(assignee: var1, value: .integer(2)),
       AddInstr(assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
       AssignInstr(assignee: var3, value: .variable(var2)),
       AddInstr(assignee: var4, lhs: .variable(var3), rhs: .integer(3)),
       AssignInstr(assignee: var5, value: .variable(var4))
     ])
-    let expectedProgram = IRProgram(basicBlocks: [bb0])
+    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
     
     XCTAssertEqual(ir, expectedProgram)
   }
@@ -76,7 +78,7 @@ class IRGenTests: XCTestCase {
       AssignInstr(assignee: var6, value: .variable(var5))
     ])
     
-    let expectedProgram = IRProgram(basicBlocks: [bb1, bb2, bb3])
+    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3])
     
     XCTAssertEqual(ir, expectedProgram)
   }
@@ -126,7 +128,7 @@ class IRGenTests: XCTestCase {
       AssignInstr(assignee: var6, value: .variable(var5))
     ])
     
-    let expectedProgram = IRProgram(basicBlocks: [bb1, bb2, bb3, bb4])
+    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
     
     XCTAssertEqual(ir, expectedProgram)
   }

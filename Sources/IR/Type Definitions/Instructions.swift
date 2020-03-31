@@ -1,5 +1,8 @@
 public protocol Instruction: CustomStringConvertible {
   func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction
+  
+  var assignedVariable: IRVariable? { get }
+  var usedVariables: Set<IRVariable> { get }
 }
 
 // MARK: - Instructions
@@ -218,6 +221,100 @@ public struct PhiInstr: Equatable, Instruction {
     )
   }
 }
+
+// MARK: - Used and assigned variables
+
+fileprivate extension Value {
+  var asVariable: IRVariable? {
+    if case .variable(let variable) = self {
+      return variable
+    } else {
+      return nil
+    }
+  }
+}
+
+public extension AssignInstr {
+  var assignedVariable: IRVariable? {
+    return assignee
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set([value.asVariable].compactMap({ $0 }))
+  }
+}
+
+public extension AddInstr {
+  var assignedVariable: IRVariable? {
+    return assignee
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set([lhs.asVariable, rhs.asVariable].compactMap({ $0 }))
+  }
+}
+
+public extension SubtractInstr {
+  var assignedVariable: IRVariable? {
+    return assignee
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set([lhs.asVariable, rhs.asVariable].compactMap({ $0 }))
+  }
+}
+
+public extension CompareInstr {
+  var assignedVariable: IRVariable? {
+    return assignee
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set([lhs.asVariable, rhs.asVariable].compactMap({ $0 }))
+  }
+}
+
+public extension DiscreteDistributionInstr {
+  var assignedVariable: IRVariable? {
+    return assignee
+  }
+  var usedVariables: Set<IRVariable> {
+    return []
+  }
+}
+
+public extension ObserveInstr {
+  var assignedVariable: IRVariable? {
+    return nil
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set([observation.asVariable].compactMap({ $0 }))
+  }
+}
+
+public extension JumpInstr {
+  var assignedVariable: IRVariable? {
+    return nil
+  }
+  var usedVariables: Set<IRVariable> {
+    return []
+  }
+}
+
+public extension ConditionalBranchInstr {
+  var assignedVariable: IRVariable? {
+    return nil
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set([condition.asVariable].compactMap({ $0 }))
+  }
+}
+
+public extension PhiInstr {
+  var assignedVariable: IRVariable? {
+    return assignee
+  }
+  var usedVariables: Set<IRVariable> {
+    return Set(choices.values.compactMap({ $0 }))
+  }
+}
+
 
 // MARK: - Debug Descriptions
 

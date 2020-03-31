@@ -12,7 +12,7 @@ public enum IRType: CustomStringConvertible {
   }
 }
 
-public struct IRVariable: Equatable, CustomStringConvertible {
+public struct IRVariable: Hashable, CustomStringConvertible {
   public let name: String
   public let type: IRType
   
