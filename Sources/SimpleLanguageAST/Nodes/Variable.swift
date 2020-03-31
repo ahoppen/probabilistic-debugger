@@ -1,10 +1,17 @@
 /// A variable in the source code.
 /// Until variable resolving, variable references only have a name and use the `UnresolvedVariable` type.
-public class Variable: CustomDebugStringConvertible {
+public struct Variable: Hashable, CustomDebugStringConvertible {
+  public let id: Int
   public let name: String
   public let type: Type
   
+  private static var nextUnusedId = 1
+  
   public init(name: String, type: Type) {
+    defer {
+      Variable.nextUnusedId += 1
+    }
+    self.id = Variable.nextUnusedId
     self.name = name
     self.type = type
   }
