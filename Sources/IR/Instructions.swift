@@ -1,4 +1,6 @@
-public protocol Instruction: CustomStringConvertible {}
+public protocol Instruction: CustomStringConvertible {
+  func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction
+}
 
 // MARK: - Instructions
 
@@ -12,6 +14,13 @@ public struct AssignInstr: Equatable, Instruction {
     
     self.assignee = assignee
     self.value = value
+  }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return AssignInstr(
+      assignee: assignee,
+      value: value.renaming(variable: variable, to: newVariable)
+    )
   }
 }
 
@@ -35,6 +44,14 @@ public struct AddInstr: Equatable, Instruction {
     self.lhs = lhs
     self.rhs = rhs
   }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return AddInstr(
+      assignee: assignee,
+      lhs: lhs.renaming(variable: variable, to: newVariable),
+      rhs: rhs.renaming(variable: variable, to: newVariable)
+    )
+  }
 }
 
 /// Subtract one integer from another and assign the result to an integer variable
@@ -55,6 +72,14 @@ public struct SubtractInstr: Equatable, Instruction {
     self.assignee = assignee
     self.lhs = lhs
     self.rhs = rhs
+  }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return SubtractInstr(
+      assignee: assignee,
+      lhs: lhs.renaming(variable: variable, to: newVariable),
+      rhs: rhs.renaming(variable: variable, to: newVariable)
+    )
   }
 }
 
@@ -85,6 +110,15 @@ public struct CompareInstr: Equatable, Instruction {
     self.lhs = lhs
     self.rhs = rhs
   }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return CompareInstr(
+      comparison: comparison,
+      assignee: assignee,
+      lhs: lhs.renaming(variable: variable, to: newVariable),
+      rhs: rhs.renaming(variable: variable, to: newVariable)
+    )
+  }
 }
 
 public struct DiscreteDistributionInstr: Equatable, Instruction {
@@ -100,6 +134,10 @@ public struct DiscreteDistributionInstr: Equatable, Instruction {
     self.assignee = assignee
     self.distribution = distribution
   }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return self
+  }
 }
 
 public struct ObserveInstr: Equatable, Instruction {
@@ -111,6 +149,12 @@ public struct ObserveInstr: Equatable, Instruction {
     assert(observation.type == .bool)
     self.observation = observation
   }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return ObserveInstr(
+      observation: observation.renaming(variable: variable, to: newVariable)
+    )
+  }
 }
 
 public struct JumpInstr: Equatable, Instruction {
@@ -119,6 +163,10 @@ public struct JumpInstr: Equatable, Instruction {
   
   public init(target: BasicBlockName) {
     self.target = target
+  }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return self
   }
 }
 
@@ -136,6 +184,14 @@ public struct ConditionalBranchInstr: Equatable, Instruction {
     self.targetTrue = targetTrue
     self.targetFalse = targetFalse
   }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return ConditionalBranchInstr(
+      condition: condition.renaming(variable: variable, to: newVariable),
+      targetTrue: targetTrue,
+      targetFalse: targetFalse
+    )
+  }
 }
 
 public struct PhiInstr: Equatable, Instruction {
@@ -145,6 +201,21 @@ public struct PhiInstr: Equatable, Instruction {
   public init(assignee: IRVariable, choices: [BasicBlockName: IRVariable]) {
     self.assignee = assignee
     self.choices = choices
+  }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    let newChoices = choices.mapValues({ (choice) -> IRVariable in
+      if choice == variable {
+        return newVariable
+      } else {
+        return choice
+      }
+    })
+    
+    return PhiInstr(
+      assignee: assignee,
+      choices: newChoices
+    )
   }
 }
 

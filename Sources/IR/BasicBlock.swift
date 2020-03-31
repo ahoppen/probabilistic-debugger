@@ -21,9 +21,18 @@ public struct BasicBlock: Equatable, CustomStringConvertible {
     self.instructions = instructions
   }
   
+  /// Create a new basic block with the same name and the given instruciton prepended at the start
+  public func prepending(instruction: Instruction) -> BasicBlock {
+    return BasicBlock(name: name, instructions: [instruction] + instructions)
+  }
+  
   /// Create a new basic block with the same name and the given instruciton appended to the end
   public func appending(instruction: Instruction) -> BasicBlock {
     return BasicBlock(name: name, instructions: instructions + [instruction])
+  }
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> BasicBlock {
+    return BasicBlock(name: name, instructions: instructions.map({ $0.renaming(variable: variable, to: newVariable) }))
   }
   
   public var description: String {
