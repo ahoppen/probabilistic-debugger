@@ -1,5 +1,5 @@
 enum DirectPredecessors {
-  static func compute(basicBlocks: [BasicBlock]) -> [BasicBlockName: Set<BasicBlockName>] {
+  static func compute<BasicBlocksType: Sequence>(basicBlocks: BasicBlocksType) -> [BasicBlockName: Set<BasicBlockName>] where BasicBlocksType.Element == BasicBlock {
     var predecessors: [BasicBlockName: Set<BasicBlockName>] = [:]
     // Initialise with no predecessors
     for basicBlock in basicBlocks {

@@ -27,7 +27,7 @@ public enum IRVerifier {
   /// There should only be one block that doesn't have branch or jump as the last statement and thus terminates the program execution
   private static func verifyOnlyOneBlockWithoutJumpAsLastStatement(ir: IRProgram) {
     var foundBlockWithoutBranch = false
-    for block in ir.basicBlocks {
+    for block in ir.basicBlocks.values {
       switch block.instructions.last {
       case is ConditionalBranchInstr, is JumpInstr:
         break
@@ -41,18 +41,18 @@ public enum IRVerifier {
   }
   
   private static func verifyAllJumpedToBlocksExist(ir: IRProgram) {
-    for block in ir.basicBlocks {
+    for block in ir.basicBlocks.values {
       for instruction in block.instructions {
         if let jumpInstr = instruction as? JumpInstr {
-          if ir[jumpInstr.target] == nil {
+          if ir.basicBlocks[jumpInstr.target] == nil {
             fatalError("Jump to \(jumpInstr.target) but basic block does not exist")
           }
         }
         if let branchInstr = instruction as? ConditionalBranchInstr {
-          if ir[branchInstr.targetTrue] == nil {
+          if ir.basicBlocks[branchInstr.targetTrue] == nil {
             fatalError("Branch to \(branchInstr.targetTrue) but basic block does not exist")
           }
-          if ir[branchInstr.targetFalse] == nil {
+          if ir.basicBlocks[branchInstr.targetFalse] == nil {
             fatalError("Branch to \(branchInstr.targetFalse) but basic block does not exist")
           }
         }
@@ -61,7 +61,7 @@ public enum IRVerifier {
   }
   
   private static func verifyPhiStatementsCoverAllPredecessorBlocks(ir: IRProgram) {
-    for block in ir.basicBlocks {
+    for block in ir.basicBlocks.values {
       for instruction in block.instructions {
         guard let phiInstruction = instruction as? PhiInstr else {
           continue
@@ -74,9 +74,9 @@ public enum IRVerifier {
   }
   
   private static func verifyAllVariablesDeclaredBeforeUse(ir: IRProgram) {
-    for block in ir.basicBlocks {
+    for block in ir.basicBlocks.values {
       var declaredVariables = Set(ir.properPredominators[block.name]!.flatMap({ (blockName) -> Set<IRVariable> in
-        return ir[blockName]!.declaredVariables
+        return ir.basicBlocks[blockName]!.declaredVariables
       }))
       for instruction in block.instructions {
         if !(instruction is PhiInstr) {
@@ -94,7 +94,7 @@ public enum IRVerifier {
   }
   
   private static func verifyPhiInstructionsAtStartOfBlock(ir: IRProgram) {
-    for block in ir.basicBlocks {
+    for block in ir.basicBlocks.values {
       var inPhiInstructionSection = true
       for instr in block.instructions {
         if instr is PhiInstr, !inPhiInstructionSection {

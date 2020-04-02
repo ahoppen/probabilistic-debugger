@@ -17,6 +17,10 @@ let package = Package(
       dependencies: []
     ),
     .target(
+      name: "IRExecution",
+      dependencies: ["IR"]
+    ),
+    .target(
       name: "SimpleLanguageAST",
       dependencies: []
     ),
@@ -49,6 +53,13 @@ let package = Package(
     
     // MARK: - Test targets
     
+    .testTarget(
+      name: "IRExecutionTests",
+      dependencies: [
+        "IR",
+        "IRExecution",
+      ]
+    ),
     .testTarget(
       name: "SimpleLanguageASTTests",
       dependencies: [
