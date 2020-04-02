@@ -24,7 +24,9 @@ let package = Package(
       name: "SimpleLanguageIRGen",
       dependencies: [
         "IR",
-        "SimpleLanguageAST"
+        "SimpleLanguageAST",
+        "SimpleLanguageParser",
+        "SimpleLanguageTypeChecker"
     ]),
     .target(
       name: "SimpleLanguageParser",

@@ -1,5 +1,7 @@
 import IR
 import SimpleLanguageAST
+import SimpleLanguageParser
+import SimpleLanguageTypeChecker
 
 public class IRGen: ASTVisitor {
   public typealias ExprReturnType = VariableOrValue
@@ -74,6 +76,13 @@ public class IRGen: ASTVisitor {
   public func generateIR(for stmts: [Stmt]) -> IRProgram {
     let program = generateIRWithoutVerification(for: stmts)
     return program
+  }
+  
+  public static func generateIr(for sourceCode: String) throws -> IRProgram {
+    let file = try! Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    
+    return IRGen().generateIR(for: typeCheckedFile)
   }
   
   public func visit(_ expr: BinaryOperatorExpr) -> VariableOrValue {
