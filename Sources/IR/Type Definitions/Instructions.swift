@@ -10,9 +10,9 @@ public protocol Instruction: CustomStringConvertible {
 /// Assigns a value to a variable
 public struct AssignInstr: Equatable, Instruction {
   public let assignee: IRVariable
-  public let value: Value
+  public let value: VariableOrValue
   
-  public init(assignee: IRVariable, value: Value) {
+  public init(assignee: IRVariable, value: VariableOrValue) {
     assert(assignee.type == value.type)
     
     self.assignee = assignee
@@ -30,15 +30,15 @@ public struct AssignInstr: Equatable, Instruction {
 /// Add two integers and assign the result to an integer variable
 public struct AddInstr: Equatable, Instruction {
   public let assignee: IRVariable
-  public let lhs: Value
-  public let rhs: Value
+  public let lhs: VariableOrValue
+  public let rhs: VariableOrValue
   
   
   /// - Parameters:
   ///   - assignee: Must be of type `int`
   ///   - lhs: Must be of type `int`
   ///   - rhs: Must be of type `int`
-  public init(assignee: IRVariable, lhs: Value, rhs: Value) {
+  public init(assignee: IRVariable, lhs: VariableOrValue, rhs: VariableOrValue) {
     assert(assignee.type == .int)
     assert(lhs.type == .int)
     assert(rhs.type == .int)
@@ -60,14 +60,14 @@ public struct AddInstr: Equatable, Instruction {
 /// Subtract one integer from another and assign the result to an integer variable
 public struct SubtractInstr: Equatable, Instruction {
   public let assignee: IRVariable
-  public let lhs: Value
-  public let rhs: Value
+  public let lhs: VariableOrValue
+  public let rhs: VariableOrValue
   
   /// - Parameters:
   ///   - assignee: Must be of type `int`
   ///   - lhs: Must be of type `int`
   ///   - rhs: Must be of type `int`
-  public init(assignee: IRVariable, lhs: Value, rhs: Value) {
+  public init(assignee: IRVariable, lhs: VariableOrValue, rhs: VariableOrValue) {
     assert(assignee.type == .int)
     assert(lhs.type == .int)
     assert(rhs.type == .int)
@@ -95,15 +95,15 @@ public struct CompareInstr: Equatable, Instruction {
   
   public let comparison: Comparison
   public let assignee: IRVariable
-  public let lhs: Value
-  public let rhs: Value
+  public let lhs: VariableOrValue
+  public let rhs: VariableOrValue
   
   /// - Parameters:
   ///   - comparison: The comparison operation to be performed
   ///   - assignee: Must be of type `bool`
   ///   - lhs: Must be of type `int`
   ///   - rhs: Must be of type `int`
-  public init(comparison: Comparison, assignee: IRVariable, lhs: Value, rhs: Value) {
+  public init(comparison: Comparison, assignee: IRVariable, lhs: VariableOrValue, rhs: VariableOrValue) {
     assert(assignee.type == .bool)
     assert(lhs.type == .int)
     assert(rhs.type == .int)
@@ -127,6 +127,7 @@ public struct CompareInstr: Equatable, Instruction {
 public struct DiscreteDistributionInstr: Equatable, Instruction {
   public let assignee: IRVariable
   public let distribution: [Int: Double]
+  public let drawDistribution: [(cummulativeProbability: Double, value: Int)]
   
   /// - Parameters:
   ///   - assignee: Must be of type `int`
@@ -136,19 +137,33 @@ public struct DiscreteDistributionInstr: Equatable, Instruction {
     assert(distribution.values.reduce(0, +) == 1)
     self.assignee = assignee
     self.distribution = distribution
+    
+    var drawDistribution: [(cummulativeProbability: Double, value: Int)] = []
+    var cummulativeProbability = 0.0
+    for (value, probability) in distribution {
+      cummulativeProbability += probability
+      drawDistribution.append((cummulativeProbability: cummulativeProbability, value: value))
+    }
+    assert(cummulativeProbability == 1)
+    self.drawDistribution = drawDistribution
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
     return self
   }
+  
+  public static func == (lhs: DiscreteDistributionInstr, rhs: DiscreteDistributionInstr) -> Bool {
+    // drawDistribution is synthesized and doesn't need to be compared
+    return lhs.assignee == rhs.assignee && lhs.distribution == rhs.distribution
+  }
 }
 
 public struct ObserveInstr: Equatable, Instruction {
   /// The variable that holds the observation that is to be checked. I.e. the result of the observe check is stored in this variable
-  public let observation: Value
+  public let observation: VariableOrValue
   
   /// - Parameter observation: Must be of type `bool`
-  public init(observation: Value) {
+  public init(observation: VariableOrValue) {
     assert(observation.type == .bool)
     self.observation = observation
   }
@@ -174,7 +189,7 @@ public struct JumpInstr: Equatable, Instruction {
 }
 
 public struct ConditionalBranchInstr: Equatable, Instruction {
-  public let condition: Value
+  public let condition: VariableOrValue
   
   /// The basic block to which to jump if the condition is `true`.
   public let targetTrue: BasicBlockName
@@ -182,7 +197,7 @@ public struct ConditionalBranchInstr: Equatable, Instruction {
   /// The basic block to which to jump if the condition is `false`.
   public let targetFalse: BasicBlockName
   
-  public init(condition: Value, targetTrue: BasicBlockName, targetFalse: BasicBlockName) {
+  public init(condition: VariableOrValue, targetTrue: BasicBlockName, targetFalse: BasicBlockName) {
     self.condition = condition
     self.targetTrue = targetTrue
     self.targetFalse = targetFalse
@@ -224,7 +239,7 @@ public struct PhiInstr: Equatable, Instruction {
 
 // MARK: - Used and assigned variables
 
-fileprivate extension Value {
+fileprivate extension VariableOrValue {
   var asVariable: IRVariable? {
     if case .variable(let variable) = self {
       return variable

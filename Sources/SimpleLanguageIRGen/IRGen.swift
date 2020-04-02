@@ -2,7 +2,7 @@ import IR
 import SimpleLanguageAST
 
 public class IRGen: ASTVisitor {
-  public typealias ExprReturnType = Value
+  public typealias ExprReturnType = VariableOrValue
   public typealias StmtReturnType = Void
   
   public init() {}
@@ -76,7 +76,7 @@ public class IRGen: ASTVisitor {
     return program
   }
   
-  public func visit(_ expr: BinaryOperatorExpr) -> Value {
+  public func visit(_ expr: BinaryOperatorExpr) -> VariableOrValue {
     let lhs = expr.lhs.accept(self)
     let rhs = expr.rhs.accept(self)
     
@@ -128,11 +128,11 @@ public class IRGen: ASTVisitor {
   
   // MARK: - Visitation functions
   
-  public func visit(_ expr: IntegerExpr) -> Value {
+  public func visit(_ expr: IntegerExpr) -> VariableOrValue {
     return .integer(expr.value)
   }
   
-  public func visit(_ expr: VariableExpr) -> Value {
+  public func visit(_ expr: VariableExpr) -> VariableOrValue {
     guard case .resolved(let variable) = expr.variable else {
       fatalError("Variables must be resolved before IRGen")
     }
@@ -140,11 +140,11 @@ public class IRGen: ASTVisitor {
     return .variable(irVariable(for: variable))
   }
   
-  public func visit(_ expr: ParenExpr) -> Value {
+  public func visit(_ expr: ParenExpr) -> VariableOrValue {
     return expr.subExpr.accept(self)
   }
   
-  public func visit(_ expr: DiscreteIntegerDistributionExpr) -> Value {
+  public func visit(_ expr: DiscreteIntegerDistributionExpr) -> VariableOrValue {
     let assignee = unusedIRVariable(type: .int)
     append(instruction: DiscreteDistributionInstr(assignee: assignee, distribution: expr.distribution))
     return .variable(assignee)

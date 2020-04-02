@@ -1,10 +1,11 @@
 /// A variable or a constant
-public enum Value: Equatable, CustomStringConvertible {
+public enum VariableOrValue: Equatable, CustomStringConvertible {
   case variable(IRVariable)
   case integer(Int)
+  case bool(Bool)
   
   /// If the value is a variable, rename it to the new variable. For constants, return self.
-  func renaming(variable: IRVariable, to newVariable: IRVariable) -> Value {
+  func renaming(variable: IRVariable, to newVariable: IRVariable) -> VariableOrValue {
     switch self {
     case .variable(let selfVariable) where selfVariable == variable:
       return .variable(newVariable)
@@ -19,6 +20,8 @@ public enum Value: Equatable, CustomStringConvertible {
       return variable.type
     case .integer:
       return .int
+    case .bool:
+      return .bool
     }
   }
   
@@ -28,6 +31,8 @@ public enum Value: Equatable, CustomStringConvertible {
       return variable.description
     case .integer(let int):
       return "int \(int)"
+    case .bool(let bool):
+      return "bool \(bool)"
     }
   }
 }
