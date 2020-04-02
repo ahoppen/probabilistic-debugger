@@ -8,7 +8,10 @@ fileprivate extension BasicBlock {
 
 public enum IRVerifier {
   public static func verify(ir: IRProgram) {
+    IRVerifier.verifyAllJumpedToBlocksExist(ir: ir)
     IRVerifier.verifyAllBlocksReachable(ir: ir)
+    IRVerifier.verifyPhiStatementsCoverAllPredecessorBlocks(ir: ir)
+    IRVerifier.verifyOnlyOneBlockWithoutJumpAsLastStatement(ir: ir)
     IRVerifier.verifyAllVariablesDeclaredBeforeUse(ir: ir)
     IRVerifier.verifyPhiInstructionsAtStartOfBlock(ir: ir)
   }
@@ -21,10 +24,59 @@ public enum IRVerifier {
     }
   }
   
+  /// There should only be one block that doesn't have branch or jump as the last statement and thus terminates the program execution
+  private static func verifyOnlyOneBlockWithoutJumpAsLastStatement(ir: IRProgram) {
+    var foundBlockWithoutBranch = false
+    for block in ir.basicBlocks {
+      switch block.instructions.last {
+      case is ConditionalBranchInstr, is JumpInstr:
+        break
+      default:
+        if foundBlockWithoutBranch {
+          fatalError("There exist two basic blocks that terminate the program execution (by not having a jump or branch as the last instruction)")
+        }
+        foundBlockWithoutBranch = true
+      }
+    }
+  }
+  
+  private static func verifyAllJumpedToBlocksExist(ir: IRProgram) {
+    for block in ir.basicBlocks {
+      for instruction in block.instructions {
+        if let jumpInstr = instruction as? JumpInstr {
+          if ir[jumpInstr.target] == nil {
+            fatalError("Jump to \(jumpInstr.target) but basic block does not exist")
+          }
+        }
+        if let branchInstr = instruction as? ConditionalBranchInstr {
+          if ir[branchInstr.targetTrue] == nil {
+            fatalError("Branch to \(branchInstr.targetTrue) but basic block does not exist")
+          }
+          if ir[branchInstr.targetFalse] == nil {
+            fatalError("Branch to \(branchInstr.targetFalse) but basic block does not exist")
+          }
+        }
+      }
+    }
+  }
+  
+  private static func verifyPhiStatementsCoverAllPredecessorBlocks(ir: IRProgram) {
+    for block in ir.basicBlocks {
+      for instruction in block.instructions {
+        guard let phiInstruction = instruction as? PhiInstr else {
+          continue
+        }
+        if Set(phiInstruction.choices.keys) != ir.directPredecessors[block.name] {
+          fatalError("The choices of the phi instruction \(instruction) don't match its predecessors \(ir.directPredecessors[block.name]!)")
+        }
+      }
+    }
+  }
+  
   private static func verifyAllVariablesDeclaredBeforeUse(ir: IRProgram) {
     for block in ir.basicBlocks {
       var declaredVariables = Set(ir.properPredominators[block.name]!.flatMap({ (blockName) -> Set<IRVariable> in
-        return ir[blockName].declaredVariables
+        return ir[blockName]!.declaredVariables
       }))
       for instruction in block.instructions {
         if !(instruction is PhiInstr) {

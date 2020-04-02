@@ -73,7 +73,6 @@ public class IRGen: ASTVisitor {
   
   public func generateIR(for stmts: [Stmt]) -> IRProgram {
     let program = generateIRWithoutVerification(for: stmts)
-    IRVerifier.verify(ir: program)
     return program
   }
   

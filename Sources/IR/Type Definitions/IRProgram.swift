@@ -4,13 +4,16 @@ public class IRProgram: Equatable, CustomStringConvertible {
   public let basicBlocks: [BasicBlock]
   public let startBlock: BasicBlockName
   
-  public subscript(_ basicBlockName: BasicBlockName) -> BasicBlock {
-    return basicBlocks.filter({ $0.name == basicBlockName }).first!
+  public subscript(_ basicBlockName: BasicBlockName) -> BasicBlock? {
+    return basicBlocks.filter({ $0.name == basicBlockName }).first
   }
   
+  /// Create a new IR program that consists of the given basic blocks and verify that it is syntactically correct.
   public init(startBlock: BasicBlockName, basicBlocks: [BasicBlock]) {
     self.startBlock = startBlock
     self.basicBlocks = basicBlocks
+    
+    IRVerifier.verify(ir: self)
   }
   
   public var description: String {
