@@ -112,4 +112,36 @@ class DebuggerTests: XCTestCase {
     let samples = debugger.run()
     XCTAssertEqual(samples.count, 0)
   }
+  
+  func testSteppingThroughStraightLineProgram() {
+    let sourceCode = """
+      int x = 42
+      x = x - 1
+      int y = x + 11
+      """
+    
+    let program = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: program, sampleCount: 1)
+    
+    XCTAssertNoThrow(try {
+      try debugger.step()
+      XCTAssertEqual(debugger.samples.count, 1)
+      XCTAssertEqual(debugger.samples.first!.values, [
+        "x": .integer(42),
+      ])
+      try debugger.step()
+      XCTAssertEqual(debugger.samples.count, 1)
+      XCTAssertEqual(debug nger.samples.first!.values, [
+        "x": .integer(41),
+      ])
+      try debugger.step()
+      XCTAssertEqual(debugger.samples.count, 1)
+      XCTAssertEqual(debugger.samples.first!.values, [
+        "x": .integer(41),
+        "y": .integer(52)
+      ])
+    }())
+    
+    XCTAssertThrowsError(try debugger.step())
+  }
 }
