@@ -25,6 +25,16 @@ let package = Package(
       dependencies: []
     ),
     .target(
+      name: "SimpleLanguageDebugger",
+      dependencies: [
+        "IR",
+        "IRExecution",
+        "SimpleLanguageAST",
+        "SimpleLanguageIRGen",
+      ]
+    ),
+    
+    .target(
       name: "SimpleLanguageIRGen",
       dependencies: [
         "IR",
@@ -58,12 +68,22 @@ let package = Package(
       dependencies: [
         "IR",
         "IRExecution",
+        "TestUtils"
       ]
     ),
     .testTarget(
       name: "SimpleLanguageASTTests",
       dependencies: [
         "SimpleLanguageAST"
+      ]
+    ),
+    .testTarget(
+      name: "SimpleLanguageDebuggerTests",
+      dependencies: [
+        "SimpleLanguageAST",
+        "SimpleLanguageDebugger",
+        "SimpleLanguageIRGen",
+        "TestUtils",
       ]
     ),
     .testTarget(

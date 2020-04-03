@@ -25,23 +25,21 @@ public class IRExecutor {
     guard let stateToExecute = statesToExecute.popLast() else {
       fatalError("No state to execute")
     }
-    let newStates = stateToExecute.execute(in: program)
-    for state in newStates {
-      // Sort state into running and finished states
-      if program.instruction(at: state.position)! is ReturnInstr {
-        finishedExecutionStates.append(state)
-      } else {
-        statesToExecute.append(state)
-      }
+    if program.instruction(at: stateToExecute.position)! is ReturnInstr {
+      finishedExecutionStates.append(stateToExecute)
+    } else {
+      let newStates = stateToExecute.execute(in: program)
+      statesToExecute.append(contentsOf: newStates)
     }
   }
   
   /// Execute the given program and return the samples that describe the probability distribution of the variables in the end.
   /// Note that different samples may have been generated through different execution paths, so different variables might be defined in the different samples.
-  public func execute() -> [Sample] {
+  public func execute() -> [ExecutionState] {
     while !statesToExecute.isEmpty {
       executeStateOnTopOfExecutionStack()
     }
-    return finishedExecutionStates.flatMap({ $0.samples })
+    assert(finishedExecutionStates.allSatisfy({ program.instruction(at: $0.position) is ReturnInstr }))
+    return finishedExecutionStates
   }
 }

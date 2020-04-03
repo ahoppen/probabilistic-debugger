@@ -33,7 +33,7 @@ class IRGenTests: XCTestCase {
       AssignInstr(assignee: var5, value: .variable(var4)),
       ReturnInstr(),
     ])
-    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
+    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1], debugInfo: nil)
     
     XCTAssertEqual(ir, expectedProgram)
   }
@@ -80,7 +80,7 @@ class IRGenTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3])
+    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3], debugInfo: nil)
     
     XCTAssertEqual(ir, expectedProgram)
   }
@@ -131,7 +131,7 @@ class IRGenTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
+    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4], debugInfo: nil)
     
     XCTAssertEqual(ir, expectedProgram)
   }

@@ -191,7 +191,7 @@ extension VariableDeclStmt {
     guard let other = other as? VariableDeclStmt else {
       return false
     }
-    return self.variable.name == other.variable.name &&
+    return self.variable == other.variable &&
       self.expr.equalsIgnoringRange(other: other.expr)
   }
 }

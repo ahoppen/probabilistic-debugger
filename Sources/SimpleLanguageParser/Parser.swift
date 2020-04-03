@@ -43,8 +43,25 @@ public class Parser {
   
   private var peekedToken: Token?
   
+  private var usedVariables: [Variable] = []
+  
   public init(sourceCode: String) {
     self.lexer = Lexer(sourceCode: sourceCode)
+  }
+  
+  // MARK: - Variable management
+  
+  /// Create a new `Variable` for a variable with the given name in the source code.
+  /// If a variable with this name has already been declared, increase the `disambiguationIndex` to make it unique.
+  func unusedVariable(name: String, type: Type) -> Variable {
+    let variable: Variable
+    var disambiguationIndex = 1
+    while usedVariables.contains(where: { $0.name == name && $0.disambiguationIndex == disambiguationIndex }) {
+      disambiguationIndex += 1
+    }
+    variable = Variable(name: name, disambiguationIndex: disambiguationIndex, type: type)
+    usedVariables.append(variable)
+    return variable
   }
   
   // MARK: - Parse the entire file
@@ -146,7 +163,8 @@ public class Parser {
     
     let expr = try parseExpr()
     
-    return VariableDeclStmt(variable: Variable(name: variableName, type: type), expr: expr, range: variableTypeToken.range.lowerBound..<expr.range.upperBound)
+    let variable = unusedVariable(name: variableName, type: type)
+    return VariableDeclStmt(variable: variable, expr: expr, range: variableTypeToken.range.lowerBound..<expr.range.upperBound)
   }
   
   /// Parse an assignment to an already declared variable. E.g. `x = x + 1`

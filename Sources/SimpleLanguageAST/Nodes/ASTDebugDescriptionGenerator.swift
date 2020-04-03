@@ -67,7 +67,7 @@ internal struct ASTDebugDescriptionGenerator: ASTVisitor {
   func visit(_ stmt: CodeBlockStmt) -> String {
     return """
       ▽ CodeBlockStmt
-      \(stmt.body.map({ $0.debugDescription }).joined(separator: "\n").indented())
+      \(stmt.body.map(\.debugDescription).joined(separator: "\n").indented())
       """
   }
   

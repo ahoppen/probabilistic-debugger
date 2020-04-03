@@ -123,7 +123,7 @@ class ParserTests: XCTestCase {
                                     rhs: IntegerExpr(value: 2, range: .whatever),
                                     range: .whatever)
       
-      let declExpr = VariableDeclStmt(variable: Variable(name: "x", type: .int),
+      let declExpr = VariableDeclStmt(variable: Variable(name: "x", disambiguationIndex: 1, type: .int),
                                       expr: expr,
                                       range: .whatever)
       
@@ -163,7 +163,7 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: sourceCode)
       let ast = try parser.parseStmt()
       
-      let varDecl = VariableDeclStmt(variable: Variable(name: "y", type: .int),
+      let varDecl = VariableDeclStmt(variable: Variable(name: "y", disambiguationIndex: 1, type: .int),
                                      expr: IntegerExpr(value: 2, range: .whatever),
                                      range: .whatever)
       let addExpr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "y"), range: .whatever),
@@ -194,7 +194,7 @@ class ParserTests: XCTestCase {
       let parser = Parser(sourceCode: sourceCode)
       let ast = try parser.parseStmt()
       
-      let varDecl = VariableDeclStmt(variable: Variable(name: "y", type: .int),
+      let varDecl = VariableDeclStmt(variable: Variable(name: "y", disambiguationIndex: 1, type: .int),
                                      expr: IntegerExpr(value: 2, range: .whatever),
                                      range: .whatever)
       let addExpr = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "y"), range: .whatever),
@@ -299,17 +299,17 @@ class ParserTests: XCTestCase {
         0: 0.5,
         1: 0.5
       ], range: .whatever)
-      let aDecl = VariableDeclStmt(variable: Variable(name: "a", type: .int),
+      let aDecl = VariableDeclStmt(variable: Variable(name: "a", disambiguationIndex: 1, type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
-      let bDecl = VariableDeclStmt(variable: Variable(name: "b", type: .int),
+      let bDecl = VariableDeclStmt(variable: Variable(name: "b", disambiguationIndex: 1, type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
       let addition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "a"), range: .whatever),
                                         operator: .plus,
                                         rhs: VariableExpr(variable: .unresolved(name: "b"), range: .whatever),
                                         range: .whatever)
-      let cDecl = VariableDeclStmt(variable: Variable(name: "c", type: .int),
+      let cDecl = VariableDeclStmt(variable: Variable(name: "c", disambiguationIndex: 1, type: .int),
                                    expr: addition,
                                    range: .whatever)
       let observeCondition = BinaryOperatorExpr(lhs: IntegerExpr(value: 0, range: .whatever),
@@ -338,17 +338,17 @@ class ParserTests: XCTestCase {
         0: 0.5,
         1: 0.5
       ], range: .whatever)
-      let aDecl = VariableDeclStmt(variable: Variable(name: "a", type: .int),
+      let aDecl = VariableDeclStmt(variable: Variable(name: "a", disambiguationIndex: 1, type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
-      let bDecl = VariableDeclStmt(variable: Variable(name: "b", type: .int),
+      let bDecl = VariableDeclStmt(variable: Variable(name: "b", disambiguationIndex: 1, type: .int),
                                    expr: discreteDistribution,
                                    range: .whatever)
       let addition = BinaryOperatorExpr(lhs: VariableExpr(variable: .unresolved(name: "a"), range: .whatever),
                                         operator: .plus,
                                         rhs: VariableExpr(variable: .unresolved(name: "b"), range: .whatever),
                                         range: .whatever)
-      let cDecl = VariableDeclStmt(variable: Variable(name: "c", type: .int),
+      let cDecl = VariableDeclStmt(variable: Variable(name: "c", disambiguationIndex: 1, type: .int),
                                    expr: addition,
                                    range: .whatever)
       let observeCondition = BinaryOperatorExpr(lhs: IntegerExpr(value: 0, range: .whatever),

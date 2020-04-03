@@ -1,18 +1,18 @@
 /// A variable in the source code.
 /// Until variable resolving, variable references only have a name and use the `UnresolvedVariable` type.
 public struct Variable: Hashable, CustomDebugStringConvertible {
-  public let id: Int
+  /// The name of the variable, as it is named in the source code
   public let name: String
+  
+  /// If a variable with this name is declared multiple times in the source code (e.g. because of shadowing), the two source variables are represented by two `Variable` structs that have different `disambiguationIndex`es
+  public let disambiguationIndex: Int
+  
+  /// The type of the variable in the program
   public let type: Type
   
-  private static var nextUnusedId = 1
-  
-  public init(name: String, type: Type) {
-    defer {
-      Variable.nextUnusedId += 1
-    }
-    self.id = Variable.nextUnusedId
+  public init(name: String, disambiguationIndex: Int, type: Type) {
     self.name = name
+    self.disambiguationIndex = disambiguationIndex
     self.type = type
   }
   

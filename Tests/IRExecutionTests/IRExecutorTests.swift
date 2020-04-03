@@ -1,11 +1,13 @@
 import IR
 import IRExecution
+import TestUtils
 
 import XCTest
 
-extension Array where Element: BinaryInteger {
-  var average: Double {
-    return self.reduce(0.0, { $0 + Double($1) }) / Double(self.count)
+extension Array {
+  var only: Element {
+    assert(self.count == 1)
+    return self.first!
   }
 }
 
@@ -22,7 +24,7 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
     // bb0:
     //   int %0 = int 1
     //   int %1 = add int %0 int 1
@@ -30,7 +32,7 @@ class IRExecutorTests: XCTestCase {
   
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
-    let onlySample = executedSamples.first!
+    let onlySample = executedSamples.only.samples.only
     
     XCTAssertEqual(onlySample.values[var0], .integer(1))
     XCTAssertEqual(onlySample.values[var1], .integer(2))
@@ -53,7 +55,7 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1], debugInfo: nil)
     // bb0:
     //   int %0 = int 1
     //   jump bb1
@@ -64,7 +66,7 @@ class IRExecutorTests: XCTestCase {
   
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
-    let onlySample = executedSamples.first!
+    let onlySample = executedSamples.only.samples.only
     
     XCTAssertEqual(onlySample.values[var0], .integer(1))
     XCTAssertEqual(onlySample.values[var1], .integer(42))
@@ -96,7 +98,7 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
     // bb0:
     //   int %0 = int 5
     //   bool %1 = bool true
@@ -112,7 +114,7 @@ class IRExecutorTests: XCTestCase {
     
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
-    let onlySample = executedSamples.first!
+    let onlySample = executedSamples.only.samples.only
     
     XCTAssertEqual(onlySample.values[var3], .integer(4))
   }
@@ -156,11 +158,11 @@ class IRExecutorTests: XCTestCase {
     //   int %3 = phi bb0: int %0, bb1: int %2
     //   return
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
   
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
-    let onlySample = executedSamples.first!
+    let onlySample = executedSamples.only.samples.only
     
     XCTAssertEqual(onlySample.values[var3], .integer(5))
   }
@@ -196,7 +198,7 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2, bb3])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2, bb3], debugInfo: nil)
     // bb0:
     //   int %0 = int 2
     //   jump bb1
@@ -216,7 +218,7 @@ class IRExecutorTests: XCTestCase {
     
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
-    let onlySample = executedSamples.first!
+    let onlySample = executedSamples.only.samples.only
     
     XCTAssertEqual(onlySample.values[var1], .integer(1))
   }
@@ -231,13 +233,13 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
     // bb0:
     //   int %0 = discrete 1: 0.5, 2: 0.5
     //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 10000)
-    let executedSamples = executor.execute()
+    let executedSamples = executor.execute().flatMap(\.samples)
     
     let var0Values = executedSamples.map( { $0.values[var0]!.integerValue! })
     XCTAssertEqual(var0Values.average, 1.5, accuracy: 0.1)
@@ -274,7 +276,7 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
     // bb0:
     //   int %0 = int 0
     //   int %1 = discrete 1: 0.7, 2: 0.3
@@ -290,7 +292,7 @@ class IRExecutorTests: XCTestCase {
     //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 10000)
-    let executedSamples = executor.execute()
+    let executedSamples = executor.execute().flatMap(\.samples)
     
     let var0Values = executedSamples.map( { $0.values[var4]!.integerValue! })
     XCTAssertEqual(var0Values.average, 3, accuracy: 0.5)
@@ -312,7 +314,7 @@ class IRExecutorTests: XCTestCase {
       ReturnInstr(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
     // bb0:
     //   int %0 = discrete 1: 0.5, 2: 0.5
     //   bool %1 = cmp eq int %0 int 1
@@ -320,7 +322,7 @@ class IRExecutorTests: XCTestCase {
     //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 10000)
-    let executedSamples = executor.execute()
+    let executedSamples = executor.execute().flatMap(\.samples)
     
     XCTAssert(executedSamples.allSatisfy({ $0.values[var0]!.integerValue! == 1 }))
     XCTAssertEqual(Double(executedSamples.count), 5000, accuracy: 500)

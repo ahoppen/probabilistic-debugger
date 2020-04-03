@@ -23,7 +23,7 @@ class VariableResolverTests: XCTestCase {
       
       XCTAssertEqual(stmts.count, 2)
       
-      let varX = Variable(name: "x", type: .int)
+      let varX = Variable(name: "x", disambiguationIndex: 1, type: .int)
       let declareStmt = VariableDeclStmt(variable: varX,
                                          expr: IntegerExpr(value: 10, range: .whatever),
                                          range: .whatever)

@@ -1,13 +1,18 @@
+/// Marker protocol for the debug info for different source languages
+public protocol DebugInfo {}
+
 public class IRProgram: Equatable, CustomStringConvertible {
   // MARK: - IR Program
   
   public let basicBlocks: [BasicBlockName: BasicBlock]
   public let startBlock: BasicBlockName
+  public let debugInfo: DebugInfo?
   
   /// Create a new IR program that consists of the given basic blocks and verify that it is syntactically correct.
-  public init(startBlock: BasicBlockName, basicBlocks: [BasicBlock]) {
+  public init(startBlock: BasicBlockName, basicBlocks: [BasicBlock], debugInfo: DebugInfo?) {
     self.startBlock = startBlock
-    self.basicBlocks = Dictionary(uniqueKeysWithValues: zip(basicBlocks.map({ $0.name }), basicBlocks))
+    self.basicBlocks = Dictionary(uniqueKeysWithValues: zip(basicBlocks.map(\.name), basicBlocks))
+    self.debugInfo = debugInfo
     
     IRVerifier.verify(ir: self)
   }
@@ -20,7 +25,7 @@ public class IRProgram: Equatable, CustomStringConvertible {
   }
   
   public var description: String {
-    return basicBlocks.values.map({ $0.description }).joined(separator: "\n\n")
+    return basicBlocks.values.map(\.description).joined(separator: "\n\n")
   }
   
   public static func == (lhs: IRProgram, rhs: IRProgram) -> Bool {

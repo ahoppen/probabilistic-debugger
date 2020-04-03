@@ -2,15 +2,15 @@ import IR
 
 /// During execution of a probabilistic program, describes an execution branch that is a concrete program position.
 /// The variables at this concrete program position might have different values. Their probability distribution is described by an Array of `Sample`s.
-internal struct ExecutionState {
+public struct ExecutionState {
   /// The position of the next instruction to execute to advance the execution of this execution state.
   /// If no instruction exists at this program position in the IR, then the program has terminated.
-  let position: ProgramPosition
+  public let position: ProgramPosition
   
   /// The samples that describe the probability distribution of the variables at the given execution state.
-  let samples: [Sample]
+  public let samples: [Sample]
   
-  init(position: ProgramPosition, samples: [Sample]) {
+  internal init(position: ProgramPosition, samples: [Sample]) {
     assert(samples.count > 0, "There is no point in pursuing an execution branch without any samples")
     self.position = position
     self.samples = samples
@@ -20,7 +20,7 @@ internal struct ExecutionState {
   /// For simple instructions like add or subtract that don't branch, exactly one new state is returned.
   /// An observe instruction returns no states if all samples are filtered out through its execution.
   /// A branch instruction may produce two new execution states if both branches are viable execution paths.
-  func execute(in program: IRProgram) -> [ExecutionState] {
+  internal func execute(in program: IRProgram) -> [ExecutionState] {
     guard let instruction = program.instruction(at: self.position) else {
       fatalError("Program has already terminated")
     }
