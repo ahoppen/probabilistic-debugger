@@ -65,17 +65,13 @@ public class IRGen: ASTVisitor {
   
   // MARK: - Generate IR
   
-  public func generateIRWithoutVerification(for stmts: [Stmt]) -> IRProgram {
+  public func generateIR(for stmts: [Stmt]) -> IRProgram {
     for stmt in stmts {
       stmt.accept(self)
     }
+    append(instruction: ReturnInstr())
     finishedBasicBlocks.append(currentBasicBlock)
     return IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks)
-  }
-  
-  public func generateIR(for stmts: [Stmt]) -> IRProgram {
-    let program = generateIRWithoutVerification(for: stmts)
-    return program
   }
   
   public static func generateIr(for sourceCode: String) throws -> IRProgram {

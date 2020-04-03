@@ -237,6 +237,15 @@ public struct PhiInstr: Equatable, Instruction {
   }
 }
 
+/// Finish program execution. Must only occur once in every program
+public struct ReturnInstr: Equatable, Instruction {
+  public init() {}
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return self
+  }
+}
+
 // MARK: - Used and assigned variables
 
 fileprivate extension VariableOrValue {
@@ -330,6 +339,14 @@ public extension PhiInstr {
   }
 }
 
+public extension ReturnInstr {
+  var assignedVariable: IRVariable? {
+    return nil
+  }
+  var usedVariables: Set<IRVariable> {
+    return []
+  }
+}
 
 // MARK: - Debug Descriptions
 
@@ -397,5 +414,11 @@ extension PhiInstr {
   public var description: String {
     let choicesDescription = choices.sorted(by: { $0.key.name < $1.key.name }).map({ "\($0.key): \($0.value)"}).joined(separator: ", ")
     return "\(assignee) = phi \(choicesDescription)"
+  }
+}
+
+extension ReturnInstr {
+  public var description: String {
+    return "return"
   }
 }

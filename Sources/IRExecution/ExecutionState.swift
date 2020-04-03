@@ -62,6 +62,8 @@ internal struct ExecutionState {
       return newStates
     case is PhiInstr:
       fatalError("Should have been handled during the jump to a new basic block")
+    case is ReturnInstr:
+      fatalError("Should have been handled by the executor")
     default:
       fatalError("Unknown instruction \(type(of: instruction))")
     }

@@ -11,7 +11,9 @@ public enum IRVerifier {
     IRVerifier.verifyAllJumpedToBlocksExist(ir: ir)
     IRVerifier.verifyAllBlocksReachable(ir: ir)
     IRVerifier.verifyPhiStatementsCoverAllPredecessorBlocks(ir: ir)
-    IRVerifier.verifyOnlyOneBlockWithoutJumpAsLastStatement(ir: ir)
+    IRVerifier.verifyNoJumpingInstructionInMiddleOfBlock(ir: ir)
+    IRVerifier.verifyAllBlocksEndWithJumpingInstruction(ir: ir)
+    IRVerifier.verifyOnlyOneBlockEndsWithReturnInstruction(ir: ir)
     IRVerifier.verifyAllVariablesDeclaredBeforeUse(ir: ir)
     IRVerifier.verifyPhiInstructionsAtStartOfBlock(ir: ir)
   }
@@ -24,18 +26,39 @@ public enum IRVerifier {
     }
   }
   
-  /// There should only be one block that doesn't have branch or jump as the last statement and thus terminates the program execution
-  private static func verifyOnlyOneBlockWithoutJumpAsLastStatement(ir: IRProgram) {
-    var foundBlockWithoutBranch = false
+  private static func verifyAllBlocksEndWithJumpingInstruction(ir: IRProgram) {
     for block in ir.basicBlocks.values {
       switch block.instructions.last {
-      case is ConditionalBranchInstr, is JumpInstr:
+      case is ConditionalBranchInstr, is JumpInstr, is ReturnInstr:
         break
       default:
-        if foundBlockWithoutBranch {
-          fatalError("There exist two basic blocks that terminate the program execution (by not having a jump or branch as the last instruction)")
+        fatalError("Basic block \(block.name) does not end with a jump, branch or return instruction")
+      }
+    }
+  }
+  
+  private static func verifyOnlyOneBlockEndsWithReturnInstruction(ir: IRProgram) {
+    var foundReturnInstruction = false
+    for block in ir.basicBlocks.values {
+      if block.instructions.last is ReturnInstr {
+        if foundReturnInstruction {
+          fatalError("Two blocks end with a return instruction")
+        } else {
+          foundReturnInstruction = true
         }
-        foundBlockWithoutBranch = true
+      }
+    }
+  }
+  
+  private static func verifyNoJumpingInstructionInMiddleOfBlock(ir: IRProgram) {
+    for block in ir.basicBlocks.values {
+      for instruction in block.instructions.dropLast() {
+        switch instruction {
+        case is ConditionalBranchInstr, is JumpInstr, is ReturnInstr:
+          fatalError("Basic block \(block.name) has a branching instruction that's not at the end of the block")
+        default:
+          break
+        }
       }
     }
   }

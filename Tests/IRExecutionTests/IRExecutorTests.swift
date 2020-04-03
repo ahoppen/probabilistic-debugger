@@ -18,13 +18,15 @@ class IRExecutorTests: XCTestCase {
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
       AssignInstr(assignee: var0, value: .integer(1)),
-      AddInstr(assignee: var1, lhs: .variable(var0), rhs: .integer(1))
+      AddInstr(assignee: var1, lhs: .variable(var0), rhs: .integer(1)),
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
     // bb0:
     //   int %0 = int 1
     //   int %1 = add int %0 int 1
+    //   return
   
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
@@ -47,7 +49,8 @@ class IRExecutorTests: XCTestCase {
     ])
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      AddInstr(assignee: var1, lhs: .variable(var0), rhs: .integer(41))
+      AddInstr(assignee: var1, lhs: .variable(var0), rhs: .integer(41)),
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1])
@@ -57,6 +60,7 @@ class IRExecutorTests: XCTestCase {
     // 
     // bb1:
     //   int %1 = add int %0 int 41
+    //   return
   
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
@@ -88,7 +92,8 @@ class IRExecutorTests: XCTestCase {
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var3, choices: [bb0Name: var0, bb1Name: var2])
+      PhiInstr(assignee: var3, choices: [bb0Name: var0, bb1Name: var2]),
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
@@ -103,6 +108,7 @@ class IRExecutorTests: XCTestCase {
     //
     // bb2:
     //   int %3 = phi bb0: int %0, bb1: int %2
+    //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
     let executedSamples = executor.execute()
@@ -133,7 +139,8 @@ class IRExecutorTests: XCTestCase {
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var3, choices: [bb0Name: var0, bb1Name: var2])
+      PhiInstr(assignee: var3, choices: [bb0Name: var0, bb1Name: var2]),
+      ReturnInstr(),
     ])
     
     // bb0:
@@ -147,6 +154,7 @@ class IRExecutorTests: XCTestCase {
     //
     // bb2:
     //   int %3 = phi bb0: int %0, bb1: int %2
+    //   return
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
   
@@ -185,6 +193,7 @@ class IRExecutorTests: XCTestCase {
     ])
     
     let bb3 = BasicBlock(name: bb3Name, instructions: [
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2, bb3])
@@ -202,7 +211,7 @@ class IRExecutorTests: XCTestCase {
     //   jump bb1
     //
     // bb3:
-    //   <empty>
+    //   return
 
     
     let executor = IRExecutor(program: irProgram, sampleCount: 1)
@@ -218,12 +227,14 @@ class IRExecutorTests: XCTestCase {
     let var0 = IRVariable(name: "0", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      DiscreteDistributionInstr(assignee: var0, distribution: [1: 0.5, 2: 0.5])
+      DiscreteDistributionInstr(assignee: var0, distribution: [1: 0.5, 2: 0.5]),
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
     // bb0:
     //   int %0 = discrete 1: 0.5, 2: 0.5
+    //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 10000)
     let executedSamples = executor.execute()
@@ -259,7 +270,8 @@ class IRExecutorTests: XCTestCase {
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var4, choices: [bb0Name: var0, bb1Name: var3])
+      PhiInstr(assignee: var4, choices: [bb0Name: var0, bb1Name: var3]),
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
@@ -275,6 +287,7 @@ class IRExecutorTests: XCTestCase {
     //
     // bb2:
     //   int %4 = phi bb0: int %0, bb1: int %3
+    //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 10000)
     let executedSamples = executor.execute()
@@ -295,7 +308,8 @@ class IRExecutorTests: XCTestCase {
         2: 0.5
       ]),
       CompareInstr(comparison: .equal, assignee: var1, lhs: .variable(var0), rhs: .integer(1)),
-      ObserveInstr(observation: .variable(var1))
+      ObserveInstr(observation: .variable(var1)),
+      ReturnInstr(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
@@ -303,6 +317,7 @@ class IRExecutorTests: XCTestCase {
     //   int %0 = discrete 1: 0.5, 2: 0.5
     //   bool %1 = cmp eq int %0 int 1
     //   observe bool %1
+    //   return
     
     let executor = IRExecutor(program: irProgram, sampleCount: 10000)
     let executedSamples = executor.execute()

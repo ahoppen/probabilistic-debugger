@@ -30,7 +30,8 @@ class IRGenTests: XCTestCase {
       AddInstr(assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
       AssignInstr(assignee: var3, value: .variable(var2)),
       AddInstr(assignee: var4, lhs: .variable(var3), rhs: .integer(3)),
-      AssignInstr(assignee: var5, value: .variable(var4))
+      AssignInstr(assignee: var5, value: .variable(var4)),
+      ReturnInstr(),
     ])
     let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
     
@@ -75,7 +76,8 @@ class IRGenTests: XCTestCase {
     
     let bb3 = BasicBlock(name: bb3Name, instructions: [
       PhiInstr(assignee: var5, choices: [bb1Name: var1, bb2Name: var4]),
-      AssignInstr(assignee: var6, value: .variable(var5))
+      AssignInstr(assignee: var6, value: .variable(var5)),
+      ReturnInstr(),
     ])
     
     let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3])
@@ -125,7 +127,8 @@ class IRGenTests: XCTestCase {
     ])
     
     let bb4 = BasicBlock(name: bb4Name, instructions: [
-      AssignInstr(assignee: var6, value: .variable(var5))
+      AssignInstr(assignee: var6, value: .variable(var5)),
+      ReturnInstr(),
     ])
     
     let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])

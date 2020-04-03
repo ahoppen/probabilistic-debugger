@@ -28,10 +28,10 @@ public class IRExecutor {
     let newStates = stateToExecute.execute(in: program)
     for state in newStates {
       // Sort state into running and finished states
-      if program.instruction(at: state.position) != nil {
-        statesToExecute.append(state)
-      } else {
+      if program.instruction(at: state.position)! is ReturnInstr {
         finishedExecutionStates.append(state)
+      } else {
+        statesToExecute.append(state)
       }
     }
   }

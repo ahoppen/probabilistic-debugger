@@ -75,6 +75,8 @@ fileprivate func equal(_ lhs: Instruction, _ rhs: Instruction) -> Bool {
     return lhs == rhs
   case (let lhs as PhiInstr, let rhs as PhiInstr):
     return lhs == rhs
+  case (let lhs as ReturnInstr, let rhs as ReturnInstr):
+    return lhs == rhs
   default:
     fatalError("Unknown instruction type '\(type(of: lhs))'")
   }
