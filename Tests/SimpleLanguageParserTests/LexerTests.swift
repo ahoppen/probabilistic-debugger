@@ -94,7 +94,7 @@ class LexerTests: XCTestCase {
     """
     let lexer = Lexer(sourceCode: sourceCode)
     XCTAssertThrowsError(try lexer.lexFile()) { (error) in
-      let parserError = error as? ParserError
+      let parserError = error as? CompilerError
       XCTAssertNotNil(parserError)
       let errorPosition = SourceLocation(line: 1, column: 7, offset: sourceCode.index(atOffset: 6))
       XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)
@@ -133,7 +133,7 @@ class LexerTests: XCTestCase {
     let sourceCode = "1.2.3"
     let lexer = Lexer(sourceCode: sourceCode)
     XCTAssertThrowsError(try lexer.lexFile()) { (error) in
-      let parserError = error as? ParserError
+      let parserError = error as? CompilerError
       XCTAssertNotNil(parserError)
       let errorPosition = SourceLocation(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
       XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)

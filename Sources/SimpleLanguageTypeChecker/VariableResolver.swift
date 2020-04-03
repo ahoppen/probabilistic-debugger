@@ -65,7 +65,7 @@ internal class VariableResolver: ASTRewriter {
   
   func visit(_ stmt: VariableDeclStmt) throws -> VariableDeclStmt {
     guard !variableScope.isDeclared(name: stmt.variable.name) else {
-      throw ParserError(range: stmt.range, message: "Variable '\(stmt.variable.name)' is already declared.")
+      throw CompilerError(range: stmt.range, message: "Variable '\(stmt.variable.name)' is already declared.")
     }
     let resolvedExpr = try stmt.expr.accept(self)
     variableScope.declare(variable: stmt.variable)
@@ -79,7 +79,7 @@ internal class VariableResolver: ASTRewriter {
       fatalError("Variable has already been resolved")
     }
     guard let variable = variableScope.lookup(name: name) else {
-      throw ParserError(range: stmt.range, message: "Variable '\(name)' has not been declared")
+      throw CompilerError(range: stmt.range, message: "Variable '\(name)' has not been declared")
     }
     return AssignStmt(variable: .resolved(variable),
                       expr: try stmt.expr.accept(self),
@@ -91,7 +91,7 @@ internal class VariableResolver: ASTRewriter {
       fatalError("Variable has already been resolved")
     }
     guard let variable = variableScope.lookup(name: name) else {
-      throw ParserError(range: expr.range, message: "Variable '\(name)' has not been declared")
+      throw CompilerError(range: expr.range, message: "Variable '\(name)' has not been declared")
     }
     return VariableReferenceExpr(variable: .resolved(variable),
                           range: expr.range)

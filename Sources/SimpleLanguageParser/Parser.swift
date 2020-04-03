@@ -97,10 +97,10 @@ public class Parser {
   @discardableResult
   private func consumeToken(condition: (TokenContent) -> Bool, errorMessage: String) throws -> Token {
     guard let token = try consumeToken() else {
-      throw ParserError(location: lexer.endLocation, message: "Unexpectedly reached end of file")
+      throw CompilerError(location: lexer.endLocation, message: "Unexpectedly reached end of file")
     }
     if !condition(token.content) {
-      throw ParserError(range: token.range, message: errorMessage)
+      throw CompilerError(range: token.range, message: errorMessage)
     } else {
       return token
     }
@@ -139,7 +139,7 @@ public class Parser {
     case nil:
       stmt = nil
     default:
-      throw ParserError(range: token!.range, message: "Expected start of statement")
+      throw CompilerError(range: token!.range, message: "Expected start of statement")
     }
     // Consume any semicolons that are separating statements
     while try peekToken()?.content == .semicolon {
@@ -210,12 +210,12 @@ public class Parser {
     var stmts = [Stmt]()
     while let token = try peekToken(), token.content != .rightBrace {
       guard let stmt = try parseStmt() else {
-        throw ParserError(location: lexer.endLocation, message: "Reached end of file while inside a '{}' code block")
+        throw CompilerError(location: lexer.endLocation, message: "Reached end of file while inside a '{}' code block")
       }
       stmts.append(stmt)
     }
     guard let rightBrace = try consumeToken() else {
-      throw ParserError(location: lexer.endLocation, message: "Reached end of file while inside a '{}' code block")
+      throw CompilerError(location: lexer.endLocation, message: "Reached end of file while inside a '{}' code block")
     }
     assert(rightBrace.content == .rightBrace)
     
@@ -265,7 +265,7 @@ public class Parser {
   /// Parse an expression without binary operators.
   private func parseBaseExpr() throws -> Expr {
     guard let nextToken = try consumeToken() else {
-      throw ParserError(location: lexer.endLocation, message: "Reached end of file while parsing expression")
+      throw CompilerError(location: lexer.endLocation, message: "Reached end of file while parsing expression")
     }
     switch nextToken.content {
     case .integerLiteral(let value):
@@ -277,14 +277,14 @@ public class Parser {
     case .leftParen:
       let subExpr = try parseExpr()
       guard let rParen = try consumeToken() else {
-        throw ParserError(location: lexer.endLocation, message: "Expected ')' to close expression in paranthesis, but found end of file")
+        throw CompilerError(location: lexer.endLocation, message: "Expected ')' to close expression in paranthesis, but found end of file")
       }
       guard rParen.content == .rightParen else {
-        throw ParserError(range: rParen.range, message: "Expected ')' to close expression in paranthesis, but found '\(rParen.content)'")
+        throw CompilerError(range: rParen.range, message: "Expected ')' to close expression in paranthesis, but found '\(rParen.content)'")
       }
       return ParenExpr(subExpr: subExpr, range: nextToken.range.lowerBound..<rParen.range.upperBound)
     default:
-      throw ParserError(range: nextToken.range, message: "Expected an identifier or literal, found '\(nextToken)'.")
+      throw CompilerError(range: nextToken.range, message: "Expected an identifier or literal, found '\(nextToken)'.")
     }
   }
   
@@ -319,7 +319,7 @@ public class Parser {
         fatalError()
       }
       if distribution[value] != nil {
-        throw ParserError(range: integerToken.range, message: "Probability of value '\(value)' was already declared")
+        throw CompilerError(range: integerToken.range, message: "Probability of value '\(value)' was already declared")
       }
       
       _ = try consumeToken(condition: { $0 == .colon }, errorMessage: "Expected a colon to separate a distribution value from its probability")
@@ -334,7 +334,7 @@ public class Parser {
         fatalError("We only accepted tokens of type float or integer before")
       }
       if probability < 0 || probability > 1 {
-        throw ParserError(range: probabilityToken.range, message: "\(probability) is not a valid proability value (between 0 and 1)")
+        throw CompilerError(range: probabilityToken.range, message: "\(probability) is not a valid proability value (between 0 and 1)")
       }
       
       distribution[value] = probability

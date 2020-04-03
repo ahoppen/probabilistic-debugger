@@ -1,4 +1,4 @@
-public struct SourceLocation: Comparable {
+public struct SourceLocation: Comparable, CustomStringConvertible {
   /// The line of this position (1-based)
   public let line: Int
   
@@ -38,6 +38,10 @@ public struct SourceLocation: Comparable {
     assert(offsetBasedResult == lineColumnBasedResult)
 #endif
     return offsetBasedResult
+  }
+  
+  public var description: String {
+    return "\(line):\(column)"
   }
 }
 

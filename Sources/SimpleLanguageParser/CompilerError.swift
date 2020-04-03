@@ -1,7 +1,7 @@
 import SimpleLanguageAST
 
 /// An error that occurred while parsing the source file
-public struct ParserError: Error {
+public struct CompilerError: Error {
   /// The range at which the error occurred. If only a position is known, this is a range of the form `pos..<pos`
   public let range: SourceRange
   
@@ -19,6 +19,6 @@ public struct ParserError: Error {
   }
   
   public var localizedDescription: String {
-    return message
+    return "\(range.lowerBound): \(message)"
   }
 }

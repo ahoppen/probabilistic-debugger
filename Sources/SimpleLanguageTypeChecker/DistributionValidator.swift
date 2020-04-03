@@ -14,7 +14,7 @@ internal class DistributionValidator: ASTVerifier {
   
   func visit(_ expr: DiscreteIntegerDistributionExpr) throws {
     if expr.distribution.values.reduce(0, +) != 1 {
-      throw ParserError(range: expr.range, message: "Probabilities in discrete integer distribution do not add up to 1")
+      throw CompilerError(range: expr.range, message: "Probabilities in discrete integer distribution do not add up to 1")
     }
   }
 }

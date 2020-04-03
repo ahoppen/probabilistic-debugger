@@ -23,7 +23,7 @@ internal class TypeChecker: ASTVerifier {
     case (.equal, .int, .int), (.lessThan, .int, .int):
       return .bool
     case (.plus, _, _), (.minus, _, _), (.equal, _, _), (.lessThan, _, _):
-      throw ParserError(range: expr.range, message: "Cannot apply '\(expr.operator)' to '\(lhsType)' and '\(rhsType)'")
+      throw CompilerError(range: expr.range, message: "Cannot apply '\(expr.operator)' to '\(lhsType)' and '\(rhsType)'")
     }
   }
   
@@ -49,7 +49,7 @@ internal class TypeChecker: ASTVerifier {
   func visit(_ stmt: VariableDeclStmt) throws {
     let exprType = try stmt.expr.accept(self)
     if stmt.variable.type != exprType {
-      throw ParserError(range: stmt.range, message: "Cannot assign expression of type '\(exprType)' to variable of type '\(stmt.variable.type)'")
+      throw CompilerError(range: stmt.range, message: "Cannot assign expression of type '\(exprType)' to variable of type '\(stmt.variable.type)'")
     }
   }
   
@@ -59,14 +59,14 @@ internal class TypeChecker: ASTVerifier {
     }
     let exprType = try stmt.expr.accept(self)
     if variable.type != exprType {
-      throw ParserError(range: stmt.range, message: "Cannot assign expression of type '\(exprType)' to variable of type '\(variable.type)'")
+      throw CompilerError(range: stmt.range, message: "Cannot assign expression of type '\(exprType)' to variable of type '\(variable.type)'")
     }
   }
   
   func visit(_ stmt: ObserveStmt) throws {
     let conditionType = try stmt.condition.accept(self)
     if conditionType != .bool {
-      throw ParserError(range: stmt.range, message: "'observe' condition must to be boolean")
+      throw CompilerError(range: stmt.range, message: "'observe' condition must to be boolean")
     }
   }
   
@@ -79,14 +79,14 @@ internal class TypeChecker: ASTVerifier {
   func visit(_ stmt: IfStmt) throws {
     let conditionType = try stmt.condition.accept(self)
     if conditionType != .bool {
-      throw ParserError(range: stmt.range, message: "'if' condition must to be boolean")
+      throw CompilerError(range: stmt.range, message: "'if' condition must to be boolean")
     }
   }
   
   func visit(_ stmt: WhileStmt) throws {
     let conditionType = try stmt.condition.accept(self)
     if conditionType != .bool {
-      throw ParserError(range: stmt.range, message: "'while' condition must to be boolean")
+      throw CompilerError(range: stmt.range, message: "'while' condition must to be boolean")
     }
   }
 }
