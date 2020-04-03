@@ -5,7 +5,7 @@ import SimpleLanguageTypeChecker
 
 import XCTest
 
-class IRGenTests: XCTestCase {
+class SLIRGenTests: XCTestCase {
   func testSimpleIRGen() {
     let sourceCode = """
       int x = 2
@@ -15,7 +15,7 @@ class IRGenTests: XCTestCase {
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
     
-    let ir = IRGen().generateIR(for: typeCheckedFile)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile)
     
     let bb1Name = BasicBlockName("bb1")
     
@@ -48,7 +48,7 @@ class IRGenTests: XCTestCase {
       """
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
-    let ir = IRGen().generateIR(for: typeCheckedFile)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile)
     
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .bool)
@@ -94,7 +94,7 @@ class IRGenTests: XCTestCase {
       """
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
-    let ir = IRGen().generateIR(for: typeCheckedFile)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile)
     
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .bool)

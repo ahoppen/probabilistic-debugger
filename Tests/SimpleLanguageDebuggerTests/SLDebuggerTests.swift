@@ -11,7 +11,7 @@ class SLDebuggerTests: XCTestCase {
       int x = 42
       """
     
-    let program = try! IRGen.generateIr(for: sourceCode)
+    let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = SLDebugger(program: program, sampleCount: 1)
     let samples = debugger.run()
@@ -29,7 +29,7 @@ class SLDebuggerTests: XCTestCase {
       int y = x + 11
       """
     
-    let program = try! IRGen.generateIr(for: sourceCode)
+    let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = SLDebugger(program: program, sampleCount: 1)
     let samples = debugger.run()
@@ -46,7 +46,7 @@ class SLDebuggerTests: XCTestCase {
       int x = discrete({1: 0.5, 2: 0.5})
       """
     
-    let program = try! IRGen.generateIr(for: sourceCode)
+    let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = SLDebugger(program: program, sampleCount: 10000)
     let samples = debugger.run()
@@ -68,7 +68,7 @@ class SLDebuggerTests: XCTestCase {
       """
     
     
-    let program = try! IRGen.generateIr(for: sourceCode)
+    let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = SLDebugger(program: program, sampleCount: 10000)
     let samples = debugger.run()
@@ -89,7 +89,7 @@ class SLDebuggerTests: XCTestCase {
       """
     
     
-    let program = try! IRGen.generateIr(for: sourceCode)
+    let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = SLDebugger(program: program, sampleCount: 1)
     let samples = debugger.run()
@@ -109,7 +109,7 @@ class SLDebuggerTests: XCTestCase {
       """
     
     
-    let program = try! IRGen.generateIr(for: sourceCode)
+    let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = SLDebugger(program: program, sampleCount: 1)
     let samples = debugger.run()
