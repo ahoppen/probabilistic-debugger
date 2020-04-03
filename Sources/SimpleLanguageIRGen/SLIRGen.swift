@@ -3,6 +3,34 @@ import SimpleLanguageAST
 import SimpleLanguageParser
 import SimpleLanguageTypeChecker
 
+fileprivate extension SourceVariable {
+  /// A name of this variable that is unique across the source file and does not collide with any other definitions of variables with the same name.
+  var usr: String {
+    if disambiguationIndex == 1 {
+      return name
+    } else {
+      return "\(name)#\(disambiguationIndex)"
+    }
+  }
+}
+
+fileprivate extension Dictionary {
+  /// Transform the keys of the dicitonary.
+  /// Assumes that if two keys are different in the old dictionary, they are also mapped to different keys.
+  func mapKeys<T: Hashable>(_ transform: (Key) -> T) -> Dictionary<T, Value> {
+    let keysAndValues = self.map({ (key, value) -> (T, Value) in
+      return (transform(key), value)
+    })
+    return Dictionary<T, Value>(uniqueKeysWithValues: keysAndValues)
+  }
+}
+
+fileprivate extension SourceCodeLocation {
+  init(_ sourceLocation: SourceLocation) {
+    self.init(line: sourceLocation.line, column: sourceLocation.column)
+  }
+}
+
 public class SLIRGen: ASTVisitor {
   public typealias ExprReturnType = VariableOrValue
   public typealias StmtReturnType = Void
@@ -18,7 +46,7 @@ public class SLIRGen: ASTVisitor {
   private var declaredVariables: [SourceVariable: IRVariable] = [:]
   
   /// Debug info that is collected during IR generation
-  private var debugInfo: [InstructionPosition: SLInstructionDebugInfo] = [:]
+  private var debugInfo: [InstructionPosition: InstructionDebugInfo] = [:]
   
   /// The basic blocks that are generated completely
   private var finishedBasicBlocks: [BasicBlock] = []
@@ -35,7 +63,7 @@ public class SLIRGen: ASTVisitor {
     if let sourceLocation = sourceLocation {
       let programPosition = InstructionPosition(basicBlock: currentBasicBlock.name, instructionIndex: currentBasicBlock.instructions.count - 1)
       // FIXME: Hide variables that are no longer valid in the current scope
-      let debugInfo = SLInstructionDebugInfo(variables: declaredVariables, sourceLocation: sourceLocation)
+      let debugInfo = InstructionDebugInfo(variables: declaredVariables.mapKeys({ $0.usr }), sourceCodeLocation: SourceCodeLocation(sourceLocation))
       self.debugInfo[programPosition] = debugInfo
     }
   }
@@ -82,7 +110,7 @@ public class SLIRGen: ASTVisitor {
     }
     append(instruction: ReturnInstruction(), sourceLocation: stmts.last!.range.upperBound)
     finishedBasicBlocks.append(currentBasicBlock)
-    return IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks, debugInfo: SLDebugInfo(debugInfo))
+    return IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks, debugInfo: DebugInfo(debugInfo))
   }
   
   public static func generateIr(for sourceCode: String) throws -> IRProgram {

@@ -1,6 +1,3 @@
-/// Marker protocol for the debug info for different source languages
-public protocol DebugInfo {}
-
 public class IRProgram: CustomStringConvertible {
   // MARK: IR Program
   

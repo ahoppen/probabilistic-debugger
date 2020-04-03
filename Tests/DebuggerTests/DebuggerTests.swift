@@ -1,11 +1,10 @@
-import SimpleLanguageAST
-import SimpleLanguageDebugger
+import Debugger
 import SimpleLanguageIRGen
 import TestUtils
 
 import XCTest
 
-class SLDebuggerTests: XCTestCase {
+class DebuggerTests: XCTestCase {
   func testRunSingleAssignmentAndGetVariableValues() {
     let sourceCode = """
       int x = 42
@@ -13,12 +12,12 @@ class SLDebuggerTests: XCTestCase {
     
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = SLDebugger(program: program, sampleCount: 1)
+    let debugger = Debugger(program: program, sampleCount: 1)
     let samples = debugger.run()
     XCTAssertEqual(samples.count, 1)
     let sample = samples.first!
     XCTAssertEqual(sample.values, [
-      SourceVariable(name: "x", disambiguationIndex: 1, type: .int): .integer(42)
+      "x": .integer(42)
     ])
   }
   
@@ -31,13 +30,13 @@ class SLDebuggerTests: XCTestCase {
     
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = SLDebugger(program: program, sampleCount: 1)
+    let debugger = Debugger(program: program, sampleCount: 1)
     let samples = debugger.run()
     XCTAssertEqual(samples.count, 1)
     let sample = samples.first!
     XCTAssertEqual(sample.values, [
-      SourceVariable(name: "x", disambiguationIndex: 1, type: .int): .integer(41),
-      SourceVariable(name: "y", disambiguationIndex: 1, type: .int): .integer(52),
+      "x": .integer(41),
+      "y": .integer(52),
     ])
   }
   
@@ -48,11 +47,10 @@ class SLDebuggerTests: XCTestCase {
     
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = SLDebugger(program: program, sampleCount: 10000)
+    let debugger = Debugger(program: program, sampleCount: 10000)
     let samples = debugger.run()
-    let xVar = SourceVariable(name: "x", disambiguationIndex: 1, type: .int)
     let xValues = samples.map {
-      return $0.values[xVar]!.integerValue!
+      return $0.values["x"]!.integerValue!
     }
     
     XCTAssertEqual(xValues.average, 1.5, accuracy: 0.2)
@@ -70,11 +68,10 @@ class SLDebuggerTests: XCTestCase {
     
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = SLDebugger(program: program, sampleCount: 10000)
+    let debugger = Debugger(program: program, sampleCount: 10000)
     let samples = debugger.run()
-    let yVar = SourceVariable(name: "y", disambiguationIndex: 1, type: .int)
     let yValues = samples.map {
-      return $0.values[yVar]!.integerValue!
+      return $0.values["y"]!.integerValue!
     }
     
     XCTAssertEqual(yValues.average, 15, accuracy: 1)
@@ -91,14 +88,14 @@ class SLDebuggerTests: XCTestCase {
     
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = SLDebugger(program: program, sampleCount: 1)
+    let debugger = Debugger(program: program, sampleCount: 1)
     let samples = debugger.run()
     XCTAssertEqual(samples.count, 1)
     let sample = samples.first!
     
     XCTAssertEqual(sample.values, [
-      SourceVariable(name: "x", disambiguationIndex: 1, type: .int): .integer(1),
-      SourceVariable(name: "x", disambiguationIndex: 2, type: .int): .integer(2),
+      "x": .integer(1),
+      "x#2": .integer(2),
     ])
   }
   
@@ -111,7 +108,7 @@ class SLDebuggerTests: XCTestCase {
     
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = SLDebugger(program: program, sampleCount: 1)
+    let debugger = Debugger(program: program, sampleCount: 1)
     let samples = debugger.run()
     XCTAssertEqual(samples.count, 0)
   }

@@ -13,6 +13,14 @@ let package = Package(
   
   targets: [
     .target(
+      name: "Debugger",
+      dependencies: [
+        "IR",
+        "IRExecution",
+        "Utils",
+      ]
+    ),
+    .target(
       name: "IR",
       dependencies: [
         "Utils",
@@ -25,16 +33,6 @@ let package = Package(
     .target(
       name: "SimpleLanguageAST",
       dependencies: []
-    ),
-    .target(
-      name: "SimpleLanguageDebugger",
-      dependencies: [
-        "IR",
-        "IRExecution",
-        "SimpleLanguageAST",
-        "SimpleLanguageIRGen",
-        "Utils",
-      ]
     ),
     
     .target(
@@ -71,6 +69,14 @@ let package = Package(
     // MARK: - Test targets
     
     .testTarget(
+      name: "DebuggerTests",
+      dependencies: [
+        "Debugger",
+        "SimpleLanguageIRGen",
+        "TestUtils",
+      ]
+    ),
+    .testTarget(
       name: "IRExecutionTests",
       dependencies: [
         "IR",
@@ -82,15 +88,6 @@ let package = Package(
       name: "SimpleLanguageASTTests",
       dependencies: [
         "SimpleLanguageAST",
-        "TestUtils",
-      ]
-    ),
-    .testTarget(
-      name: "SimpleLanguageDebuggerTests",
-      dependencies: [
-        "SimpleLanguageAST",
-        "SimpleLanguageDebugger",
-        "SimpleLanguageIRGen",
         "TestUtils",
       ]
     ),
