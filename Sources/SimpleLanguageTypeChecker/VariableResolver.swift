@@ -5,13 +5,13 @@ import SimpleLanguageParser
 /// Can be queried for variable declarations in itself or any of its parent scopes.
 fileprivate class VariableScope {
   let outerScope: VariableScope?
-  private var identifiers: [String: Variable] = [:]
+  private var identifiers: [String: SourceVariable] = [:]
       
   init(outerScope: VariableScope?) {
     self.outerScope = outerScope
   }
 
-  func declare(variable: Variable) {
+  func declare(variable: SourceVariable) {
     assert(!isDeclared(name: variable.name), "Variable already declared")
     identifiers[variable.name] = variable
   }
@@ -20,7 +20,7 @@ fileprivate class VariableScope {
     return identifiers[name] != nil
   }
   
-  func lookup(name: String) -> Variable? {
+  func lookup(name: String) -> SourceVariable? {
     if let variable = identifiers[name] {
       return variable
     } else if let outerScope = outerScope {
@@ -86,14 +86,14 @@ internal class VariableResolver: ASTRewriter {
                       range: stmt.range)
   }
   
-  func visit(_ expr: VariableExpr) throws -> VariableExpr {
+  func visit(_ expr: VariableReferenceExpr) throws -> VariableReferenceExpr {
     guard case .unresolved(let name) = expr.variable else {
       fatalError("Variable has already been resolved")
     }
     guard let variable = variableScope.lookup(name: name) else {
       throw ParserError(range: expr.range, message: "Variable '\(name)' has not been declared")
     }
-    return VariableExpr(variable: .resolved(variable),
+    return VariableReferenceExpr(variable: .resolved(variable),
                           range: expr.range)
   }
 }

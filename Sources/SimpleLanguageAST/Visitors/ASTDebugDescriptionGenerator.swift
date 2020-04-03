@@ -8,6 +8,7 @@ fileprivate extension String {
   }
 }
 
+/// `ASTVisitor` that is responsible for creating the `debugDescription` of AST nodes.
 internal struct ASTDebugDescriptionGenerator: ASTVisitor {
   typealias ExprReturnType = String
   typealias StmtReturnType = String
@@ -20,12 +21,12 @@ internal struct ASTDebugDescriptionGenerator: ASTVisitor {
       """
   }
   
-  func visit(_ expr: IntegerExpr) -> String {
-    return "▷ IntegerExpr(\(expr.value))"
+  func visit(_ expr: IntegerLiteralExpr) -> String {
+    return "▷ IntegerLiteralExpr(\(expr.value))"
   }
   
-  func visit(_ expr: VariableExpr) -> String {
-    return "▷ VariableExpr(\(expr.variable.debugDescription))"
+  func visit(_ expr: VariableReferenceExpr) -> String {
+    return "▷ VariableReferenceExpr(\(expr.variable.debugDescription))"
   }
   
   func visit(_ expr: ParenExpr) -> String {

@@ -15,7 +15,7 @@ public class IRGen: ASTVisitor {
   private var currentBasicBlock = BasicBlock(name: BasicBlockName("bb1"), instructions: [])
   
   /// A mapping of the source variables (potentially) accessible to the currently visited AST node and the IR variable that currently holds its value
-  private var declaredVariables: [Variable: IRVariable] = [:]
+  private var declaredVariables: [SourceVariable: IRVariable] = [:]
   
   /// Debug info that is collected during IR generation
   private var debugInfo: [InstructionPosition: InstructionDebugInfo] = [:]
@@ -23,14 +23,14 @@ public class IRGen: ASTVisitor {
   /// The basic blocks that are generated completely
   private var finishedBasicBlocks: [BasicBlock] = []
   
-  private func startNewBasicBlock(name: BasicBlockName, declaredVariables: [Variable: IRVariable]) {
+  private func startNewBasicBlock(name: BasicBlockName, declaredVariables: [SourceVariable: IRVariable]) {
     finishedBasicBlocks.append(currentBasicBlock)
     self.currentBasicBlock = BasicBlock(name: name, instructions: [])
     self.declaredVariables = declaredVariables
   }
   
   /// Append an instruction to the current basic block. If `sourceLocation` is not `nil`, also create debug info for this instruction.
-  private func append(instruction: Instruction, sourceLocation: Position?) {
+  private func append(instruction: Instruction, sourceLocation: SourceLocation?) {
     currentBasicBlock = currentBasicBlock.appending(instruction: instruction)
     if let sourceLocation = sourceLocation {
       let programPosition = InstructionPosition(basicBlock: currentBasicBlock.name, instructionIndex: currentBasicBlock.instructions.count - 1)
@@ -40,14 +40,14 @@ public class IRGen: ASTVisitor {
     }
   }
   
-  private func irVariable(for variable: Variable) -> IRVariable {
+  private func irVariable(for variable: SourceVariable) -> IRVariable {
     guard let irVariable = declaredVariables[variable] else {
       fatalError("Could not find IR variable for source variable '\(variable)'")
     }
     return irVariable
   }
   
-  private func record(sourceVariable: Variable, irVariable: IRVariable) {
+  private func record(sourceVariable: SourceVariable, irVariable: IRVariable) {
     self.declaredVariables[sourceVariable] = irVariable
   }
   
@@ -124,7 +124,7 @@ public class IRGen: ASTVisitor {
   /// Generate Phi-Instructions for the join of control flow between two branches
   /// The main branch is the branch that pre-dominates the basic block that is currently being worked on while the side branch might or might not have been executed.
   /// We therefore don't need to worry about source variables that might have been declared in the side branch
-  private func generatePhiInstructions(mainBranchVariables: [Variable: IRVariable], sideBranchVariables: [Variable: IRVariable], mainBranchName: BasicBlockName, sideBranchName: BasicBlockName) {
+  private func generatePhiInstructions(mainBranchVariables: [SourceVariable: IRVariable], sideBranchVariables: [SourceVariable: IRVariable], mainBranchName: BasicBlockName, sideBranchName: BasicBlockName) {
     for (sourceVariable, mainBranchIRVariable) in mainBranchVariables {
       let sideBranchIRVariable = sideBranchVariables[sourceVariable]!
       
@@ -144,11 +144,11 @@ public class IRGen: ASTVisitor {
   
   // MARK: - Visitation functions
   
-  public func visit(_ expr: IntegerExpr) -> VariableOrValue {
+  public func visit(_ expr: IntegerLiteralExpr) -> VariableOrValue {
     return .integer(expr.value)
   }
   
-  public func visit(_ expr: VariableExpr) -> VariableOrValue {
+  public func visit(_ expr: VariableReferenceExpr) -> VariableOrValue {
     guard case .resolved(let variable) = expr.variable else {
       fatalError("Variables must be resolved before IRGen")
     }

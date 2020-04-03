@@ -1,11 +1,12 @@
+/// A token consists of its contents and the location at which it ocurred in the source code
 public struct Token: Equatable, CustomStringConvertible {
   /// The content of the token
   public let content: TokenContent
   
   /// The range in which the token appeared in the source code
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(content: TokenContent, range: Range<Position>) {
+  public init(content: TokenContent, range: SourceRange) {
     self.content = content
     self.range = range
   }

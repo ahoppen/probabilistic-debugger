@@ -9,8 +9,8 @@ public protocol ASTVisitor {
   associatedtype StmtReturnType
   
   func visit(_ expr: BinaryOperatorExpr) -> ExprReturnType
-  func visit(_ expr: IntegerExpr) -> ExprReturnType
-  func visit(_ expr: VariableExpr) -> ExprReturnType
+  func visit(_ expr: IntegerLiteralExpr) -> ExprReturnType
+  func visit(_ expr: VariableReferenceExpr) -> ExprReturnType
   func visit(_ expr: ParenExpr) -> ExprReturnType
   func visit(_ expr: DiscreteIntegerDistributionExpr) -> ExprReturnType
   func visit(_ stmt: VariableDeclStmt) -> StmtReturnType

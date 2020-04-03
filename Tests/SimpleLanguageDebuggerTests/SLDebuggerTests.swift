@@ -18,7 +18,7 @@ class SLDebuggerTests: XCTestCase {
     XCTAssertEqual(samples.count, 1)
     let sample = samples.first!
     XCTAssertEqual(sample.values, [
-      Variable(name: "x", disambiguationIndex: 1, type: .int): .integer(42)
+      SourceVariable(name: "x", disambiguationIndex: 1, type: .int): .integer(42)
     ])
   }
   
@@ -36,8 +36,8 @@ class SLDebuggerTests: XCTestCase {
     XCTAssertEqual(samples.count, 1)
     let sample = samples.first!
     XCTAssertEqual(sample.values, [
-      Variable(name: "x", disambiguationIndex: 1, type: .int): .integer(41),
-      Variable(name: "y", disambiguationIndex: 1, type: .int): .integer(52),
+      SourceVariable(name: "x", disambiguationIndex: 1, type: .int): .integer(41),
+      SourceVariable(name: "y", disambiguationIndex: 1, type: .int): .integer(52),
     ])
   }
   
@@ -50,7 +50,7 @@ class SLDebuggerTests: XCTestCase {
     
     let debugger = SLDebugger(program: program, sampleCount: 10000)
     let samples = debugger.run()
-    let xVar = Variable(name: "x", disambiguationIndex: 1, type: .int)
+    let xVar = SourceVariable(name: "x", disambiguationIndex: 1, type: .int)
     let xValues = samples.map {
       return $0.values[xVar]!.integerValue!
     }
@@ -72,7 +72,7 @@ class SLDebuggerTests: XCTestCase {
     
     let debugger = SLDebugger(program: program, sampleCount: 10000)
     let samples = debugger.run()
-    let yVar = Variable(name: "y", disambiguationIndex: 1, type: .int)
+    let yVar = SourceVariable(name: "y", disambiguationIndex: 1, type: .int)
     let yValues = samples.map {
       return $0.values[yVar]!.integerValue!
     }
@@ -97,8 +97,8 @@ class SLDebuggerTests: XCTestCase {
     let sample = samples.first!
     
     XCTAssertEqual(sample.values, [
-      Variable(name: "x", disambiguationIndex: 1, type: .int): .integer(1),
-      Variable(name: "x", disambiguationIndex: 2, type: .int): .integer(2),
+      SourceVariable(name: "x", disambiguationIndex: 1, type: .int): .integer(1),
+      SourceVariable(name: "x", disambiguationIndex: 2, type: .int): .integer(2),
     ])
   }
   

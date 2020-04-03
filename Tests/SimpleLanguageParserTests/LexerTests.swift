@@ -31,7 +31,7 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(tokens, [
         Token(
           content: .if,
-          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 3, offset: sourceCode.endIndex)
+          range: SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)..<SourceLocation(line: 1, column: 3, offset: sourceCode.endIndex)
           )
       ])
     }())
@@ -45,15 +45,15 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(tokens, [
         Token(
           content: .identifier(name: "test"),
-          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 5, offset: sourceCode.index(atOffset: 4))
+          range: SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)..<SourceLocation(line: 1, column: 5, offset: sourceCode.index(atOffset: 4))
         ),
         Token(
           content: .equal,
-          range: Position(line: 1, column: 6, offset: sourceCode.index(atOffset: 5))..<Position(line: 1, column: 7, offset: sourceCode.index(atOffset: 6))
+          range: SourceLocation(line: 1, column: 6, offset: sourceCode.index(atOffset: 5))..<SourceLocation(line: 1, column: 7, offset: sourceCode.index(atOffset: 6))
         ),
         Token(
           content: .integerLiteral(value: 37),
-          range: Position(line: 1, column: 8, offset: sourceCode.index(atOffset: 7))..<Position(line: 1, column: 10, offset: sourceCode.index(atOffset: 9))
+          range: SourceLocation(line: 1, column: 8, offset: sourceCode.index(atOffset: 7))..<SourceLocation(line: 1, column: 10, offset: sourceCode.index(atOffset: 9))
         ),
       ])
     }())
@@ -70,19 +70,19 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(tokens, [
         Token(
           content: .identifier(name: "a"),
-          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 2, offset: sourceCode.index(atOffset: 1))
+          range: SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)..<SourceLocation(line: 1, column: 2, offset: sourceCode.index(atOffset: 1))
         ),
         Token(
           content: .identifier(name: "b"),
-          range: Position(line: 1, column: 3, offset: sourceCode.index(atOffset: 2))..<Position(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
+          range: SourceLocation(line: 1, column: 3, offset: sourceCode.index(atOffset: 2))..<SourceLocation(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
         ),
         Token(
           content: .identifier(name: "x"),
-          range: Position(line: 2, column: 1, offset: sourceCode.index(atOffset: 4))..<Position(line: 2, column: 2, offset: sourceCode.index(atOffset: 5))
+          range: SourceLocation(line: 2, column: 1, offset: sourceCode.index(atOffset: 4))..<SourceLocation(line: 2, column: 2, offset: sourceCode.index(atOffset: 5))
         ),
         Token(
           content: .identifier(name: "y"),
-          range: Position(line: 2, column: 3, offset: sourceCode.index(atOffset: 6))..<Position(line: 2, column: 4, offset: sourceCode.index(atOffset: 7))
+          range: SourceLocation(line: 2, column: 3, offset: sourceCode.index(atOffset: 6))..<SourceLocation(line: 2, column: 4, offset: sourceCode.index(atOffset: 7))
         ),
       ])
     }())
@@ -96,7 +96,7 @@ class LexerTests: XCTestCase {
     XCTAssertThrowsError(try lexer.lexFile()) { (error) in
       let parserError = error as? ParserError
       XCTAssertNotNil(parserError)
-      let errorPosition = Position(line: 1, column: 7, offset: sourceCode.index(atOffset: 6))
+      let errorPosition = SourceLocation(line: 1, column: 7, offset: sourceCode.index(atOffset: 6))
       XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)
     }
   }
@@ -109,7 +109,7 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(tokens, [
         Token(
           content: .floatLiteral(value: 0.1),
-          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
+          range: SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)..<SourceLocation(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
         )
       ])
     }())
@@ -123,7 +123,7 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(tokens, [
         Token(
           content: .floatLiteral(value: 1),
-          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 3, offset: sourceCode.index(atOffset: 2))
+          range: SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)..<SourceLocation(line: 1, column: 3, offset: sourceCode.index(atOffset: 2))
         )
       ])
     }())
@@ -135,7 +135,7 @@ class LexerTests: XCTestCase {
     XCTAssertThrowsError(try lexer.lexFile()) { (error) in
       let parserError = error as? ParserError
       XCTAssertNotNil(parserError)
-      let errorPosition = Position(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
+      let errorPosition = SourceLocation(line: 1, column: 4, offset: sourceCode.index(atOffset: 3))
       XCTAssertEqual(parserError?.range, errorPosition..<errorPosition)
     }
   }
@@ -148,7 +148,7 @@ class LexerTests: XCTestCase {
       XCTAssertEqual(tokens, [
         Token(
           content: .discrete,
-          range: Position(line: 1, column: 1, offset: sourceCode.startIndex)..<Position(line: 1, column: 9, offset: sourceCode.index(atOffset: 8))
+          range: SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)..<SourceLocation(line: 1, column: 9, offset: sourceCode.index(atOffset: 8))
         )
       ])
     }())

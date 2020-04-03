@@ -5,11 +5,19 @@ internal class Lexer {
   private let sourceCode: String
   
   /// The position of the next character to be lexed
-  internal var position: Position
+  private var sourceLocation: SourceLocation
+  
+  lazy internal var endLocation: SourceLocation = {
+    var sourceLocation = SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)
+    while sourceLocation.offset != sourceCode.endIndex {
+      sourceLocation = sourceLocation.advanced(in: sourceCode)
+    }
+    return sourceLocation
+  }()
   
   public init(sourceCode: String) {
     self.sourceCode = sourceCode
-    self.position = Position(line: 1, column: 1, offset: sourceCode.startIndex)
+    self.sourceLocation = SourceLocation(line: 1, column: 1, offset: sourceCode.startIndex)
   }
   
   // MARK: Consume characters
@@ -17,11 +25,11 @@ internal class Lexer {
   /// Returns the current character and advance the position to the next character.
   /// If the end of the file has been reached, returns `nil`.
   private func consume() -> Character? {
-    guard position.offset != sourceCode.endIndex else {
+    guard sourceLocation.offset != sourceCode.endIndex else {
       return nil
     }
-    let char = sourceCode[position.offset]
-    position = position.advanced(in: sourceCode)
+    let char = sourceCode[sourceLocation.offset]
+    sourceLocation = sourceLocation.advanced(in: sourceCode)
     return char
   }
   
@@ -43,10 +51,10 @@ internal class Lexer {
   
   /// Return the current character or `nil` if the end of the file has been reached.
   private func peek() -> Character? {
-    guard position.offset != sourceCode.endIndex else {
+    guard sourceLocation.offset != sourceCode.endIndex else {
       return nil
     }
-    return sourceCode[position.offset]
+    return sourceCode[sourceLocation.offset]
   }
   
   /// Consumes all whitespace until the next non-whitespace character.
@@ -66,7 +74,7 @@ internal class Lexer {
   internal func nextToken() throws -> Token? {
     consumeWhitespace()
     
-    let start = position
+    let start = sourceLocation
     let char = consume()
     
     let content: TokenContent
@@ -107,10 +115,10 @@ internal class Lexer {
     case let char? where char.isWhitespace:
       fatalError("This should have been consumed by consumeWhitespace before")
     default:
-      throw ParserError(position: start, message: "Unexpected character \(char!)")
+      throw ParserError(location: start, message: "Unexpected character \(char!)")
     }
     
-    let end = position
+    let end = sourceLocation
     
     return Token(content: content, range: start..<end)
   }

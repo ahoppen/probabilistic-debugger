@@ -20,13 +20,13 @@ public enum Type: CustomStringConvertible, Equatable {
 /// A declaration of a new variable. E.g. `int x = y + 2`
 public struct VariableDeclStmt: Stmt {
   /// The variable that's being declared
-  public let variable: Variable
+  public let variable: SourceVariable
   /// The expression that's assigned to the variable
   public let expr: Expr
   
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(variable: Variable, expr: Expr, range: Range<Position>) {
+  public init(variable: SourceVariable, expr: Expr, range: SourceRange) {
     self.variable = variable
     self.expr = expr
     self.range = range
@@ -40,9 +40,9 @@ public struct AssignStmt: Stmt {
   /// The expression that's assigned to the variable
   public let expr: Expr
   
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(variable: UnresolvedVariable, expr: Expr, range: Range<Position>) {
+  public init(variable: UnresolvedVariable, expr: Expr, range: SourceRange) {
     self.variable = variable
     self.expr = expr
     self.range = range
@@ -52,9 +52,9 @@ public struct AssignStmt: Stmt {
 public struct ObserveStmt: Stmt {
   public let condition: Expr
   
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(condition: Expr, range: Range<Position>) {
+  public init(condition: Expr, range: SourceRange) {
     self.condition = condition
     self.range = range
   }
@@ -64,9 +64,9 @@ public struct ObserveStmt: Stmt {
 public struct CodeBlockStmt: Stmt {
   public let body: [Stmt]
   
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(body: [Stmt], range: Range<Position>) {
+  public init(body: [Stmt], range: SourceRange) {
     self.body = body
     self.range = range
   }
@@ -76,9 +76,9 @@ public struct IfStmt: Stmt {
   public let condition: Expr
   public let body: CodeBlockStmt
   
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(condition: Expr, body: CodeBlockStmt, range: Range<Position>) {
+  public init(condition: Expr, body: CodeBlockStmt, range: SourceRange) {
     self.condition = condition
     self.body = body
     self.range = range
@@ -89,9 +89,9 @@ public struct WhileStmt: Stmt {
   public let condition: Expr
   public let body: CodeBlockStmt
   
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(condition: Expr, body: CodeBlockStmt, range: Range<Position>) {
+  public init(condition: Expr, body: CodeBlockStmt, range: SourceRange) {
     self.condition = condition
     self.body = body
     self.range = range

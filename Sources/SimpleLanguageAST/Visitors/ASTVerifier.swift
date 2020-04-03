@@ -9,8 +9,8 @@ public protocol ASTVerifier {
   associatedtype StmtReturnType
   
   func visit(_ expr: BinaryOperatorExpr) throws -> ExprReturnType
-  func visit(_ expr: IntegerExpr) throws -> ExprReturnType
-  func visit(_ expr: VariableExpr) throws -> ExprReturnType
+  func visit(_ expr: IntegerLiteralExpr) throws -> ExprReturnType
+  func visit(_ expr: VariableReferenceExpr) throws -> ExprReturnType
   func visit(_ expr: ParenExpr) throws -> ExprReturnType
   func visit(_ expr: DiscreteIntegerDistributionExpr) throws -> ExprReturnType
   func visit(_ stmt: VariableDeclStmt) throws -> StmtReturnType
@@ -21,15 +21,16 @@ public protocol ASTVerifier {
   func visit(_ stmt: WhileStmt) throws -> StmtReturnType
 }
 
+/// If we don't return anything, provide default implementations that just visit the children
 public extension ASTVerifier where ExprReturnType == Void, StmtReturnType == Void {
   func visit(_ expr: BinaryOperatorExpr) throws {
     try expr.lhs.accept(self)
     try expr.rhs.accept(self)
   }
   
-  func visit(_ expr: IntegerExpr) throws {}
+  func visit(_ expr: IntegerLiteralExpr) throws {}
   
-  func visit(_ expr: VariableExpr) throws {}
+  func visit(_ expr: VariableReferenceExpr) throws {}
   
   func visit(_ expr: ParenExpr) throws {
     try expr.subExpr.accept(self)

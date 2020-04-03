@@ -1,4 +1,4 @@
-public struct Position: Comparable {
+public struct SourceLocation: Comparable {
   /// The line of this position (1-based)
   public let line: Int
   
@@ -14,17 +14,17 @@ public struct Position: Comparable {
     self.offset = offset
   }
   
-  public func advanced(in string: String) -> Position {
+  public func advanced(in string: String) -> SourceLocation {
     let char = string[offset]
     let newOffset = string.index(after: offset)
     if char == "\n" {
-      return Position(line: line + 1, column: 1, offset: newOffset)
+      return SourceLocation(line: line + 1, column: 1, offset: newOffset)
     } else {
-      return Position(line: line, column: column + 1, offset: newOffset)
+      return SourceLocation(line: line, column: column + 1, offset: newOffset)
     }
   }
   
-  public static func <(lhs: Position, rhs: Position) -> Bool {
+  public static func <(lhs: SourceLocation, rhs: SourceLocation) -> Bool {
     let offsetBasedResult = (lhs.offset < rhs.offset)
 #if DEBUG
     let lineColumnBasedResult: Bool
@@ -40,3 +40,5 @@ public struct Position: Comparable {
     return offsetBasedResult
   }
 }
+
+public typealias SourceRange = Range<SourceLocation>

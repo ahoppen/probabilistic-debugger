@@ -1,9 +1,9 @@
-/// A class that takes an AST and rewrites it to a different AST while preserving node types.
-/// By default all methods are implemented as a no-op that continues visiting.
+/// A type that takes an AST and rewrites it to a different AST while preserving node types.
+/// By default all methods are implemented as a transformation that visits all children and creates a new node based on the rewritten children nodes.
 public protocol ASTRewriter {
   func visit(_ expr: BinaryOperatorExpr) throws -> BinaryOperatorExpr
-  func visit(_ expr: IntegerExpr) throws -> IntegerExpr
-  func visit(_ expr: VariableExpr) throws -> VariableExpr
+  func visit(_ expr: IntegerLiteralExpr) throws -> IntegerLiteralExpr
+  func visit(_ expr: VariableReferenceExpr) throws -> VariableReferenceExpr
   func visit(_ expr: ParenExpr) throws -> ParenExpr
   func visit(_ expr: DiscreteIntegerDistributionExpr) throws -> DiscreteIntegerDistributionExpr
   func visit(_ stmt: VariableDeclStmt) throws -> VariableDeclStmt
@@ -22,11 +22,11 @@ public extension ASTRewriter {
                               range: expr.range)
   }
   
-  func visit(_ expr: IntegerExpr) -> IntegerExpr {
+  func visit(_ expr: IntegerLiteralExpr) -> IntegerLiteralExpr {
     return expr
   }
   
-  func visit(_ expr: VariableExpr) -> VariableExpr {
+  func visit(_ expr: VariableReferenceExpr) -> VariableReferenceExpr {
     return expr
   }
   

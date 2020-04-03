@@ -23,22 +23,22 @@ class VariableResolverTests: XCTestCase {
       
       XCTAssertEqual(stmts.count, 2)
       
-      let varX = Variable(name: "x", disambiguationIndex: 1, type: .int)
+      let varX = SourceVariable(name: "x", disambiguationIndex: 1, type: .int)
       let declareStmt = VariableDeclStmt(variable: varX,
-                                         expr: IntegerExpr(value: 10, range: .whatever),
+                                         expr: IntegerLiteralExpr(value: 10, range: .whatever),
                                          range: .whatever)
       
-      let subExpr = BinaryOperatorExpr(lhs: VariableExpr(variable: .resolved(varX), range: .whatever),
+      let subExpr = BinaryOperatorExpr(lhs: VariableReferenceExpr(variable: .resolved(varX), range: .whatever),
                                        operator: .minus,
-                                       rhs: IntegerExpr(value: 1, range: .whatever),
+                                       rhs: IntegerLiteralExpr(value: 1, range: .whatever),
                                        range: .whatever)
       let assign = AssignStmt(variable: .resolved(varX),
                               expr: subExpr,
                               range: .whatever)
       let codeBlock = CodeBlockStmt(body: [assign], range: .whatever)
-      let condition = BinaryOperatorExpr(lhs: IntegerExpr(value: 1, range: .whatever),
+      let condition = BinaryOperatorExpr(lhs: IntegerLiteralExpr(value: 1, range: .whatever),
                                          operator: .lessThan,
-                                         rhs: VariableExpr(variable: .resolved(varX), range: .whatever),
+                                         rhs: VariableReferenceExpr(variable: .resolved(varX), range: .whatever),
                                          range: .whatever)
       let whileStmt = WhileStmt(condition: condition, body: codeBlock, range: .whatever)
       XCTAssertEqualASTIgnoringRanges(stmts, [declareStmt, whileStmt])

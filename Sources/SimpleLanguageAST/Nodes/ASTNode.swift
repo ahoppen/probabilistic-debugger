@@ -1,6 +1,6 @@
 public protocol ASTNode: CustomDebugStringConvertible {
   /// The range in the source code that represents this AST node
-  var range: Range<Position> { get }
+  var range: SourceRange { get }
   
   /// Check if this AST node is equal to the `other` node while not comparing ranges.
   /// For testing purposes.

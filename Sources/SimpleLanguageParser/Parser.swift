@@ -43,7 +43,7 @@ public class Parser {
   
   private var peekedToken: Token?
   
-  private var usedVariables: [Variable] = []
+  private var usedVariables: [SourceVariable] = []
   
   public init(sourceCode: String) {
     self.lexer = Lexer(sourceCode: sourceCode)
@@ -51,15 +51,15 @@ public class Parser {
   
   // MARK: - Variable management
   
-  /// Create a new `Variable` for a variable with the given name in the source code.
+  /// Create a new `SourceVariable` for a variable with the given name in the source code.
   /// If a variable with this name has already been declared, increase the `disambiguationIndex` to make it unique.
-  func unusedVariable(name: String, type: Type) -> Variable {
-    let variable: Variable
+  func unusedVariable(name: String, type: Type) -> SourceVariable {
+    let variable: SourceVariable
     var disambiguationIndex = 1
     while usedVariables.contains(where: { $0.name == name && $0.disambiguationIndex == disambiguationIndex }) {
       disambiguationIndex += 1
     }
-    variable = Variable(name: name, disambiguationIndex: disambiguationIndex, type: type)
+    variable = SourceVariable(name: name, disambiguationIndex: disambiguationIndex, type: type)
     usedVariables.append(variable)
     return variable
   }
@@ -97,7 +97,7 @@ public class Parser {
   @discardableResult
   private func consumeToken(condition: (TokenContent) -> Bool, errorMessage: String) throws -> Token {
     guard let token = try consumeToken() else {
-      throw ParserError(position: lexer.position, message: "Unexpectedly reached end of file")
+      throw ParserError(location: lexer.endLocation, message: "Unexpectedly reached end of file")
     }
     if !condition(token.content) {
       throw ParserError(range: token.range, message: errorMessage)
@@ -210,12 +210,12 @@ public class Parser {
     var stmts = [Stmt]()
     while let token = try peekToken(), token.content != .rightBrace {
       guard let stmt = try parseStmt() else {
-        throw ParserError(position: lexer.position, message: "Reached end of file while inside a '{}' code block")
+        throw ParserError(location: lexer.endLocation, message: "Reached end of file while inside a '{}' code block")
       }
       stmts.append(stmt)
     }
     guard let rightBrace = try consumeToken() else {
-      throw ParserError(position: lexer.position, message: "Reached end of file while inside a '{}' code block")
+      throw ParserError(location: lexer.endLocation, message: "Reached end of file while inside a '{}' code block")
     }
     assert(rightBrace.content == .rightBrace)
     
@@ -265,19 +265,19 @@ public class Parser {
   /// Parse an expression without binary operators.
   private func parseBaseExpr() throws -> Expr {
     guard let nextToken = try consumeToken() else {
-      throw ParserError(position: lexer.position, message: "Reached end of file while parsing expression")
+      throw ParserError(location: lexer.endLocation, message: "Reached end of file while parsing expression")
     }
     switch nextToken.content {
     case .integerLiteral(let value):
-      return IntegerExpr(value: value, range: nextToken.range)
+      return IntegerLiteralExpr(value: value, range: nextToken.range)
     case .identifier(name: let name):
-      return VariableExpr(variable: .unresolved(name: name), range: nextToken.range)
+      return VariableReferenceExpr(variable: .unresolved(name: name), range: nextToken.range)
     case .discrete:
       return try parseDiscreteProbabilityDistribution(discreteKeyword: nextToken)
     case .leftParen:
       let subExpr = try parseExpr()
       guard let rParen = try consumeToken() else {
-        throw ParserError(position: lexer.position, message: "Expected ')' to close expression in paranthesis, but found end of file")
+        throw ParserError(location: lexer.endLocation, message: "Expected ')' to close expression in paranthesis, but found end of file")
       }
       guard rParen.content == .rightParen else {
         throw ParserError(range: rParen.range, message: "Expected ')' to close expression in paranthesis, but found '\(rParen.content)'")

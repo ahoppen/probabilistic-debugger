@@ -81,7 +81,8 @@ let package = Package(
     .testTarget(
       name: "SimpleLanguageASTTests",
       dependencies: [
-        "SimpleLanguageAST"
+        "SimpleLanguageAST",
+        "TestUtils",
       ]
     ),
     .testTarget(

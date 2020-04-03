@@ -4,10 +4,10 @@ import SimpleLanguageAST
 /// Debug information associated to a single IR instruction
 public struct InstructionDebugInfo {
   /// Mapping of the source variables to the IR variables that hold the values
-  public let variables: [Variable: IRVariable]
+  public let variables: [SourceVariable: IRVariable]
   
   /// The location in the original source code that corresponds to this instruction
-  public let sourceLocation: Position?
+  public let sourceLocation: SourceLocation?
 }
 
 /// Debug info for a *Simple Language* program, consisting of `InstructionDebugInfo`s for all instructions in the IR that correspond to statements in the source code.

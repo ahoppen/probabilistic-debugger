@@ -1,9 +1,9 @@
 import SimpleLanguageAST
 import XCTest
 
-public extension Range where Bound == Position {
+public extension SourceRange {
   /// Some range whoe value is not important because it will not be used when comparing ASTs using `equalsIgnoringRange`.
-  static let whatever = Position(line: 0, column: 0, offset: "".startIndex)..<Position(line: 0, column: 0, offset: "".startIndex)
+  static let whatever = SourceLocation(line: 0, column: 0, offset: "".startIndex)..<SourceLocation(line: 0, column: 0, offset: "".startIndex)
 }
 
 /// Check that the two ASTs are equal while ignoring their ranges.

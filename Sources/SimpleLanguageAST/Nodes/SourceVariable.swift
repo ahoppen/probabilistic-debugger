@@ -1,6 +1,6 @@
 /// A variable in the source code.
 /// Until variable resolving, variable references only have a name and use the `UnresolvedVariable` type.
-public struct Variable: Hashable, CustomDebugStringConvertible {
+public struct SourceVariable: Hashable, CustomDebugStringConvertible {
   /// The name of the variable, as it is named in the source code
   public let name: String
   
@@ -27,7 +27,7 @@ public enum UnresolvedVariable: CustomDebugStringConvertible {
   /// We haven't resolved the variable yet, we only know its name
   case unresolved(name: String)
   /// The variable has been resolved
-  case resolved(Variable)
+  case resolved(SourceVariable)
   
   public var debugDescription: String {
     switch self {

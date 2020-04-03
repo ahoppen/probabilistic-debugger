@@ -22,14 +22,15 @@ public enum BinaryOperator {
   }
 }
 
+/// Application of a binary operator to two operands
 public struct BinaryOperatorExpr: Expr {
   public let lhs: Expr
   public let rhs: Expr
   public let `operator`: BinaryOperator
   
-  public let range: Range<Position>
+  public let range: SourceRange
  
-  public init(lhs: Expr, operator op: BinaryOperator, rhs: Expr, range: Range<Position>) {
+  public init(lhs: Expr, operator op: BinaryOperator, rhs: Expr, range: SourceRange) {
     self.lhs = lhs
     self.rhs = rhs
     self.operator = op
@@ -37,41 +38,46 @@ public struct BinaryOperatorExpr: Expr {
   }
 }
 
-public struct IntegerExpr: Expr {
+/// An interger literal
+public struct IntegerLiteralExpr: Expr {
   public let value: Int
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(value: Int, range: Range<Position>) {
+  public init(value: Int, range: SourceRange) {
     self.value = value
     self.range = range
   }
 }
 
-public struct VariableExpr: Expr {
+/// A reference to a variable.
+public struct VariableReferenceExpr: Expr {
+  /// Before type checking (in particular variable resolving), `variable` is `.unresolved`, afterwards it is always `resolved`
   public let variable: UnresolvedVariable
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(variable: UnresolvedVariable, range: Range<Position>) {
+  public init(variable: UnresolvedVariable, range: SourceRange) {
     self.variable = variable
     self.range = range
   }
 }
 
+/// An expression inside paranthesis
 public struct ParenExpr: Expr {
   public let subExpr: Expr
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(subExpr: Expr, range: Range<Position>) {
+  public init(subExpr: Expr, range: SourceRange) {
     self.subExpr = subExpr
     self.range = range
   }
 }
 
+/// Draw an integer from a discrete distribution
 public struct DiscreteIntegerDistributionExpr: Expr {
   public let distribution: [Int: Double]
-  public let range: Range<Position>
+  public let range: SourceRange
   
-  public init(distribution: [Int: Double], range: Range<Position>) {
+  public init(distribution: [Int: Double], range: SourceRange) {
     self.distribution = distribution
     self.range = range
   }
@@ -94,7 +100,7 @@ public extension BinaryOperatorExpr {
   }
 }
 
-public extension IntegerExpr {
+public extension IntegerLiteralExpr {
   func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
@@ -108,7 +114,7 @@ public extension IntegerExpr {
   }
 }
 
-public extension VariableExpr {
+public extension VariableReferenceExpr {
   func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
@@ -164,18 +170,18 @@ public extension BinaryOperatorExpr {
   }
 }
 
-public extension IntegerExpr {
+public extension IntegerLiteralExpr {
   func equalsIgnoringRange(other: ASTNode) -> Bool {
-    guard let other = other as? IntegerExpr else {
+    guard let other = other as? IntegerLiteralExpr else {
       return false
     }
     return self.value == other.value
   }
 }
 
-public extension VariableExpr {
+public extension VariableReferenceExpr {
   func equalsIgnoringRange(other: ASTNode) -> Bool {
-    guard let other = other as? VariableExpr else {
+    guard let other = other as? VariableReferenceExpr else {
       return false
     }
     return self.variable.hasSameName(as: other.variable)
