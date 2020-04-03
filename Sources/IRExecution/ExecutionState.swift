@@ -1,16 +1,16 @@
 import IR
 
 /// During execution of a probabilistic program, describes an execution branch that is a concrete program position.
-/// The variables at this concrete program position might have different values. Their probability distribution is described by an Array of `Sample`s.
+/// The variables at this concrete program position might have different values. Their probability distribution is described by an Array of `IRSample`s.
 public struct ExecutionState {
   /// The position of the next instruction to execute to advance the execution of this execution state.
   /// If no instruction exists at this program position in the IR, then the program has terminated.
   public let position: InstructionPosition
   
   /// The samples that describe the probability distribution of the variables at the given execution state.
-  public let samples: [Sample]
+  public let samples: [IRSample]
   
-  internal init(position: InstructionPosition, samples: [Sample]) {
+  internal init(position: InstructionPosition, samples: [IRSample]) {
     assert(samples.count > 0, "There is no point in pursuing an execution branch without any samples")
     self.position = position
     self.samples = samples
@@ -70,7 +70,7 @@ public struct ExecutionState {
   }
   
   /// Move the program position to the start of the given `block` and execute any `phi` instructions at its start
-  private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [Sample], previousBlock: BasicBlockName) -> ExecutionState {
+  private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [IRSample], previousBlock: BasicBlockName) -> ExecutionState {
     var samples = samples
     var position = InstructionPosition(basicBlock: block, instructionIndex: 0)
     while let phiInstruction = program.instruction(at: position) as? PhiInstruction {

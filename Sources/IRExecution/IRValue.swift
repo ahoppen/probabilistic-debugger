@@ -1,6 +1,6 @@
 import IR
 
-public enum Value: Equatable {
+public enum IRValue: Equatable {
   case integer(Int)
   case bool(Bool)
   

@@ -11,7 +11,7 @@ extension Dictionary {
 
 extension VariableOrValue {
   /// Return the value this `VariableOrValue` has in the given sample
-  func evaluated(in sample: Sample) -> Value {
+  func evaluated(in sample: IRSample) -> IRValue {
     switch self {
     case .integer(let value):
       return .integer(value)

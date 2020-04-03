@@ -15,7 +15,7 @@ public class IRExecutor {
     self.program = program
     let initialState = ExecutionState(
       position: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0),
-      samples: Array(repeating: Sample(values: [:]), count: sampleCount)
+      samples: Array(repeating: IRSample(values: [:]), count: sampleCount)
     )
     self.statesToExecute = [initialState]
   }

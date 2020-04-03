@@ -5,7 +5,7 @@ import SimpleLanguageIRGen
 import Utils
 
 public struct SLSample {
-  public let values: [SourceVariable: Value]
+  public let values: [SourceVariable: IRValue]
 }
 
 public class SLDebugger {

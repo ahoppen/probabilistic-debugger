@@ -6,34 +6,34 @@ import IR
 /// In probabilistic programs, a program can simultaneously be at different *program positions* and each program position does not have single variable assignment, but a distribution of variable assignments.
 /// The purpose of this struct is to define a sample for a single program position so that, together with other samples, it can describe the probability distribution of the variables at a given program position.
 /// During a set of `ExecutionState`s takes care of modelling the different program positions at which execution may simultaneously be.
-public struct Sample {
+public struct IRSample {
   /// The values assigned to the variables in a sample.
-  public let values: [IRVariable: Value]
+  public let values: [IRVariable: IRValue]
   
-  /// Get a new `Sample` by assigning the given variable the value of the given `variableOrValue`.
-  internal func assigning(variable: IRVariable, variableOrValue: VariableOrValue) -> Sample {
+  /// Get a new `IRSample` by assigning the given variable the value of the given `variableOrValue`.
+  internal func assigning(variable: IRVariable, variableOrValue: VariableOrValue) -> IRSample {
     #if DEBUG
     if let previousValue = values[variable] {
       assert(previousValue.type == variableOrValue.type)
     }
     #endif
-    return Sample(values: values.assiging(key: variable, value: variableOrValue.evaluated(in: self)))
+    return IRSample(values: values.assiging(key: variable, value: variableOrValue.evaluated(in: self)))
   }
   
-  /// Get a new `Sample` by assigning the given variable a given `value`.
-  internal func assigning(variable: IRVariable, value: Value) -> Sample {
+  /// Get a new `IRSample` by assigning the given variable a given `value`.
+  internal func assigning(variable: IRVariable, value: IRValue) -> IRSample {
     #if DEBUG
     if let previousValue = values[variable] {
       assert(previousValue.type == value.type)
     }
     #endif
-    return Sample(values: values.assiging(key: variable, value: value))
+    return IRSample(values: values.assiging(key: variable, value: value))
   }
   
   /// Return a new sample by changing the variable values through the execution of the given instruction.
   /// The instruction cannot be a control-flow instruction since there is no meaningful execution for it.
   /// If an `observe` is violated through the execution `nil` is returned.
-  internal func executeNonControlFlowInstruction(_ instruction: Instruction) -> Sample? {
+  internal func executeNonControlFlowInstruction(_ instruction: Instruction) -> IRSample? {
     switch instruction {
     case let instruction as AssignInstruction:
       return self.assigning(variable: instruction.assignee, variableOrValue: instruction.value)
