@@ -29,7 +29,7 @@ public enum IRVerifier {
   private static func verifyAllBlocksEndWithJumpingInstruction(ir: IRProgram) {
     for block in ir.basicBlocks.values {
       switch block.instructions.last {
-      case is ConditionalBranchInstr, is JumpInstr, is ReturnInstr:
+      case is BranchInstruction, is JumpInstruction, is ReturnInstruction:
         break
       default:
         fatalError("Basic block \(block.name) does not end with a jump, branch or return instruction")
@@ -40,7 +40,7 @@ public enum IRVerifier {
   private static func verifyOnlyOneBlockEndsWithReturnInstruction(ir: IRProgram) {
     var foundReturnInstruction = false
     for block in ir.basicBlocks.values {
-      if block.instructions.last is ReturnInstr {
+      if block.instructions.last is ReturnInstruction {
         if foundReturnInstruction {
           fatalError("Two blocks end with a return instruction")
         } else {
@@ -54,7 +54,7 @@ public enum IRVerifier {
     for block in ir.basicBlocks.values {
       for instruction in block.instructions.dropLast() {
         switch instruction {
-        case is ConditionalBranchInstr, is JumpInstr, is ReturnInstr:
+        case is BranchInstruction, is JumpInstruction, is ReturnInstruction:
           fatalError("Basic block \(block.name) has a branching instruction that's not at the end of the block")
         default:
           break
@@ -66,12 +66,12 @@ public enum IRVerifier {
   private static func verifyAllJumpedToBlocksExist(ir: IRProgram) {
     for block in ir.basicBlocks.values {
       for instruction in block.instructions {
-        if let jumpInstr = instruction as? JumpInstr {
+        if let jumpInstr = instruction as? JumpInstruction {
           if ir.basicBlocks[jumpInstr.target] == nil {
             fatalError("Jump to \(jumpInstr.target) but basic block does not exist")
           }
         }
-        if let branchInstr = instruction as? ConditionalBranchInstr {
+        if let branchInstr = instruction as? BranchInstruction {
           if ir.basicBlocks[branchInstr.targetTrue] == nil {
             fatalError("Branch to \(branchInstr.targetTrue) but basic block does not exist")
           }
@@ -86,7 +86,7 @@ public enum IRVerifier {
   private static func verifyPhiStatementsCoverAllPredecessorBlocks(ir: IRProgram) {
     for block in ir.basicBlocks.values {
       for instruction in block.instructions {
-        guard let phiInstruction = instruction as? PhiInstr else {
+        guard let phiInstruction = instruction as? PhiInstruction else {
           continue
         }
         if Set(phiInstruction.choices.keys) != ir.directPredecessors[block.name] {
@@ -102,7 +102,7 @@ public enum IRVerifier {
         return ir.basicBlocks[blockName]!.declaredVariables
       }))
       for instruction in block.instructions {
-        if !(instruction is PhiInstr) {
+        if !(instruction is PhiInstruction) {
           for usedVariable in instruction.usedVariables {
             if !declaredVariables.contains(usedVariable) {
               fatalError("Variable \(usedVariable) may not be defined before it is used")
@@ -119,11 +119,11 @@ public enum IRVerifier {
   private static func verifyPhiInstructionsAtStartOfBlock(ir: IRProgram) {
     for block in ir.basicBlocks.values {
       var inPhiInstructionSection = true
-      for instr in block.instructions {
-        if instr is PhiInstr, !inPhiInstructionSection {
+      for instruction in block.instructions {
+        if instruction is PhiInstruction, !inPhiInstructionSection {
           fatalError("Found a Phi-Instruction that's not at the start of a basic block")
         }
-        if !(instr is PhiInstr) {
+        if !(instruction is PhiInstruction) {
           inPhiInstructionSection = false
         }
       }

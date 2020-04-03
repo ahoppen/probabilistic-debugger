@@ -26,12 +26,12 @@ class IRGenTests: XCTestCase {
     let var5 = IRVariable(name: "5", type: .int)
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      AssignInstr(assignee: var1, value: .integer(2)),
-      AddInstr(assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
-      AssignInstr(assignee: var3, value: .variable(var2)),
-      AddInstr(assignee: var4, lhs: .variable(var3), rhs: .integer(3)),
-      AssignInstr(assignee: var5, value: .variable(var4)),
-      ReturnInstr(),
+      AssignInstruction(assignee: var1, value: .integer(2)),
+      AddInstruction(assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
+      AssignInstruction(assignee: var3, value: .variable(var2)),
+      AddInstruction(assignee: var4, lhs: .variable(var3), rhs: .integer(3)),
+      AssignInstruction(assignee: var5, value: .variable(var4)),
+      ReturnInstruction(),
     ])
     let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1], debugInfo: nil)
     
@@ -63,21 +63,21 @@ class IRGenTests: XCTestCase {
     
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      AssignInstr(assignee: var1, value: .integer(2)),
-      CompareInstr(comparison: .lessThan, assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
-      ConditionalBranchInstr(condition: .variable(var2), targetTrue: bb2Name, targetFalse: bb3Name)
+      AssignInstruction(assignee: var1, value: .integer(2)),
+      CompareInstruction(comparison: .lessThan, assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
+      BranchInstruction(condition: .variable(var2), targetTrue: bb2Name, targetFalse: bb3Name)
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      AddInstr(assignee: var3, lhs: .variable(var1), rhs: .integer(1)),
-      AssignInstr(assignee: var4, value: .variable(var3)),
-      JumpInstr(target: bb3Name)
+      AddInstruction(assignee: var3, lhs: .variable(var1), rhs: .integer(1)),
+      AssignInstruction(assignee: var4, value: .variable(var3)),
+      JumpInstruction(target: bb3Name)
     ])
     
     let bb3 = BasicBlock(name: bb3Name, instructions: [
-      PhiInstr(assignee: var5, choices: [bb1Name: var1, bb2Name: var4]),
-      AssignInstr(assignee: var6, value: .variable(var5)),
-      ReturnInstr(),
+      PhiInstruction(assignee: var5, choices: [bb1Name: var1, bb2Name: var4]),
+      AssignInstruction(assignee: var6, value: .variable(var5)),
+      ReturnInstruction(),
     ])
     
     let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3], debugInfo: nil)
@@ -110,25 +110,25 @@ class IRGenTests: XCTestCase {
     let bb4Name = BasicBlockName("bb4")
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      AssignInstr(assignee: var1, value: .integer(5)),
-      JumpInstr(target: bb2Name)
+      AssignInstruction(assignee: var1, value: .integer(5)),
+      JumpInstruction(target: bb2Name)
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var5, choices: [bb1Name: var1, bb3Name: var4]),
-      CompareInstr(comparison: .lessThan, assignee: var2, lhs: .integer(1), rhs: .variable(var5)),
-      ConditionalBranchInstr(condition: .variable(var2), targetTrue: bb3Name, targetFalse: bb4Name)
+      PhiInstruction(assignee: var5, choices: [bb1Name: var1, bb3Name: var4]),
+      CompareInstruction(comparison: .lessThan, assignee: var2, lhs: .integer(1), rhs: .variable(var5)),
+      BranchInstruction(condition: .variable(var2), targetTrue: bb3Name, targetFalse: bb4Name)
     ])
     
     let bb3 = BasicBlock(name: bb3Name, instructions: [
-      SubtractInstr(assignee: var3, lhs: .variable(var5), rhs: .integer(1)),
-      AssignInstr(assignee: var4, value: .variable(var3)),
-      JumpInstr(target: bb2Name)
+      SubtractInstruction(assignee: var3, lhs: .variable(var5), rhs: .integer(1)),
+      AssignInstruction(assignee: var4, value: .variable(var3)),
+      JumpInstruction(target: bb2Name)
     ])
     
     let bb4 = BasicBlock(name: bb4Name, instructions: [
-      AssignInstr(assignee: var6, value: .variable(var5)),
-      ReturnInstr(),
+      AssignInstruction(assignee: var6, value: .variable(var5)),
+      ReturnInstruction(),
     ])
     
     let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4], debugInfo: nil)

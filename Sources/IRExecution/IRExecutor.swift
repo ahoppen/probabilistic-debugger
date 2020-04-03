@@ -25,7 +25,7 @@ public class IRExecutor {
     guard let stateToExecute = statesToExecute.popLast() else {
       fatalError("No state to execute")
     }
-    if program.instruction(at: stateToExecute.position)! is ReturnInstr {
+    if program.instruction(at: stateToExecute.position)! is ReturnInstruction {
       finishedExecutionStates.append(stateToExecute)
     } else {
       let newStates = stateToExecute.execute(in: program)
@@ -39,7 +39,7 @@ public class IRExecutor {
     while !statesToExecute.isEmpty {
       executeStateOnTopOfExecutionStack()
     }
-    assert(finishedExecutionStates.allSatisfy({ program.instruction(at: $0.position) is ReturnInstr }))
+    assert(finishedExecutionStates.allSatisfy({ program.instruction(at: $0.position) is ReturnInstruction }))
     return finishedExecutionStates
   }
 }

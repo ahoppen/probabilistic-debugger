@@ -55,25 +55,25 @@ fileprivate func equal(_ lhs: Instruction, _ rhs: Instruction) -> Bool {
     return false
   }
   switch (lhs, rhs)  {
-  case (let lhs as AssignInstr, let rhs as AssignInstr):
+  case (let lhs as AssignInstruction, let rhs as AssignInstruction):
     return lhs == rhs
-  case (let lhs as AddInstr, let rhs as AddInstr):
+  case (let lhs as AddInstruction, let rhs as AddInstruction):
     return lhs == rhs
-  case (let lhs as SubtractInstr, let rhs as SubtractInstr):
+  case (let lhs as SubtractInstruction, let rhs as SubtractInstruction):
     return lhs == rhs
-  case (let lhs as CompareInstr, let rhs as CompareInstr):
+  case (let lhs as CompareInstruction, let rhs as CompareInstruction):
     return lhs == rhs
-  case (let lhs as DiscreteDistributionInstr, let rhs as DiscreteDistributionInstr):
+  case (let lhs as DiscreteDistributionInstruction, let rhs as DiscreteDistributionInstruction):
     return lhs == rhs
-  case (let lhs as ObserveInstr, let rhs as ObserveInstr):
+  case (let lhs as ObserveInstruction, let rhs as ObserveInstruction):
     return lhs == rhs
-  case (let lhs as JumpInstr, let rhs as JumpInstr):
+  case (let lhs as JumpInstruction, let rhs as JumpInstruction):
     return lhs == rhs
-  case (let lhs as ConditionalBranchInstr, let rhs as ConditionalBranchInstr):
+  case (let lhs as BranchInstruction, let rhs as BranchInstruction):
     return lhs == rhs
-  case (let lhs as PhiInstr, let rhs as PhiInstr):
+  case (let lhs as PhiInstruction, let rhs as PhiInstruction):
     return lhs == rhs
-  case (let lhs as ReturnInstr, let rhs as ReturnInstr):
+  case (let lhs as ReturnInstruction, let rhs as ReturnInstruction):
     return lhs == rhs
   default:
     fatalError("Unknown instruction type '\(type(of: lhs))'")

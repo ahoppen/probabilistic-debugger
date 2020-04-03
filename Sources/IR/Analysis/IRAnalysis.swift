@@ -8,9 +8,9 @@ enum DirectPredecessors {
     
     for basicBlock in basicBlocks {
       for instruction in basicBlock.instructions {
-        if let jumpInstr = instruction as? JumpInstr {
+        if let jumpInstr = instruction as? JumpInstruction {
           predecessors[jumpInstr.target] = predecessors[jumpInstr.target]!.union([basicBlock.name])
-        } else if let branchInstr = instruction as? ConditionalBranchInstr {
+        } else if let branchInstr = instruction as? BranchInstruction {
           predecessors[branchInstr.targetTrue] = predecessors[branchInstr.targetTrue]!.union([basicBlock.name])
           predecessors[branchInstr.targetFalse] = predecessors[branchInstr.targetFalse]!.union([basicBlock.name])
         }

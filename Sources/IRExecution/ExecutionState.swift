@@ -25,12 +25,12 @@ public struct ExecutionState {
       fatalError("Program has already terminated")
     }
     switch instruction {
-    case is AssignInstr, is AddInstr, is SubtractInstr, is CompareInstr, is DiscreteDistributionInstr:
+    case is AssignInstruction, is AddInstruction, is SubtractInstruction, is CompareInstruction, is DiscreteDistributionInstruction:
       // Modify samples and advance program position by 1
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       let newPosition = ProgramPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
       return [ExecutionState(position: newPosition, samples: newSamples)]
-    case is ObserveInstr:
+    case is ObserveInstruction:
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       // If there are no samples left, there is no point in pursuing this execution path
       if newSamples.isEmpty {
@@ -39,10 +39,10 @@ public struct ExecutionState {
         let newPosition = ProgramPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
         return [ExecutionState(position: newPosition, samples: newSamples)]
       }
-    case let instruction as JumpInstr:
+    case let instruction as JumpInstruction:
       // Simply jump to the new position and execute its phi instructions. No need to modify samples
       return [self.jumpTo(block: instruction.target, in: program, samples: samples, previousBlock: position.basicBlock)]
-    case let instruction as ConditionalBranchInstr:
+    case let instruction as BranchInstruction:
       // Split samples into those that satisfy the condition and those that don't. Then jump to the new block and execute phi instructions
       let trueSamples = samples.filter({ instruction.condition.evaluated(in: $0).boolValue == true })
       let falseSamples = samples.filter({ instruction.condition.evaluated(in: $0).boolValue == false })
@@ -60,9 +60,9 @@ public struct ExecutionState {
       assert(newStates.count > 0, "At least one execution path needs to be viable")
       
       return newStates
-    case is PhiInstr:
+    case is PhiInstruction:
       fatalError("Should have been handled during the jump to a new basic block")
-    case is ReturnInstr:
+    case is ReturnInstruction:
       fatalError("Should have been handled by the executor")
     default:
       fatalError("Unknown instruction \(type(of: instruction))")
@@ -73,7 +73,7 @@ public struct ExecutionState {
   private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [Sample], previousBlock: BasicBlockName) -> ExecutionState {
     var samples = samples
     var position = ProgramPosition(basicBlock: block, instructionIndex: 0)
-    while let phiInstruction = program.instruction(at: position) as? PhiInstr {
+    while let phiInstruction = program.instruction(at: position) as? PhiInstruction {
       samples = samples.map( {
         $0.assigning(variable: phiInstruction.assignee, variableOrValue: .variable(phiInstruction.choices[previousBlock]!))
       })

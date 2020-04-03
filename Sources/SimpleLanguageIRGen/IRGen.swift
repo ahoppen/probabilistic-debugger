@@ -80,7 +80,7 @@ public class IRGen: ASTVisitor {
     for stmt in stmts {
       stmt.accept(self)
     }
-    append(instruction: ReturnInstr(), sourceLocation: stmts.last!.range.upperBound)
+    append(instruction: ReturnInstruction(), sourceLocation: stmts.last!.range.upperBound)
     finishedBasicBlocks.append(currentBasicBlock)
     return IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks, debugInfo: SLDebugInfo(debugInfo))
   }
@@ -101,16 +101,16 @@ public class IRGen: ASTVisitor {
     switch (expr.operator, lhs.type, rhs.type) {
     case (.plus, .int, .int):
       assignee = unusedIRVariable(type: .int)
-      instruction = AddInstr(assignee: assignee, lhs: lhs, rhs: rhs)
+      instruction = AddInstruction(assignee: assignee, lhs: lhs, rhs: rhs)
     case (.minus, .int, .int):
       assignee = unusedIRVariable(type: .int)
-      instruction = SubtractInstr(assignee: assignee, lhs: lhs, rhs: rhs)
+      instruction = SubtractInstruction(assignee: assignee, lhs: lhs, rhs: rhs)
     case (.equal, .int, .int):
       assignee = unusedIRVariable(type: .bool)
-      instruction = CompareInstr(comparison: .equal, assignee: assignee, lhs: lhs, rhs: rhs)
+      instruction = CompareInstruction(comparison: .equal, assignee: assignee, lhs: lhs, rhs: rhs)
     case (.lessThan, .int, .int):
       assignee = unusedIRVariable(type: .bool)
-      instruction = CompareInstr(comparison: .lessThan, assignee: assignee, lhs: lhs, rhs: rhs)
+      instruction = CompareInstruction(comparison: .lessThan, assignee: assignee, lhs: lhs, rhs: rhs)
     case (.plus, _, _), (.minus, _, _), (.equal, _, _), (.lessThan, _, _):
       fatalError("No IR instruction to apply operator '\(expr.operator)' to  types '\(lhs.type)' and '\(rhs.type)'. This should have been caught by the type checker.")
     }
@@ -132,7 +132,7 @@ public class IRGen: ASTVisitor {
         assert(mainBranchIRVariable.type == sideBranchIRVariable.type)
         
         let assignee = unusedIRVariable(type: mainBranchIRVariable.type)
-        let phiInstr = PhiInstr(assignee: assignee, choices: [
+        let phiInstr = PhiInstruction(assignee: assignee, choices: [
           mainBranchName: mainBranchIRVariable,
           sideBranchName: sideBranchIRVariable
         ])
@@ -162,14 +162,14 @@ public class IRGen: ASTVisitor {
   
   public func visit(_ expr: DiscreteIntegerDistributionExpr) -> VariableOrValue {
     let assignee = unusedIRVariable(type: .int)
-    append(instruction: DiscreteDistributionInstr(assignee: assignee, distribution: expr.distribution), sourceLocation: nil)
+    append(instruction: DiscreteDistributionInstruction(assignee: assignee, distribution: expr.distribution), sourceLocation: nil)
     return .variable(assignee)
   }
   
   public func visit(_ stmt: VariableDeclStmt) {
     let value = stmt.expr.accept(self)
     let irVariable = unusedIRVariable(type: value.type)
-    append(instruction: AssignInstr(assignee: irVariable, value: value), sourceLocation: stmt.range.lowerBound)
+    append(instruction: AssignInstruction(assignee: irVariable, value: value), sourceLocation: stmt.range.lowerBound)
     record(sourceVariable: stmt.variable, irVariable: irVariable)
   }
   
@@ -179,13 +179,13 @@ public class IRGen: ASTVisitor {
     }
     let value = stmt.expr.accept(self)
     let irVariable = unusedIRVariable(type: value.type)
-    append(instruction: AssignInstr(assignee: irVariable, value: value), sourceLocation: stmt.range.lowerBound)
+    append(instruction: AssignInstruction(assignee: irVariable, value: value), sourceLocation: stmt.range.lowerBound)
     record(sourceVariable: variable, irVariable: irVariable)
   }
   
   public func visit(_ stmt: ObserveStmt) {
     let value = stmt.condition.accept(self)
-    append(instruction: ObserveInstr(observation: value), sourceLocation: stmt.range.lowerBound)
+    append(instruction: ObserveInstruction(observation: value), sourceLocation: stmt.range.lowerBound)
   }
   
   public func visit(_ codeBlock: CodeBlockStmt) {
@@ -200,13 +200,13 @@ public class IRGen: ASTVisitor {
     let joinBlockBlockName = unusedBasicBlockName()
     
     let conditionValue = stmt.condition.accept(self)
-    append(instruction: ConditionalBranchInstr(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: joinBlockBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: joinBlockBlockName), sourceLocation: stmt.condition.range.lowerBound)
     
     let declaredVariablesBeforeIf = declaredVariables
     startNewBasicBlock(name: ifBodyBlockName, declaredVariables: declaredVariablesBeforeIf)
     
     stmt.body.accept(self)
-    append(instruction: JumpInstr(target: joinBlockBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
     let declaredVariablesAfterIfBody = declaredVariables
     
     startNewBasicBlock(name: joinBlockBlockName, declaredVariables: declaredVariablesBeforeIf)
@@ -232,17 +232,17 @@ public class IRGen: ASTVisitor {
     
     let variablesDeclaredBeforeCondition = declaredVariables
     
-    append(instruction: JumpInstr(target: conditionBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: conditionBlockName), sourceLocation: nil)
     
     startNewBasicBlock(name: conditionBlockName, declaredVariables: declaredVariables)
     
     let conditionValue = stmt.condition.accept(self)
-    append(instruction: ConditionalBranchInstr(condition: conditionValue, targetTrue: bodyBlockName, targetFalse: joinBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: bodyBlockName, targetFalse: joinBlockName), sourceLocation: stmt.condition.range.lowerBound)
     var conditionBlock = currentBasicBlock
     
     currentBasicBlock = BasicBlock(name: bodyBlockName, instructions: [])
     stmt.body.accept(self)
-    append(instruction: JumpInstr(target: conditionBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: conditionBlockName), sourceLocation: nil)
     var bodyBlock = currentBasicBlock
     
     // Now add phi instructions to the condition block and fix the condition and body block by renaming the variables for which we added phi instructions.
@@ -255,7 +255,7 @@ public class IRGen: ASTVisitor {
         assert(mainBranchIRVariable.type == whileBodyIRVariable.type)
         
         let assignee = unusedIRVariable(type: mainBranchIRVariable.type)
-        let phiInstr = PhiInstr(assignee: assignee, choices: [
+        let phiInstr = PhiInstruction(assignee: assignee, choices: [
           beforeWhileBlockName: mainBranchIRVariable,
           bodyBlockName: whileBodyIRVariable
         ])

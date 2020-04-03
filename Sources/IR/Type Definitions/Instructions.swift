@@ -7,8 +7,10 @@ public protocol Instruction: CustomStringConvertible {
 
 // MARK: - Instructions
 
+// MARK: Computing instructions
+
 /// Assigns a value to a variable
-public struct AssignInstr: Equatable, Instruction {
+public struct AssignInstruction: Equatable, Instruction {
   public let assignee: IRVariable
   public let value: VariableOrValue
   
@@ -20,7 +22,7 @@ public struct AssignInstr: Equatable, Instruction {
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return AssignInstr(
+    return AssignInstruction(
       assignee: assignee,
       value: value.renaming(variable: variable, to: newVariable)
     )
@@ -28,7 +30,7 @@ public struct AssignInstr: Equatable, Instruction {
 }
 
 /// Add two integers and assign the result to an integer variable
-public struct AddInstr: Equatable, Instruction {
+public struct AddInstruction: Equatable, Instruction {
   public let assignee: IRVariable
   public let lhs: VariableOrValue
   public let rhs: VariableOrValue
@@ -49,7 +51,7 @@ public struct AddInstr: Equatable, Instruction {
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return AddInstr(
+    return AddInstruction(
       assignee: assignee,
       lhs: lhs.renaming(variable: variable, to: newVariable),
       rhs: rhs.renaming(variable: variable, to: newVariable)
@@ -58,7 +60,7 @@ public struct AddInstr: Equatable, Instruction {
 }
 
 /// Subtract one integer from another and assign the result to an integer variable
-public struct SubtractInstr: Equatable, Instruction {
+public struct SubtractInstruction: Equatable, Instruction {
   public let assignee: IRVariable
   public let lhs: VariableOrValue
   public let rhs: VariableOrValue
@@ -78,7 +80,7 @@ public struct SubtractInstr: Equatable, Instruction {
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return SubtractInstr(
+    return SubtractInstruction(
       assignee: assignee,
       lhs: lhs.renaming(variable: variable, to: newVariable),
       rhs: rhs.renaming(variable: variable, to: newVariable)
@@ -87,7 +89,7 @@ public struct SubtractInstr: Equatable, Instruction {
 }
 
 /// Compare two integers and assign the result to a boolean variable.
-public struct CompareInstr: Equatable, Instruction {
+public struct CompareInstruction: Equatable, Instruction {
   public enum Comparison: CustomStringConvertible {
     case equal
     case lessThan
@@ -115,7 +117,7 @@ public struct CompareInstr: Equatable, Instruction {
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return CompareInstr(
+    return CompareInstruction(
       comparison: comparison,
       assignee: assignee,
       lhs: lhs.renaming(variable: variable, to: newVariable),
@@ -124,7 +126,9 @@ public struct CompareInstr: Equatable, Instruction {
   }
 }
 
-public struct DiscreteDistributionInstr: Equatable, Instruction {
+// MARK: Probabilistic instructions
+
+public struct DiscreteDistributionInstruction: Equatable, Instruction {
   public let assignee: IRVariable
   public let distribution: [Int: Double]
   public let drawDistribution: [(cummulativeProbability: Double, value: Int)]
@@ -152,13 +156,13 @@ public struct DiscreteDistributionInstr: Equatable, Instruction {
     return self
   }
   
-  public static func == (lhs: DiscreteDistributionInstr, rhs: DiscreteDistributionInstr) -> Bool {
+  public static func == (lhs: DiscreteDistributionInstruction, rhs: DiscreteDistributionInstruction) -> Bool {
     // drawDistribution is synthesized and doesn't need to be compared
     return lhs.assignee == rhs.assignee && lhs.distribution == rhs.distribution
   }
 }
 
-public struct ObserveInstr: Equatable, Instruction {
+public struct ObserveInstruction: Equatable, Instruction {
   /// The variable that holds the observation that is to be checked. I.e. the result of the observe check is stored in this variable
   public let observation: VariableOrValue
   
@@ -169,13 +173,15 @@ public struct ObserveInstr: Equatable, Instruction {
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return ObserveInstr(
+    return ObserveInstruction(
       observation: observation.renaming(variable: variable, to: newVariable)
     )
   }
 }
 
-public struct JumpInstr: Equatable, Instruction {
+// MARK: Control flow instruction
+
+public struct JumpInstruction: Equatable, Instruction {
   /// The basic block to jump to, unconditionally
   public let target: BasicBlockName
   
@@ -188,7 +194,7 @@ public struct JumpInstr: Equatable, Instruction {
   }
 }
 
-public struct ConditionalBranchInstr: Equatable, Instruction {
+public struct BranchInstruction: Equatable, Instruction {
   public let condition: VariableOrValue
   
   /// The basic block to which to jump if the condition is `true`.
@@ -204,7 +210,7 @@ public struct ConditionalBranchInstr: Equatable, Instruction {
   }
   
   public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return ConditionalBranchInstr(
+    return BranchInstruction(
       condition: condition.renaming(variable: variable, to: newVariable),
       targetTrue: targetTrue,
       targetFalse: targetFalse
@@ -212,7 +218,16 @@ public struct ConditionalBranchInstr: Equatable, Instruction {
   }
 }
 
-public struct PhiInstr: Equatable, Instruction {
+/// Finish program execution. Must only occur once in every program
+public struct ReturnInstruction: Equatable, Instruction {
+  public init() {}
+  
+  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
+    return self
+  }
+}
+
+public struct PhiInstruction: Equatable, Instruction {
   public let assignee: IRVariable
   public let choices: [BasicBlockName: IRVariable]
   
@@ -230,21 +245,14 @@ public struct PhiInstr: Equatable, Instruction {
       }
     })
     
-    return PhiInstr(
+    return PhiInstruction(
       assignee: assignee,
       choices: newChoices
     )
   }
 }
 
-/// Finish program execution. Must only occur once in every program
-public struct ReturnInstr: Equatable, Instruction {
-  public init() {}
-  
-  public func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction {
-    return self
-  }
-}
+
 
 // MARK: - Used and assigned variables
 
@@ -258,7 +266,7 @@ fileprivate extension VariableOrValue {
   }
 }
 
-public extension AssignInstr {
+public extension AssignInstruction {
   var assignedVariable: IRVariable? {
     return assignee
   }
@@ -267,7 +275,7 @@ public extension AssignInstr {
   }
 }
 
-public extension AddInstr {
+public extension AddInstruction {
   var assignedVariable: IRVariable? {
     return assignee
   }
@@ -276,7 +284,7 @@ public extension AddInstr {
   }
 }
 
-public extension SubtractInstr {
+public extension SubtractInstruction {
   var assignedVariable: IRVariable? {
     return assignee
   }
@@ -285,7 +293,7 @@ public extension SubtractInstr {
   }
 }
 
-public extension CompareInstr {
+public extension CompareInstruction {
   var assignedVariable: IRVariable? {
     return assignee
   }
@@ -294,7 +302,7 @@ public extension CompareInstr {
   }
 }
 
-public extension DiscreteDistributionInstr {
+public extension DiscreteDistributionInstruction {
   var assignedVariable: IRVariable? {
     return assignee
   }
@@ -303,7 +311,7 @@ public extension DiscreteDistributionInstr {
   }
 }
 
-public extension ObserveInstr {
+public extension ObserveInstruction {
   var assignedVariable: IRVariable? {
     return nil
   }
@@ -312,7 +320,7 @@ public extension ObserveInstr {
   }
 }
 
-public extension JumpInstr {
+public extension JumpInstruction {
   var assignedVariable: IRVariable? {
     return nil
   }
@@ -321,7 +329,7 @@ public extension JumpInstr {
   }
 }
 
-public extension ConditionalBranchInstr {
+public extension BranchInstruction {
   var assignedVariable: IRVariable? {
     return nil
   }
@@ -330,7 +338,7 @@ public extension ConditionalBranchInstr {
   }
 }
 
-public extension PhiInstr {
+public extension PhiInstruction {
   var assignedVariable: IRVariable? {
     return assignee
   }
@@ -339,7 +347,7 @@ public extension PhiInstr {
   }
 }
 
-public extension ReturnInstr {
+public extension ReturnInstruction {
   var assignedVariable: IRVariable? {
     return nil
   }
@@ -350,25 +358,25 @@ public extension ReturnInstr {
 
 // MARK: - Debug Descriptions
 
-extension AssignInstr {
+extension AssignInstruction {
   public var description: String {
     return "\(assignee) = \(value)"
   }
 }
 
-extension AddInstr {
+extension AddInstruction {
   public var description: String {
     return "\(assignee) = add \(lhs) \(rhs)"
   }
 }
 
-extension SubtractInstr {
+extension SubtractInstruction {
   public var description: String {
     return "\(assignee) = sub \(lhs) \(rhs)"
   }
 }
 
-extension CompareInstr.Comparison {
+extension CompareInstruction.Comparison {
   public var description: String {
     switch self {
     case .equal:
@@ -379,45 +387,45 @@ extension CompareInstr.Comparison {
   }
 }
 
-extension CompareInstr {
+extension CompareInstruction {
   public var description: String {
     return "\(assignee) = cmp \(comparison) \(lhs) \(rhs)"
   }
 }
 
-extension DiscreteDistributionInstr {
+extension DiscreteDistributionInstruction {
   public var description: String {
     let distributionDescription = distribution.map({ "\($0.key): \($0.value)"}).joined(separator: ", ")
     return "\(assignee) = discrete \(distributionDescription)"
   }
 }
 
-extension ObserveInstr {
+extension ObserveInstruction {
   public var description: String {
     return "observe \(observation)"
   }
 }
 
-extension JumpInstr {
+extension JumpInstruction {
   public var description: String {
     return "jump \(target)"
   }
 }
 
-extension ConditionalBranchInstr {
+extension BranchInstruction {
   public var description: String {
     return "br \(condition) \(targetTrue) \(targetFalse)"
   }
 }
 
-extension PhiInstr {
+extension PhiInstruction {
   public var description: String {
     let choicesDescription = choices.sorted(by: { $0.key.name < $1.key.name }).map({ "\($0.key): \($0.value)"}).joined(separator: ", ")
     return "\(assignee) = phi \(choicesDescription)"
   }
 }
 
-extension ReturnInstr {
+extension ReturnInstruction {
   public var description: String {
     return "return"
   }

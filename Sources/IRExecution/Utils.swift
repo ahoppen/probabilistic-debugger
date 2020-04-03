@@ -23,7 +23,7 @@ extension VariableOrValue {
   }
 }
 
-extension DiscreteDistributionInstr {
+extension DiscreteDistributionInstruction {
   /// Randomly draw a value from the distribution described by this instruction
   func drawValue() -> Int {
     let random = Double.random(in: 0..<1)

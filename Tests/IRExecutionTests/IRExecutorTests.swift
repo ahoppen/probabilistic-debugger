@@ -19,9 +19,9 @@ class IRExecutorTests: XCTestCase {
     let var1 = IRVariable(name: "1", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      AssignInstr(assignee: var0, value: .integer(1)),
-      AddInstr(assignee: var1, lhs: .variable(var0), rhs: .integer(1)),
-      ReturnInstr(),
+      AssignInstruction(assignee: var0, value: .integer(1)),
+      AddInstruction(assignee: var1, lhs: .variable(var0), rhs: .integer(1)),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
@@ -46,13 +46,13 @@ class IRExecutorTests: XCTestCase {
     let var1 = IRVariable(name: "1", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      AssignInstr(assignee: var0, value: .integer(1)),
-      JumpInstr(target: bb1Name)
+      AssignInstruction(assignee: var0, value: .integer(1)),
+      JumpInstruction(target: bb1Name)
     ])
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      AddInstr(assignee: var1, lhs: .variable(var0), rhs: .integer(41)),
-      ReturnInstr(),
+      AddInstruction(assignee: var1, lhs: .variable(var0), rhs: .integer(41)),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1], debugInfo: nil)
@@ -83,19 +83,19 @@ class IRExecutorTests: XCTestCase {
     let var3 = IRVariable(name: "3", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      AssignInstr(assignee: var0, value: .integer(5)),
-      AssignInstr(assignee: var1, value: .bool(true)),
-      ConditionalBranchInstr(condition: .variable(var1), targetTrue: bb1Name, targetFalse: bb2Name)
+      AssignInstruction(assignee: var0, value: .integer(5)),
+      AssignInstruction(assignee: var1, value: .bool(true)),
+      BranchInstruction(condition: .variable(var1), targetTrue: bb1Name, targetFalse: bb2Name)
     ])
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      SubtractInstr(assignee: var2, lhs: .variable(var0), rhs: .integer(1)),
-      JumpInstr(target: bb2Name)
+      SubtractInstruction(assignee: var2, lhs: .variable(var0), rhs: .integer(1)),
+      JumpInstruction(target: bb2Name)
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var3, choices: [bb0Name: var0, bb1Name: var2]),
-      ReturnInstr(),
+      PhiInstruction(assignee: var3, choices: [bb0Name: var0, bb1Name: var2]),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
@@ -130,19 +130,19 @@ class IRExecutorTests: XCTestCase {
     let var3 = IRVariable(name: "3", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      AssignInstr(assignee: var0, value: .integer(5)),
-      AssignInstr(assignee: var1, value: .bool(false)),
-      ConditionalBranchInstr(condition: .variable(var1), targetTrue: bb1Name, targetFalse: bb2Name)
+      AssignInstruction(assignee: var0, value: .integer(5)),
+      AssignInstruction(assignee: var1, value: .bool(false)),
+      BranchInstruction(condition: .variable(var1), targetTrue: bb1Name, targetFalse: bb2Name)
     ])
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      SubtractInstr(assignee: var2, lhs: .variable(var0), rhs: .integer(1)),
-      JumpInstr(target: bb2Name)
+      SubtractInstruction(assignee: var2, lhs: .variable(var0), rhs: .integer(1)),
+      JumpInstruction(target: bb2Name)
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var3, choices: [bb0Name: var0, bb1Name: var2]),
-      ReturnInstr(),
+      PhiInstruction(assignee: var3, choices: [bb0Name: var0, bb1Name: var2]),
+      ReturnInstruction(),
     ])
     
     // bb0:
@@ -179,23 +179,23 @@ class IRExecutorTests: XCTestCase {
     let var3 = IRVariable(name: "3", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      AssignInstr(assignee: var0, value: .integer(2)),
-      JumpInstr(target: bb1Name)
+      AssignInstruction(assignee: var0, value: .integer(2)),
+      JumpInstruction(target: bb1Name)
     ])
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      PhiInstr(assignee: var1, choices: [bb0Name: var0, bb2Name: var3]),
-      CompareInstr(comparison: .lessThan, assignee: var2, lhs: .integer(1), rhs: .variable(var1)),
-      ConditionalBranchInstr(condition: .variable(var2), targetTrue: bb2Name, targetFalse: bb3Name)
+      PhiInstruction(assignee: var1, choices: [bb0Name: var0, bb2Name: var3]),
+      CompareInstruction(comparison: .lessThan, assignee: var2, lhs: .integer(1), rhs: .variable(var1)),
+      BranchInstruction(condition: .variable(var2), targetTrue: bb2Name, targetFalse: bb3Name)
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      SubtractInstr(assignee: var3, lhs: .variable(var1), rhs: .integer(1)),
-      JumpInstr(target: bb1Name)
+      SubtractInstruction(assignee: var3, lhs: .variable(var1), rhs: .integer(1)),
+      JumpInstruction(target: bb1Name)
     ])
     
     let bb3 = BasicBlock(name: bb3Name, instructions: [
-      ReturnInstr(),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2, bb3], debugInfo: nil)
@@ -229,8 +229,8 @@ class IRExecutorTests: XCTestCase {
     let var0 = IRVariable(name: "0", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      DiscreteDistributionInstr(assignee: var0, distribution: [1: 0.5, 2: 0.5]),
-      ReturnInstr(),
+      DiscreteDistributionInstruction(assignee: var0, distribution: [1: 0.5, 2: 0.5]),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
@@ -257,23 +257,23 @@ class IRExecutorTests: XCTestCase {
     let var4 = IRVariable(name: "4", type: .int)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      AssignInstr(assignee: var0, value: .integer(0)),
-      DiscreteDistributionInstr(assignee: var1, distribution: [
+      AssignInstruction(assignee: var0, value: .integer(0)),
+      DiscreteDistributionInstruction(assignee: var1, distribution: [
         1: 0.7,
         2: 0.3
       ]),
-      CompareInstr(comparison: .equal, assignee: var2, lhs: .variable(var1), rhs: .integer(2)),
-      ConditionalBranchInstr(condition: .variable(var2), targetTrue: bb1Name, targetFalse: bb2Name)
+      CompareInstruction(comparison: .equal, assignee: var2, lhs: .variable(var1), rhs: .integer(2)),
+      BranchInstruction(condition: .variable(var2), targetTrue: bb1Name, targetFalse: bb2Name)
     ])
     
     let bb1 = BasicBlock(name: bb1Name, instructions: [
-      AssignInstr(assignee: var3, value: .integer(10)),
-      JumpInstr(target: bb2Name)
+      AssignInstruction(assignee: var3, value: .integer(10)),
+      JumpInstruction(target: bb2Name)
     ])
     
     let bb2 = BasicBlock(name: bb2Name, instructions: [
-      PhiInstr(assignee: var4, choices: [bb0Name: var0, bb1Name: var3]),
-      ReturnInstr(),
+      PhiInstruction(assignee: var4, choices: [bb0Name: var0, bb1Name: var3]),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
@@ -305,13 +305,13 @@ class IRExecutorTests: XCTestCase {
     let var1 = IRVariable(name: "1", type: .bool)
     
     let bb0 = BasicBlock(name: bb0Name, instructions: [
-      DiscreteDistributionInstr(assignee: var0, distribution: [
+      DiscreteDistributionInstruction(assignee: var0, distribution: [
         1: 0.5,
         2: 0.5
       ]),
-      CompareInstr(comparison: .equal, assignee: var1, lhs: .variable(var0), rhs: .integer(1)),
-      ObserveInstr(observation: .variable(var1)),
-      ReturnInstr(),
+      CompareInstruction(comparison: .equal, assignee: var1, lhs: .variable(var0), rhs: .integer(1)),
+      ObserveInstruction(observation: .variable(var1)),
+      ReturnInstruction(),
     ])
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)

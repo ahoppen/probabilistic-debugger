@@ -35,17 +35,17 @@ public struct Sample {
   /// If an `observe` is violated through the execution `nil` is returned.
   internal func executeNonControlFlowInstruction(_ instruction: Instruction) -> Sample? {
     switch instruction {
-    case let instruction as AssignInstr:
+    case let instruction as AssignInstruction:
       return self.assigning(variable: instruction.assignee, variableOrValue: instruction.value)
-    case let instruction as AddInstr:
+    case let instruction as AddInstruction:
       let lhsValue = instruction.lhs.evaluated(in: self).integerValue!
       let rhsValue = instruction.rhs.evaluated(in: self).integerValue!
       return self.assigning(variable: instruction.assignee, value: .integer(lhsValue + rhsValue))
-    case let instruction as SubtractInstr:
+    case let instruction as SubtractInstruction:
       let lhsValue = instruction.lhs.evaluated(in: self).integerValue!
       let rhsValue = instruction.rhs.evaluated(in: self).integerValue!
       return self.assigning(variable: instruction.assignee, value: .integer(lhsValue - rhsValue))
-    case let instruction as CompareInstr:
+    case let instruction as CompareInstruction:
       let lhsValue = instruction.lhs.evaluated(in: self).integerValue!
       let rhsValue = instruction.rhs.evaluated(in: self).integerValue!
       switch instruction.comparison {
@@ -54,16 +54,16 @@ public struct Sample {
       case .equal:
         return self.assigning(variable: instruction.assignee, value: .bool(lhsValue == rhsValue))
       }
-    case let instruction as DiscreteDistributionInstr:
+    case let instruction as DiscreteDistributionInstruction:
       return self.assigning(variable: instruction.assignee, value: .integer(instruction.drawValue()))
-    case let instruction as ObserveInstr:
+    case let instruction as ObserveInstruction:
       let observation = instruction.observation.evaluated(in: self).boolValue!
       if observation {
         return self
       } else {
         return nil
       }
-    case is JumpInstr, is ConditionalBranchInstr, is PhiInstr:
+    case is JumpInstruction, is BranchInstruction, is PhiInstruction:
       fatalError("Control-flow instructions cannot be handled on the sample level")
     default:
       fatalError("Unknown instruction \(type(of: instruction))")
