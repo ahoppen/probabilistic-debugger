@@ -13,9 +13,9 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = Debugger(program: program, sampleCount: 1)
-    let samples = debugger.run()
-    XCTAssertEqual(samples.count, 1)
-    let sample = samples.first!
+    XCTAssertNoThrow(try debugger.run())
+    XCTAssertEqual(debugger.samples.count, 1)
+    let sample = debugger.samples.first!
     XCTAssertEqual(sample.values, [
       "x": .integer(42)
     ])
@@ -31,9 +31,9 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = Debugger(program: program, sampleCount: 1)
-    let samples = debugger.run()
-    XCTAssertEqual(samples.count, 1)
-    let sample = samples.first!
+    XCTAssertNoThrow(try debugger.run())
+    XCTAssertEqual(debugger.samples.count, 1)
+    let sample = debugger.samples.first!
     XCTAssertEqual(sample.values, [
       "x": .integer(41),
       "y": .integer(52),
@@ -48,8 +48,8 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = Debugger(program: program, sampleCount: 10000)
-    let samples = debugger.run()
-    let xValues = samples.map {
+    XCTAssertNoThrow(try debugger.run())
+    let xValues = debugger.samples.map {
       return $0.values["x"]!.integerValue!
     }
     
@@ -69,8 +69,8 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = Debugger(program: program, sampleCount: 10000)
-    let samples = debugger.run()
-    let yValues = samples.map {
+    XCTAssertNoThrow(try debugger.run())
+    let yValues = debugger.samples.map {
       return $0.values["y"]!.integerValue!
     }
     
@@ -89,9 +89,9 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = Debugger(program: program, sampleCount: 1)
-    let samples = debugger.run()
-    XCTAssertEqual(samples.count, 1)
-    let sample = samples.first!
+    XCTAssertNoThrow(try debugger.run())
+    XCTAssertEqual(debugger.samples.count, 1)
+    let sample = debugger.samples.first!
     
     XCTAssertEqual(sample.values, [
       "x": .integer(1),
@@ -109,8 +109,8 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     
     let debugger = Debugger(program: program, sampleCount: 1)
-    let samples = debugger.run()
-    XCTAssertEqual(samples.count, 0)
+    XCTAssertNoThrow(try debugger.run())
+    XCTAssertEqual(debugger.samples.count, 0)
   }
   
   func testSteppingThroughStraightLineProgram() {
@@ -123,24 +123,22 @@ class DebuggerTests: XCTestCase {
     let program = try! SLIRGen.generateIr(for: sourceCode)
     let debugger = Debugger(program: program, sampleCount: 1)
     
-    XCTAssertNoThrow(try {
-      try debugger.step()
-      XCTAssertEqual(debugger.samples.count, 1)
-      XCTAssertEqual(debugger.samples.first!.values, [
-        "x": .integer(42),
-      ])
-      try debugger.step()
-      XCTAssertEqual(debugger.samples.count, 1)
-      XCTAssertEqual(debug nger.samples.first!.values, [
-        "x": .integer(41),
-      ])
-      try debugger.step()
-      XCTAssertEqual(debugger.samples.count, 1)
-      XCTAssertEqual(debugger.samples.first!.values, [
-        "x": .integer(41),
-        "y": .integer(52)
-      ])
-    }())
+    XCTAssertNoThrow(try debugger.step())
+    XCTAssertEqual(debugger.samples.count, 1)
+    XCTAssertEqual(debugger.samples.first!.values, [
+      "x": .integer(42),
+    ])
+    XCTAssertNoThrow(try debugger.step())
+    XCTAssertEqual(debugger.samples.count, 1)
+    XCTAssertEqual(debugger.samples.first!.values, [
+      "x": .integer(41),
+    ])
+    XCTAssertNoThrow(try debugger.step())
+    XCTAssertEqual(debugger.samples.count, 1)
+    XCTAssertEqual(debugger.samples.first!.values, [
+      "x": .integer(41),
+      "y": .integer(52)
+    ])
     
     XCTAssertThrowsError(try debugger.step())
   }

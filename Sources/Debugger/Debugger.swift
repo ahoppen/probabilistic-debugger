@@ -1,42 +1,43 @@
 import IR
 import IRExecution
-import Utils
 
-fileprivate extension Array {
-  var only: Element {
-    assert(self.count == 1)
-    return self.first!
-  }
-}
-
+/// Wrapper around `IRExecutor` that keeps track of the current execution state and translates the `IRExecutionState`s into values for variables in the source code.
 public class Debugger {
+  // MARK: - Private members
+  
+  /// The executor that actually executes the IR
   private let executor: IRExecutor
-  private let program: IRProgram
-  private var debugInfo: DebugInfo {
-    return program.debugInfo!
+  
+  /// Debug information to translate IR variable values back to source variable values
+  private let debugInfo: DebugInfo
+  
+  /// The current state of the debugger. Can be `nil` if execution of the program has filtered out all samples
+  private var currentState: IRExecutionState?
+  
+  private func currentStateOrThrow() throws -> IRExecutionState {
+    guard let currentState = currentState else {
+      throw ExecutionError(message: "Execution has filtered out all samples. Either the branch that was chosen is not feasible or the path is unlikely and there were an insufficient number of samples in the beginning to assign some to this branch.")
+    }
+    return currentState
+  }
+  
+  // MARK: - Operating the debugger
+  
+  public init(program: IRProgram, sampleCount: Int) {
+    self.executor = IRExecutor(program: program)
+    self.debugInfo = program.debugInfo!
+    self.currentState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
   }
   
   public var samples: [SourceCodeSample] {
-    return sourceCodeSamples(for: executor.finishedExecutionBranches + executor.currentExecutionBranches)
-  }
-  
-  public init(program: IRProgram, sampleCount: Int) {
-    self.executor = IRExecutor(program: program, sampleCount: sampleCount)
-    self.program = program
-  }
-  
-  private func sourceCodeSamples(for executionBranches: [ExecutionBranch]) -> [SourceCodeSample] {
-    assert(executionBranches.map(\.position).allEqual, "Execution branches refer to different program positions")
-    
-    guard let position = executionBranches.first?.position else {
-      // There was no viable run in the IR
+    guard let currentState = currentState else {
       return []
     }
     
-    guard let instructionInfo = debugInfo.info[position] else {
-      fatalError("No debug info for the return statement")
+    guard let instructionInfo = debugInfo.info[currentState.position] else {
+      fatalError("Could not find debug info for the current statement")
     }
-    let sourceCodeSamples = executionBranches.flatMap(\.samples).map({ (irSample) -> SourceCodeSample in
+    let sourceCodeSamples = currentState.samples.map({ (irSample) -> SourceCodeSample in
       let variableValues = instructionInfo.variables.mapValues({ (irVariable) in
         irSample.values[irVariable]!
       })
@@ -45,52 +46,12 @@ public class Debugger {
     return sourceCodeSamples
   }
   
-  private var currentPosition: InstructionPosition? {
-    assert(executor.currentExecutionBranches.count <= 1, "We must be focused on one execution branch during debugging")
-    return executor.currentExecutionBranches.first?.position
-  }
-  
-  private var currentInstruction: Instruction? {
-    guard let currentPosition = currentPosition else {
-      return nil
-    }
-    return program.instruction(at: currentPosition)!
-  }
-  
-  private func checkExecutionBranchExists() throws {
-    assert(executor.currentExecutionBranches.count <= 1, "We must be focused on one execution branch during debugging")
-    if executor.currentExecutionBranches.count == 0 {
-      throw DebuggerError(message: "No execution branch left to execute")
-    }
-  }
-  
   /// Run the program until the end
-  @discardableResult
-  public func run() -> [SourceCodeSample] {
-    let states = executor.execute()
-    
-    return sourceCodeSamples(for: states)
+  public func run() throws {
+    self.currentState = executor.runUntilEnd(state: try currentStateOrThrow())
   }
   
-  /// Run the program until the next instruction that has an associated source code location in the debug info.
-  @discardableResult
-  public func step() throws -> [SourceCodeSample] {
-    try checkExecutionBranchExists()
-    
-    if currentInstruction is BranchInstruction {
-      throw DebuggerError(message: "Cannot execute a branch instruction using the 'step' command")
-    }
-    
-    while true {
-      executor.executeNextInstructionInBranchOnTopOfExecutionStack()
-      try checkExecutionBranchExists()
-      
-      let position = executor.currentExecutionBranches.only.position
-      if debugInfo.info[position] != nil {
-        break
-      }
-    }
-    
-    return sourceCodeSamples(for: [executor.currentExecutionBranches.only])
+  public func step() throws {
+    self.currentState = try executor.runUntilNextInstructionWithDebugInfo(state: try currentStateOrThrow())
   }
 }

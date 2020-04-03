@@ -1,14 +1,20 @@
 import IR
 
-/// During execution of a probabilistic program, describes an execution branch that is a concrete program position.
-/// The variables at this concrete program position might have different values. Their probability distribution is described by an Array of `IRSample`s.
-public struct ExecutionBranch {
+public struct IRExecutionState {
   /// The position of the next instruction to execute to advance the execution of this execution state.
   /// If no instruction exists at this program position in the IR, then the program has terminated.
   public let position: InstructionPosition
   
   /// The samples that describe the probability distribution of the variables at the given execution state.
   public let samples: [IRSample]
+  
+  public init(initialStateIn program: IRProgram, sampleCount: Int) {
+    self.init(position: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0), emptySamples: sampleCount)
+  }
+  
+  internal init(position: InstructionPosition, emptySamples sampleCount: Int) {
+    self.init(position: position, samples: Array(repeating: IRSample(values: [:]), count: sampleCount))
+  }
   
   internal init(position: InstructionPosition, samples: [IRSample]) {
     assert(samples.count > 0, "There is no point in pursuing an execution branch without any samples")
@@ -20,7 +26,7 @@ public struct ExecutionBranch {
   /// For simple instructions like add or subtract that don't branch, exactly one new state is returned.
   /// An observe instruction returns no states if all samples are filtered out through its execution.
   /// A branch instruction may produce two new execution states if both branches are viable execution paths.
-  internal func executeNextInstruction(in program: IRProgram) -> [ExecutionBranch] {
+  internal func executeNextInstruction(in program: IRProgram) -> [IRExecutionState] {
     guard let instruction = program.instruction(at: self.position) else {
       fatalError("Program has already terminated")
     }
@@ -29,7 +35,7 @@ public struct ExecutionBranch {
       // Modify samples and advance program position by 1
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
-      return [ExecutionBranch(position: newPosition, samples: newSamples)]
+      return [IRExecutionState(position: newPosition, samples: newSamples)]
     case is ObserveInstruction:
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       // If there are no samples left, there is no point in pursuing this execution path
@@ -37,7 +43,7 @@ public struct ExecutionBranch {
         return []
       } else {
         let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
-        return [ExecutionBranch(position: newPosition, samples: newSamples)]
+        return [IRExecutionState(position: newPosition, samples: newSamples)]
       }
     case let instruction as JumpInstruction:
       // Simply jump to the new position and execute its phi instructions. No need to modify samples
@@ -47,7 +53,7 @@ public struct ExecutionBranch {
       let trueSamples = samples.filter({ instruction.condition.evaluated(in: $0).boolValue == true })
       let falseSamples = samples.filter({ instruction.condition.evaluated(in: $0).boolValue == false })
       
-      var newStates: [ExecutionBranch] = []
+      var newStates: [IRExecutionState] = []
       if trueSamples.count > 0 {
         let trueState = self.jumpTo(block: instruction.targetTrue, in: program, samples: trueSamples, previousBlock: position.basicBlock)
         newStates.append(trueState)
@@ -63,14 +69,14 @@ public struct ExecutionBranch {
     case is PhiInstruction:
       fatalError("Should have been handled during the jump to a new basic block")
     case is ReturnInstruction:
-      fatalError("Should have been handled by the executor")
+      fatalError("Program has already terminated")
     default:
       fatalError("Unknown instruction \(type(of: instruction))")
     }
   }
   
   /// Move the program position to the start of the given `block` and execute any `phi` instructions at its start
-  private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [IRSample], previousBlock: BasicBlockName) -> ExecutionBranch {
+  private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [IRSample], previousBlock: BasicBlockName) -> IRExecutionState {
     var samples = samples
     var position = InstructionPosition(basicBlock: block, instructionIndex: 0)
     while let phiInstruction = program.instruction(at: position) as? PhiInstruction {
@@ -79,6 +85,6 @@ public struct ExecutionBranch {
       })
       position = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
     }
-    return ExecutionBranch(position: position, samples: samples)
+    return IRExecutionState(position: position, samples: samples)
   }
 }
