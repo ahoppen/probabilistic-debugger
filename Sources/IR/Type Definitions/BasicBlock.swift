@@ -1,8 +1,6 @@
 public struct BasicBlockName: Hashable, CustomStringConvertible {
   public let name: String
   
-  static var nextUnusedNumber = 1
-  
   public init(_ name: String) {
     self.name = name
   }
