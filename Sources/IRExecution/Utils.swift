@@ -9,7 +9,7 @@ extension Dictionary {
   }
 }
 
-extension VariableOrValue {
+public extension VariableOrValue {
   /// Return the value this `VariableOrValue` has in the given sample
   func evaluated(in sample: IRSample) -> IRValue {
     switch self {

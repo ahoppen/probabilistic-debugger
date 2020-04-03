@@ -72,6 +72,7 @@ let package = Package(
       name: "DebuggerTests",
       dependencies: [
         "Debugger",
+        "IR",
         "SimpleLanguageIRGen",
         "TestUtils",
       ]

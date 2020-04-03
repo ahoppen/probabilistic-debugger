@@ -27,6 +27,18 @@ public class Debugger {
     self.executor = IRExecutor(program: program)
     self.debugInfo = debugInfo
     self.currentState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
+    
+    if debugInfo.info[self.currentState!.position] == nil {
+      // Step to the first instruction with debug info
+      try! step()
+    }
+  }
+  
+  public var sourceLocation: SourceCodeLocation? {
+    guard let currentState = currentState else {
+      return nil
+    }
+    return debugInfo.info[currentState.position]?.sourceCodeLocation
   }
   
   public var samples: [SourceCodeSample] {
@@ -54,7 +66,27 @@ public class Debugger {
   
   public func step() throws {
     let currentState = try currentStateOrThrow()
+    
+    if executor.program.instruction(at: currentState.position) is BranchInstruction {
+      throw ExecutionError(message: "Cannot execute a branch instruction using the 'step' command")
+    }
+    
     self.currentState = try executor.runSingleBranchUntilCondition(state: currentState, stopCondition: { position in
+      return debugInfo.info[position] != nil
+    })
+  }
+  
+  public func stepInto(branch: Bool) throws {
+    let currentState = try currentStateOrThrow()
+    
+    guard let branchInstruction = executor.program.instruction(at: currentState.position) as? BranchInstruction else {
+      throw ExecutionError(message: "Can only step into a branch if the debugger is currently positioned at a branching point")
+    }
+    
+    let filteredState = currentState.filterSamples { sample in
+      return branchInstruction.condition.evaluated(in: sample).boolValue! == branch
+    }
+    self.currentState = try executor.runSingleBranchUntilCondition(state: filteredState, stopCondition: { position in
       return debugInfo.info[position] != nil
     })
   }

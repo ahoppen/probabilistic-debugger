@@ -10,7 +10,7 @@ fileprivate extension IRExecutionState {
 public class IRExecutor {
   
   /// The program to execute
-  private let program: IRProgram
+  public let program: IRProgram
   
   public init(program: IRProgram) {
     self.program = program
@@ -43,17 +43,12 @@ public class IRExecutor {
   
   
   /// Run the program until the next instruction that has an associated source code location in the debug info.
-  /// This assumes that no branch will be hit until the stopCondition evaluates to `true` the next time.
+  /// If the execution hits branch instructions until the `stopCondition` evaluates to `true` the next time, this assumes that only one of the two branches is viable and contains samples.
   public func runSingleBranchUntilCondition(state: IRExecutionState, stopCondition: (InstructionPosition) -> Bool) throws -> IRExecutionState? {
     var currentState = state
     
-    switch currentState.instruction(in: program) {
-    case is BranchInstruction:
-      throw ExecutionError(message: "Cannot execute a branch instruction using the 'step' command")
-    case is ReturnInstruction:
+    if currentState.instruction(in: program) is ReturnInstruction {
       throw ExecutionError(message: "Program has already terminated")
-    default:
-      break
     }
     
     while true {

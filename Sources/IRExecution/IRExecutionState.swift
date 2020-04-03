@@ -22,6 +22,11 @@ public struct IRExecutionState {
     self.samples = samples
   }
   
+  /// Return an  execution state at the same position that only contains the samples that satisfy the given `condition`.
+  public func filterSamples(condition: (IRSample) -> Bool) -> IRExecutionState {
+    return IRExecutionState(position: position, samples: samples.filter(condition))
+  }
+  
   /// Execute the next instruction of this execution state and return any execution states resulting form it.
   /// For simple instructions like add or subtract that don't branch, exactly one new state is returned.
   /// An observe instruction returns no states if all samples are filtered out through its execution.

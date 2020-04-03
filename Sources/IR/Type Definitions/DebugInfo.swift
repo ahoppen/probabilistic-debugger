@@ -1,4 +1,4 @@
-public struct SourceCodeLocation {
+public struct SourceCodeLocation: Equatable {
   /// The line of this position (1-based)
   public let line: Int
   
