@@ -1,5 +1,5 @@
 /// The position of an instruction in a given program
-public struct ProgramPosition: Hashable {
+public struct InstructionPosition: Hashable {
   /// The basic block in which the referenced instruction resides
   public let basicBlock: BasicBlockName
   

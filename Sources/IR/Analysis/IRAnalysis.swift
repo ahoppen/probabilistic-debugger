@@ -1,3 +1,5 @@
+// MARK: - DirectPredecessors
+
 enum DirectPredecessors {
   static func compute<BasicBlocksType: Sequence>(basicBlocks: BasicBlocksType) -> [BasicBlockName: Set<BasicBlockName>] where BasicBlocksType.Element == BasicBlock {
     var predecessors: [BasicBlockName: Set<BasicBlockName>] = [:]
@@ -20,24 +22,7 @@ enum DirectPredecessors {
   }
 }
 
-enum TransitivePredecessors {
-  private static func transitivivePredecessors(of block: BasicBlockName, directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<BasicBlockName> {
-    var predecessors = Set<BasicBlockName>()
-    predecessors.formUnion(directPredecessors[block]!)
-    for predecessor in directPredecessors[block]! {
-      predecessors.formUnion(transitivivePredecessors(of: predecessor, directPredecessors: directPredecessors))
-    }
-    return predecessors
-  }
-  
-  static func compute(directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> [BasicBlockName: Set<BasicBlockName>] {
-    var predecessors = [BasicBlockName: Set<BasicBlockName>]()
-    for (blockName, _) in directPredecessors {
-      predecessors[blockName] = Self.transitivivePredecessors(of: blockName, directPredecessors: directPredecessors)
-    }
-    return predecessors
-  }
-}
+// MARK: - Predominators
 
 extension Set {
   static func intersection(of sets: [Set<Element>]) -> Set<Element> {
@@ -76,6 +61,8 @@ enum Predominators {
     return predominators
   }
 }
+
+// MARK: - ProperPredominators
 
 enum ProperPredominators {
   static func compute(predominators: [BasicBlockName: Set<BasicBlockName>]) ->  [BasicBlockName: Set<BasicBlockName>] {

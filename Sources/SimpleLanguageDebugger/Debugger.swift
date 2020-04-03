@@ -2,20 +2,7 @@ import IR
 import IRExecution
 import SimpleLanguageAST
 import SimpleLanguageIRGen
-
-fileprivate extension Sequence where Element: Equatable {
-  var allEqual: Bool {
-    guard let first = self.first(where: { _ in true }) else {
-      return true
-    }
-    for element in self.dropFirst() {
-      if element != first {
-        return false
-      }
-    }
-    return true
-  }
-}
+import Utils
 
 public struct SLSample {
   public let values: [Variable: Value]

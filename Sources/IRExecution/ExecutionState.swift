@@ -5,12 +5,12 @@ import IR
 public struct ExecutionState {
   /// The position of the next instruction to execute to advance the execution of this execution state.
   /// If no instruction exists at this program position in the IR, then the program has terminated.
-  public let position: ProgramPosition
+  public let position: InstructionPosition
   
   /// The samples that describe the probability distribution of the variables at the given execution state.
   public let samples: [Sample]
   
-  internal init(position: ProgramPosition, samples: [Sample]) {
+  internal init(position: InstructionPosition, samples: [Sample]) {
     assert(samples.count > 0, "There is no point in pursuing an execution branch without any samples")
     self.position = position
     self.samples = samples
@@ -28,7 +28,7 @@ public struct ExecutionState {
     case is AssignInstruction, is AddInstruction, is SubtractInstruction, is CompareInstruction, is DiscreteDistributionInstruction:
       // Modify samples and advance program position by 1
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
-      let newPosition = ProgramPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
+      let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
       return [ExecutionState(position: newPosition, samples: newSamples)]
     case is ObserveInstruction:
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
@@ -36,7 +36,7 @@ public struct ExecutionState {
       if newSamples.isEmpty {
         return []
       } else {
-        let newPosition = ProgramPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
+        let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
         return [ExecutionState(position: newPosition, samples: newSamples)]
       }
     case let instruction as JumpInstruction:
@@ -72,12 +72,12 @@ public struct ExecutionState {
   /// Move the program position to the start of the given `block` and execute any `phi` instructions at its start
   private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [Sample], previousBlock: BasicBlockName) -> ExecutionState {
     var samples = samples
-    var position = ProgramPosition(basicBlock: block, instructionIndex: 0)
+    var position = InstructionPosition(basicBlock: block, instructionIndex: 0)
     while let phiInstruction = program.instruction(at: position) as? PhiInstruction {
       samples = samples.map( {
         $0.assigning(variable: phiInstruction.assignee, variableOrValue: .variable(phiInstruction.choices[previousBlock]!))
       })
-      position = ProgramPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
+      position = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
     }
     return ExecutionState(position: position, samples: samples)
   }

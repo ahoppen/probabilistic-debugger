@@ -1,7 +1,14 @@
+import Utils
+
 public protocol Instruction: CustomStringConvertible {
+  /// Rename any usages of the given `variable` to `newVariable` in the instruction.
+  /// Any assigned variables are **not** renamed
   func renaming(variable: IRVariable, to newVariable: IRVariable) -> Instruction
   
+  /// The variable to which this instruction assigns a value or `nil` if the instruction does not assign a value to a variable
   var assignedVariable: IRVariable? { get }
+  
+  /// All the variables whose value is used by this instruction
   var usedVariables: Set<IRVariable> { get }
 }
 
@@ -131,7 +138,6 @@ public struct CompareInstruction: Equatable, Instruction {
 public struct DiscreteDistributionInstruction: Equatable, Instruction {
   public let assignee: IRVariable
   public let distribution: [Int: Double]
-  public let drawDistribution: [(cummulativeProbability: Double, value: Int)]
   
   /// - Parameters:
   ///   - assignee: Must be of type `int`
@@ -159,6 +165,20 @@ public struct DiscreteDistributionInstruction: Equatable, Instruction {
   public static func == (lhs: DiscreteDistributionInstruction, rhs: DiscreteDistributionInstruction) -> Bool {
     // drawDistribution is synthesized and doesn't need to be compared
     return lhs.assignee == rhs.assignee && lhs.distribution == rhs.distribution
+  }
+  
+  /// A synthesized dictionary to draw values from this distribution during execution. See `drawValue`.
+  private let drawDistribution: [(cummulativeProbability: Double, value: Int)]
+  
+  /// Randomly draw a value from the distribution described by this instruction
+  public func drawValue() -> Int {
+    let random = Double.random(in: 0..<1)
+    for (cummulativeProbability, value) in self.drawDistribution {
+      if random < cummulativeProbability {
+        return value
+      }
+    }
+    fatalError("Did not find a corresponding value. drawDistribution malformed?")
   }
 }
 
@@ -204,6 +224,7 @@ public struct BranchInstruction: Equatable, Instruction {
   public let targetFalse: BasicBlockName
   
   public init(condition: VariableOrValue, targetTrue: BasicBlockName, targetFalse: BasicBlockName) {
+    assert(condition.type == .bool)
     self.condition = condition
     self.targetTrue = targetTrue
     self.targetFalse = targetFalse
@@ -232,6 +253,9 @@ public struct PhiInstruction: Equatable, Instruction {
   public let choices: [BasicBlockName: IRVariable]
   
   public init(assignee: IRVariable, choices: [BasicBlockName: IRVariable]) {
+    assert(!choices.isEmpty)
+    assert(choices.map(\.value.type).allEqual)
+    assert(assignee.type == choices.first!.value.type)
     self.assignee = assignee
     self.choices = choices
   }
@@ -245,10 +269,7 @@ public struct PhiInstruction: Equatable, Instruction {
       }
     })
     
-    return PhiInstruction(
-      assignee: assignee,
-      choices: newChoices
-    )
+    return PhiInstruction(assignee: assignee, choices: newChoices)
   }
 }
 

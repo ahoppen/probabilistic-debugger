@@ -13,9 +13,9 @@ public struct InstructionDebugInfo {
 /// Debug info for a *Simple Language* program, consisting of `InstructionDebugInfo`s for all instructions in the IR that correspond to statements in the source code.
 public struct SLDebugInfo: DebugInfo {
   /// Mapping of the instructions corresponding to a statement in the source code to their debug info
-  public let info: [ProgramPosition: InstructionDebugInfo]
+  public let info: [InstructionPosition: InstructionDebugInfo]
   
-  public init(_ info: [ProgramPosition: InstructionDebugInfo]) {
+  public init(_ info: [InstructionPosition: InstructionDebugInfo]) {
     self.info = info
   }
 }

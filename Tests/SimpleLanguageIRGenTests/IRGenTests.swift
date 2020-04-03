@@ -33,9 +33,9 @@ class IRGenTests: XCTestCase {
       AssignInstruction(assignee: var5, value: .variable(var4)),
       ReturnInstruction(),
     ])
-    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1], debugInfo: nil)
     
-    XCTAssertEqual(ir, expectedProgram)
+    XCTAssertEqual(ir.startBlock, bb1Name)
+    XCTAssertEqual(ir.basicBlocks, [bb1Name: bb1])
   }
   
   func testIRWithIf() {
@@ -80,9 +80,8 @@ class IRGenTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3], debugInfo: nil)
-    
-    XCTAssertEqual(ir, expectedProgram)
+    XCTAssertEqual(ir.startBlock, bb1Name)
+    XCTAssertEqual(ir.basicBlocks, [bb1Name: bb1, bb2Name: bb2, bb3Name: bb3])
   }
   
   func testLoop() {
@@ -131,8 +130,7 @@ class IRGenTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let expectedProgram = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4], debugInfo: nil)
-    
-    XCTAssertEqual(ir, expectedProgram)
+    XCTAssertEqual(ir.startBlock, bb1Name)
+    XCTAssertEqual(ir.basicBlocks, [bb1Name: bb1, bb2Name: bb2, bb3Name: bb3, bb4Name: bb4])
   }
 }

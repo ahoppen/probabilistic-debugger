@@ -22,16 +22,3 @@ extension VariableOrValue {
     }
   }
 }
-
-extension DiscreteDistributionInstruction {
-  /// Randomly draw a value from the distribution described by this instruction
-  func drawValue() -> Int {
-    let random = Double.random(in: 0..<1)
-    for (cummulativeProbability, value) in self.drawDistribution {
-      if random < cummulativeProbability {
-        return value
-      }
-    }
-    fatalError("Did not find a corresponding value. drawDistribution malformed?")
-  }
-}

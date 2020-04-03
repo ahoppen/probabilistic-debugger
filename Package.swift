@@ -14,7 +14,9 @@ let package = Package(
   targets: [
     .target(
       name: "IR",
-      dependencies: []
+      dependencies: [
+        "Utils",
+      ]
     ),
     .target(
       name: "IRExecution",
@@ -31,6 +33,7 @@ let package = Package(
         "IRExecution",
         "SimpleLanguageAST",
         "SimpleLanguageIRGen",
+        "Utils",
       ]
     ),
     
@@ -58,6 +61,10 @@ let package = Package(
       dependencies: [
         "SimpleLanguageAST"
       ]
+    ),
+    .target(
+      name: "Utils",
+      dependencies: []
     ),
 
     

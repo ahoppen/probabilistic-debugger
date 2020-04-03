@@ -4,7 +4,7 @@ public enum VariableOrValue: Equatable, CustomStringConvertible {
   case integer(Int)
   case bool(Bool)
   
-  /// If the value is a variable, rename it to the new variable. For constants, return self.
+  /// If the value is a variable, rename it to the new variable. For constants, return `self`.
   func renaming(variable: IRVariable, to newVariable: IRVariable) -> VariableOrValue {
     switch self {
     case .variable(let selfVariable) where selfVariable == variable:

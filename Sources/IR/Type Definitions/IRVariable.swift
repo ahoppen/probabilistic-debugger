@@ -1,3 +1,4 @@
+/// The type a variable in the IR can have
 public enum IRType: CustomStringConvertible {
   case int
   case bool
@@ -12,10 +13,14 @@ public enum IRType: CustomStringConvertible {
   }
 }
 
+/// A variable in the IR
 public struct IRVariable: Hashable, CustomStringConvertible {
+  /// The name of the variable in the IR. Always starts with a `%`
   public let name: String
+  /// The type of this variable
   public let type: IRType
   
+  /// Create a new IR variable. `name` is automatically prepended with `%`
   public init(name: String, type: IRType) {
     self.name = "%\(name)"
     self.type = type

@@ -18,7 +18,7 @@ public class IRGen: ASTVisitor {
   private var declaredVariables: [Variable: IRVariable] = [:]
   
   /// Debug info that is collected during IR generation
-  private var debugInfo: [ProgramPosition: InstructionDebugInfo] = [:]
+  private var debugInfo: [InstructionPosition: InstructionDebugInfo] = [:]
   
   /// The basic blocks that are generated completely
   private var finishedBasicBlocks: [BasicBlock] = []
@@ -33,7 +33,7 @@ public class IRGen: ASTVisitor {
   private func append(instruction: Instruction, sourceLocation: Position?) {
     currentBasicBlock = currentBasicBlock.appending(instruction: instruction)
     if let sourceLocation = sourceLocation {
-      let programPosition = ProgramPosition(basicBlock: currentBasicBlock.name, instructionIndex: currentBasicBlock.instructions.count - 1)
+      let programPosition = InstructionPosition(basicBlock: currentBasicBlock.name, instructionIndex: currentBasicBlock.instructions.count - 1)
       // FIXME: Hide variables that are no longer valid in the current scope
       let debugInfo = InstructionDebugInfo(variables: declaredVariables, sourceLocation: sourceLocation)
       self.debugInfo[programPosition] = debugInfo

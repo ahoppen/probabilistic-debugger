@@ -1,8 +1,8 @@
 /// Marker protocol for the debug info for different source languages
 public protocol DebugInfo {}
 
-public class IRProgram: Equatable, CustomStringConvertible {
-  // MARK: - IR Program
+public class IRProgram: CustomStringConvertible {
+  // MARK: IR Program
   
   public let basicBlocks: [BasicBlockName: BasicBlock]
   public let startBlock: BasicBlockName
@@ -17,7 +17,8 @@ public class IRProgram: Equatable, CustomStringConvertible {
     IRVerifier.verify(ir: self)
   }
   
-  public func instruction(at position: ProgramPosition) -> Instruction? {
+  /// Returns the instruction at the given `position` or `nil` if the program does not have an instruction at this position.
+  public func instruction(at position: InstructionPosition) -> Instruction? {
     guard let block = self.basicBlocks[position.basicBlock], block.instructions.count > position.instructionIndex else {
       return nil
     }
@@ -28,19 +29,11 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return basicBlocks.values.map(\.description).joined(separator: "\n\n")
   }
   
-  public static func == (lhs: IRProgram, rhs: IRProgram) -> Bool {
-    return lhs.basicBlocks == rhs.basicBlocks && lhs.startBlock == rhs.startBlock
-  }
-  
-  // MARK: - Analysis results
+  // MARK: Analysis results
   // These could be cached if computation is a performance bottleneck
   
   public var directPredecessors: [BasicBlockName: Set<BasicBlockName>] {
     return DirectPredecessors.compute(basicBlocks: basicBlocks.values)
-  }
-  
-  public var transitivePredecessors: [BasicBlockName: Set<BasicBlockName>] {
-    return TransitivePredecessors.compute(directPredecessors: directPredecessors)
   }
   
   public var predominators: [BasicBlockName: Set<BasicBlockName>] {
