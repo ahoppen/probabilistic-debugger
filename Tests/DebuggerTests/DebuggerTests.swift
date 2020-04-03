@@ -175,4 +175,43 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
   }
+  
+  func testStepThroughLoopBranch() {
+    let sourceCode = """
+      int x = 2
+      while 1 < x {
+        x = x - 1
+      }
+      """
+
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 1)
+
+    XCTAssertNoThrow(try debugger.step())
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 7))
+    XCTAssertEqual(debugger.samples.first?.values, [
+      "x": .integer(2)
+    ])
+    
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 3))
+    XCTAssertEqual(debugger.samples.count, 1)
+    XCTAssertEqual(debugger.samples.first?.values, [
+      "x": .integer(2)
+    ])
+    
+    XCTAssertNoThrow(try debugger.step())
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 7))
+    XCTAssertEqual(debugger.samples.count, 1)
+    XCTAssertEqual(debugger.samples.first?.values, [
+      "x": .integer(1)
+    ])
+    
+    XCTAssertNoThrow(try debugger.stepInto(branch: false))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
+    XCTAssertEqual(debugger.samples.count, 1)
+    XCTAssertEqual(debugger.samples.first?.values, [
+      "x": .integer(1)
+    ])
+  }
 }

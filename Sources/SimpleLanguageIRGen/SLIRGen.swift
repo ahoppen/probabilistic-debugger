@@ -23,6 +23,13 @@ fileprivate extension Dictionary {
     })
     return Dictionary<T, Value>(uniqueKeysWithValues: keysAndValues)
   }
+  
+  func mapKeysAndValues<NewKey: Hashable, NewValue>(_ transform: (Key, Value) -> (NewKey, NewValue)) -> Dictionary<NewKey, NewValue> {
+    let keysAndValues = self.map({ (key, value) -> (NewKey, NewValue) in
+      return transform(key, value)
+    })
+    return Dictionary<NewKey, NewValue>(uniqueKeysWithValues: keysAndValues)
+  }
 }
 
 fileprivate extension SourceCodeLocation {
@@ -276,6 +283,8 @@ public class SLIRGen: ASTVisitor {
     // Now add phi instructions to the condition block and fix the condition and body block by renaming the variables for which we added phi instructions.
     // We don't need to add phi instructions for the body block since it is only jumped to from the condition block
     // All control flow flows through the condition block, so the assignees of the phi instructions are the correct storage for the source variables. Record this.
+    var numInsertedPhiInstructions = 0
+    var renamedVariables: [IRVariable: IRVariable] = [:]
     for (sourceVariable, mainBranchIRVariable) in variablesDeclaredBeforeCondition {
       let whileBodyIRVariable = declaredVariables[sourceVariable]!
       
@@ -291,8 +300,25 @@ public class SLIRGen: ASTVisitor {
         conditionBlock = conditionBlock.prepending(instruction: phiInstr)
         bodyBlock = bodyBlock.renaming(variable: mainBranchIRVariable, to: assignee)
         record(sourceVariable: sourceVariable, irVariable: assignee)
+        numInsertedPhiInstructions += 1
+        renamedVariables[mainBranchIRVariable] = assignee
       }
     }
+    // Finally fix the debug info
+    // Take into account for the shift in instruction indicies through the inserted phi instructions
+    self.debugInfo = debugInfo.mapKeysAndValues({ (position, debugInfo) -> (InstructionPosition, InstructionDebugInfo) in
+      if position.basicBlock == conditionBlockName {
+        let newPosition = InstructionPosition(basicBlock: conditionBlockName, instructionIndex: position.instructionIndex + numInsertedPhiInstructions)
+        let newVariableMap = debugInfo.variables.mapValues({
+          renamedVariables[$0] ?? $0
+        })
+        return (newPosition, InstructionDebugInfo(variables: newVariableMap, sourceCodeLocation: debugInfo.sourceCodeLocation))
+      } else {
+        return (position, debugInfo)
+      }
+    })
+    // Honor the variables that now use the asignee of the phi instruction
+    
     
     // Add the finished blocks and start a new block
     finishedBasicBlocks.append(conditionBlock)
