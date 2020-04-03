@@ -3,13 +3,11 @@ public class IRProgram: CustomStringConvertible {
   
   public let basicBlocks: [BasicBlockName: BasicBlock]
   public let startBlock: BasicBlockName
-  public let debugInfo: DebugInfo?
   
   /// Create a new IR program that consists of the given basic blocks and verify that it is syntactically correct.
-  public init(startBlock: BasicBlockName, basicBlocks: [BasicBlock], debugInfo: DebugInfo?) {
+  public init(startBlock: BasicBlockName, basicBlocks: [BasicBlock]) {
     self.startBlock = startBlock
     self.basicBlocks = Dictionary(uniqueKeysWithValues: zip(basicBlocks.map(\.name), basicBlocks))
-    self.debugInfo = debugInfo
     
     IRVerifier.verify(ir: self)
   }

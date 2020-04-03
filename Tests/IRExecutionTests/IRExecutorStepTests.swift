@@ -17,11 +17,7 @@ class IRExecutorStepTests: XCTestCase {
       ReturnInstruction(),
     ])
 
-    let debugInfo = [
-      InstructionPosition(basicBlock: bb0Name, instructionIndex: 0): InstructionDebugInfo(variables: ["%0": var0], sourceCodeLocation: SourceCodeLocation(line: 2, column: 0)),
-      InstructionPosition(basicBlock: bb0Name, instructionIndex: 1): InstructionDebugInfo(variables: ["%0": var0, "%1": var1], sourceCodeLocation: SourceCodeLocation(line: 3, column: 0)),
-    ]
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: DebugInfo(debugInfo))
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
     // bb0:
     //   int %0 = int 1
     //   int %1 = add int %0 int 1
@@ -31,13 +27,19 @@ class IRExecutorStepTests: XCTestCase {
     let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
     
     XCTAssertNoThrow(try {
-      guard let step1State = try executor.runUntilNextInstructionWithDebugInfo(state: initialState) else {
+      let step1StateOptional = try executor.runSingleBranchUntilCondition(state: initialState, stopCondition: { (position) in
+        position.instructionIndex == 1
+      })
+      guard let step1State = step1StateOptional else {
         XCTFail(); return
       }
       XCTAssertEqual(step1State.samples.only.values, [
         var0: .integer(1)
       ])
-      guard let step2State = try executor.runUntilNextInstructionWithDebugInfo(state: step1State) else {
+      let step2StateOptional = try executor.runSingleBranchUntilCondition(state: step1State, stopCondition: { (position) in
+        position.instructionIndex == 2
+      })
+      guard let step2State = step2StateOptional else {
         XCTFail(); return
       }
       XCTAssertEqual(step2State.samples.only.values, [

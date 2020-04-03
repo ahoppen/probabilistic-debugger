@@ -103,17 +103,17 @@ public class SLIRGen: ASTVisitor {
   
   // MARK: - Generate IR
   
-  public func generateIR(for stmts: [Stmt]) -> IRProgram {
+  public func generateIR(for stmts: [Stmt]) -> (program: IRProgram, debugInfo: DebugInfo) {
     assert(!stmts.isEmpty)
     for stmt in stmts {
       stmt.accept(self)
     }
     append(instruction: ReturnInstruction(), sourceLocation: stmts.last!.range.upperBound)
     finishedBasicBlocks.append(currentBasicBlock)
-    return IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks, debugInfo: DebugInfo(debugInfo))
+    return (program: IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks), debugInfo: DebugInfo(debugInfo))
   }
   
-  public static func generateIr(for sourceCode: String) throws -> IRProgram {
+  public static func generateIr(for sourceCode: String) throws -> (program: IRProgram, debugInfo: DebugInfo) {
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
     

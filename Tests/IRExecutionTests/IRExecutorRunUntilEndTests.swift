@@ -24,7 +24,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
     // bb0:
     //   int %0 = int 1
     //   int %1 = add int %0 int 1
@@ -60,7 +60,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1])
     // bb0:
     //   int %0 = int 1
     //   jump bb1
@@ -108,7 +108,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
     // bb0:
     //   int %0 = int 5
     //   bool %1 = bool true
@@ -171,7 +171,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   int %3 = phi bb0: int %0, bb1: int %2
     //   return
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
     
     let executor = IRExecutor(program: irProgram)
     let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
@@ -215,7 +215,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2, bb3], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2, bb3])
     // bb0:
     //   int %0 = int 2
     //   jump bb1
@@ -254,7 +254,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
     // bb0:
     //   int %0 = discrete 1: 0.5, 2: 0.5
     //   return
@@ -301,7 +301,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
     // bb0:
     //   int %0 = int 0
     //   int %1 = discrete 1: 0.7, 2: 0.3
@@ -343,7 +343,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       ReturnInstruction(),
     ])
     
-    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0], debugInfo: nil)
+    let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0])
     // bb0:
     //   int %0 = discrete 1: 0.5, 2: 0.5
     //   bool %1 = cmp eq int %0 int 1

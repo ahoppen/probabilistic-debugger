@@ -23,9 +23,9 @@ public class Debugger {
   
   // MARK: - Operating the debugger
   
-  public init(program: IRProgram, sampleCount: Int) {
+  public init(program: IRProgram, debugInfo: DebugInfo, sampleCount: Int) {
     self.executor = IRExecutor(program: program)
-    self.debugInfo = program.debugInfo!
+    self.debugInfo = debugInfo
     self.currentState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
   }
   
@@ -48,10 +48,14 @@ public class Debugger {
   
   /// Run the program until the end
   public func run() throws {
-    self.currentState = executor.runUntilEnd(state: try currentStateOrThrow())
+    let currentState = try currentStateOrThrow()
+    self.currentState = executor.runUntilEnd(state: currentState)
   }
   
   public func step() throws {
-    self.currentState = try executor.runUntilNextInstructionWithDebugInfo(state: try currentStateOrThrow())
+    let currentState = try currentStateOrThrow()
+    self.currentState = try executor.runSingleBranchUntilCondition(state: currentState, stopCondition: { position in
+      return debugInfo.info[position] != nil
+    })
   }
 }

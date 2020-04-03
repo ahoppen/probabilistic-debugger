@@ -43,7 +43,8 @@ public class IRExecutor {
   
   
   /// Run the program until the next instruction that has an associated source code location in the debug info.
-  public func runUntilNextInstructionWithDebugInfo(state: IRExecutionState) throws -> IRExecutionState? {
+  /// This assumes that no branch will be hit until the stopCondition evaluates to `true` the next time.
+  public func runSingleBranchUntilCondition(state: IRExecutionState, stopCondition: (InstructionPosition) -> Bool) throws -> IRExecutionState? {
     var currentState = state
     
     switch currentState.instruction(in: program) {
@@ -64,7 +65,7 @@ public class IRExecutor {
       } else if newBranches.count == 1 {
         currentState = newBranches.first!
         let position = currentState.position
-        if program.debugInfo!.info[position] != nil || currentState.instruction(in: program) is ReturnInstruction {
+        if stopCondition(position) || currentState.instruction(in: program) is ReturnInstruction {
           return currentState
         }
       } else {

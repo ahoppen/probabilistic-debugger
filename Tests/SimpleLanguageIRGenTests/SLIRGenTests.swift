@@ -15,7 +15,7 @@ class SLIRGenTests: XCTestCase {
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
     
-    let ir = SLIRGen().generateIR(for: typeCheckedFile)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile).program
     
     let bb1Name = BasicBlockName("bb1")
     
@@ -48,7 +48,7 @@ class SLIRGenTests: XCTestCase {
       """
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
-    let ir = SLIRGen().generateIR(for: typeCheckedFile)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile).program
     
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .bool)
@@ -94,7 +94,7 @@ class SLIRGenTests: XCTestCase {
       """
     let file = try! Parser(sourceCode: sourceCode).parseFile()
     let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
-    let ir = SLIRGen().generateIR(for: typeCheckedFile)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile).program
     
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .bool)
