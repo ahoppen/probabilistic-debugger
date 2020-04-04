@@ -91,7 +91,7 @@ public class Debugger {
   // MARK: - Step through the program
   
   /// Run the program until the end
-  public func run() throws {
+  public func runUntilEnd() throws {
     let currentState = try currentStateOrThrow()
     self.currentState = try executor.runUntilEnd(state: currentState)
   }

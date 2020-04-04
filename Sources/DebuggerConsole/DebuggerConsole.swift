@@ -69,6 +69,10 @@ class DebuggerConsole {
           )
         ]
       ),
+      ["run", "r"]: DebuggerCommand(
+        description: "Run the program until the end",
+        action: { [unowned self ] in try self.runUntilEnd(arguments: $0) }
+      ),
       ["state", "st"]: DebuggerCommand(
         description: """
           Save or restore debugger states.
@@ -166,6 +170,13 @@ class DebuggerConsole {
     }
     try debugger.restoreState()
     try debugger.stepOver()
+  }
+  
+  private func runUntilEnd(arguments: [String]) throws {
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    try debugger.runUntilEnd()
   }
   
   private func showSourceCodeAndVariableValues(arguments: [String]) throws {
