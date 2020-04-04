@@ -261,12 +261,13 @@ public class SLIRGen: ASTVisitor {
     // IR jump pattern:
     // currentBlock -> conditionBlock
     // conditionBlock -> bodyBlock | joinBlock
-    // bodyBlock -> conditionBlock
+    // bodyBlock -> ... multiple intermediate block (maybe with branches) ... -> lastBodyBlock
+    // lastBodyBlock -> conditionBlock
     
     // First, generate IR for condition, ignoring necessary Phi instructions
     let beforeWhileBlockName = currentBasicBlock.name
     let conditionBlockName = unusedBasicBlockName()
-    let bodyBlockName = unusedBasicBlockName()
+    let bodyStartBlockName = unusedBasicBlockName()
     let joinBlockName = unusedBasicBlockName()
     
     let variablesDeclaredBeforeCondition = declaredVariables
@@ -275,14 +276,23 @@ public class SLIRGen: ASTVisitor {
     
     startNewBasicBlock(name: conditionBlockName, declaredVariables: declaredVariables)
     
+    // Save and clear the finished basic blocks.
+    // This way finishedBasicBlocks only contains blocks relevant to this loop body which we all need to fix up by renaming variables.
+    // This way, we make sure, we don't accidentally rename variables before the loop body.
+    // In the end, these will be added to finishedBasicBlocks again.
+    let finishedBasicBlocksBeforeLoop = finishedBasicBlocks
+    finishedBasicBlocks = []
+    
     let conditionValue = stmt.condition.accept(self)
-    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: bodyBlockName, targetFalse: joinBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: bodyStartBlockName, targetFalse: joinBlockName), sourceLocation: stmt.condition.range.lowerBound)
     var conditionBlock = currentBasicBlock
     
-    currentBasicBlock = BasicBlock(name: bodyBlockName, instructions: [])
+    // Don't add the condition block to finishedBasicBlocks yet because we still need to insert Phi-instructions into it
+    currentBasicBlock = BasicBlock(name: bodyStartBlockName, instructions: [])
     stmt.body.accept(self)
     append(instruction: JumpInstruction(target: conditionBlockName), sourceLocation: nil)
-    var bodyBlock = currentBasicBlock
+    let lastBlockInBodyName = currentBasicBlock.name
+    startNewBasicBlock(name: joinBlockName, declaredVariables: declaredVariables)
     
     // Now add phi instructions to the condition block and fix the condition and body block by renaming the variables for which we added phi instructions.
     // We don't need to add phi instructions for the body block since it is only jumped to from the condition block
@@ -298,11 +308,13 @@ public class SLIRGen: ASTVisitor {
         let assignee = unusedIRVariable(type: mainBranchIRVariable.type)
         let phiInstr = PhiInstruction(assignee: assignee, choices: [
           beforeWhileBlockName: mainBranchIRVariable,
-          bodyBlockName: whileBodyIRVariable
+          lastBlockInBodyName: whileBodyIRVariable
         ])
+        finishedBasicBlocks = finishedBasicBlocks.map({ (block) in
+          return block.renaming(variable: mainBranchIRVariable, to: assignee)
+        })
         conditionBlock = conditionBlock.renaming(variable: mainBranchIRVariable, to: assignee)
         conditionBlock = conditionBlock.prepending(instruction: phiInstr)
-        bodyBlock = bodyBlock.renaming(variable: mainBranchIRVariable, to: assignee)
         record(sourceVariable: sourceVariable, irVariable: assignee)
         numInsertedPhiInstructions += 1
         renamedVariables[mainBranchIRVariable] = assignee
@@ -326,8 +338,6 @@ public class SLIRGen: ASTVisitor {
     
     // Add the finished blocks and start a new block
     finishedBasicBlocks.append(conditionBlock)
-    finishedBasicBlocks.append(bodyBlock)
-    
-    currentBasicBlock = BasicBlock(name: joinBlockName, instructions: [])
+    finishedBasicBlocks.append(contentsOf: finishedBasicBlocksBeforeLoop)
   }
 }

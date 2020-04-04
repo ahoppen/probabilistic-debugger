@@ -1,4 +1,4 @@
-public class IRProgram: CustomStringConvertible {
+public class IRProgram: Equatable, CustomStringConvertible {
   // MARK: IR Program
   
   public let basicBlocks: [BasicBlockName: BasicBlock]
@@ -8,6 +8,7 @@ public class IRProgram: CustomStringConvertible {
   public init(startBlock: BasicBlockName, basicBlocks: [BasicBlock]) {
     self.startBlock = startBlock
     self.basicBlocks = Dictionary(uniqueKeysWithValues: zip(basicBlocks.map(\.name), basicBlocks))
+    assert(self.basicBlocks[startBlock] != nil)
     
     IRVerifier.verify(ir: self)
   }
@@ -22,6 +23,10 @@ public class IRProgram: CustomStringConvertible {
   
   public var description: String {
     return basicBlocks.values.sorted(by: { $0.name.name < $1.name.name }).map(\.description).joined(separator: "\n\n")
+  }
+  
+  public static func == (lhs: IRProgram, rhs: IRProgram) -> Bool {
+    return lhs.basicBlocks == rhs.basicBlocks && lhs.startBlock == rhs.startBlock
   }
   
   // MARK: Analysis results

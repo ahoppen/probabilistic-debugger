@@ -133,4 +133,69 @@ class SLIRGenTests: XCTestCase {
     XCTAssertEqual(ir.startBlock, bb1Name)
     XCTAssertEqual(ir.basicBlocks, [bb1Name: bb1, bb2Name: bb2, bb3Name: bb3, bb4Name: bb4])
   }
+  
+  func testIfInsideWhile() {
+    let sourceCode = """
+      int x = 5
+      int y = x
+      while 1 < x {
+        if true {
+          x = x - 1
+        }
+      }
+      """
+    
+    let file = try! Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile).program
+    
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .bool)
+    let var4 = IRVariable(name: "4", type: .int)
+    let var5 = IRVariable(name: "5", type: .int)
+    let var6 = IRVariable(name: "6", type: .int)
+    let var7 = IRVariable(name: "7", type: .int)
+
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    let bb5Name = BasicBlockName("bb5")
+    let bb6Name = BasicBlockName("bb6")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(5)),
+      AssignInstruction(assignee: var2, value: .variable(var1)),
+      JumpInstruction(target: bb2Name)
+    ])
+
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      PhiInstruction(assignee: var7, choices: [bb1Name: var1, bb6Name: var6]),
+      CompareInstruction(comparison: .lessThan, assignee: var3, lhs: .integer(1), rhs: .variable(var7)),
+      BranchInstruction(condition: .variable(var3), targetTrue: bb3Name, targetFalse: bb4Name)
+    ])
+
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      BranchInstruction(condition: .bool(true), targetTrue: bb5Name, targetFalse: bb6Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      ReturnInstruction()
+    ])
+    
+    let bb5 = BasicBlock(name: bb5Name, instructions: [
+      SubtractInstruction(assignee: var4, lhs: .variable(var7), rhs: .integer(1)),
+      AssignInstruction(assignee: var5, value: .variable(var4)),
+      JumpInstruction(target: bb6Name)
+    ])
+    
+    let bb6 = BasicBlock(name: bb6Name, instructions: [
+      PhiInstruction(assignee: var6, choices: [bb3Name: var7, bb5Name: var5]),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    XCTAssertEqual(ir, IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4, bb5, bb6]))
+    
+  }
 }
