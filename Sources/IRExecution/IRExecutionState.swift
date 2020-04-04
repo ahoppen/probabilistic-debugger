@@ -17,7 +17,6 @@ public struct IRExecutionState {
   }
   
   internal init(position: InstructionPosition, samples: [IRSample]) {
-    assert(samples.count > 0, "There is no point in pursuing an execution branch without any samples")
     self.position = position
     self.samples = samples
   }

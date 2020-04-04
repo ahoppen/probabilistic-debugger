@@ -7,7 +7,13 @@ let package = Package(
   
   // MARK: - Products
   
-  products: [],
+  products: [
+    .executable(name: "ppdb", targets: ["DebuggerConsole"])
+  ],
+  
+  dependencies: [
+    .package(url: "https://github.com/apple/swift-argument-parser", from: "0.0.1"),
+  ],
   
   // MARK: - Targets
   
@@ -18,6 +24,14 @@ let package = Package(
         "IR",
         "IRExecution",
         "Utils",
+      ]
+    ),
+    .target(
+      name: "DebuggerConsole",
+      dependencies: [
+        .product(name: "ArgumentParser", package: "swift-argument-parser"),
+        "Debugger",
+        "SimpleLanguageIRGen",
       ]
     ),
     .target(

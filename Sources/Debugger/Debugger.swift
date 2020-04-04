@@ -30,7 +30,7 @@ public class Debugger {
     
     if debugInfo.info[self.currentState!.position] == nil {
       // Step to the first instruction with debug info
-      try! step()
+      try! runToNextInstructionWithDebugInfo(currentState: self.currentState!)
     }
   }
   
@@ -64,16 +64,19 @@ public class Debugger {
     self.currentState = executor.runUntilEnd(state: currentState)
   }
   
+  private func runToNextInstructionWithDebugInfo(currentState: IRExecutionState) throws {
+    self.currentState = try executor.runSingleBranchUntilCondition(state: currentState, stopCondition: { position in
+      return debugInfo.info[position] != nil
+    })
+  }
+  
   public func step() throws {
     let currentState = try currentStateOrThrow()
     
     if executor.program.instruction(at: currentState.position) is BranchInstruction {
       throw ExecutionError(message: "Cannot execute a branch instruction using the 'step' command")
     }
-    
-    self.currentState = try executor.runSingleBranchUntilCondition(state: currentState, stopCondition: { position in
-      return debugInfo.info[position] != nil
-    })
+    try runToNextInstructionWithDebugInfo(currentState: currentState)
   }
   
   public func stepInto(branch: Bool) throws {
@@ -86,8 +89,9 @@ public class Debugger {
     let filteredState = currentState.filterSamples { sample in
       return branchInstruction.condition.evaluated(in: sample).boolValue! == branch
     }
-    self.currentState = try executor.runSingleBranchUntilCondition(state: filteredState, stopCondition: { position in
-      return debugInfo.info[position] != nil
-    })
+    if filteredState.samples.isEmpty {
+      throw ExecutionError(message: "Stepping into the \(branch) branch results in 0 samples being left. Ignoring the step")
+    }
+    try runToNextInstructionWithDebugInfo(currentState: filteredState)
   }
 }

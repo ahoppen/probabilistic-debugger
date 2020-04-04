@@ -121,8 +121,8 @@ public class SLIRGen: ASTVisitor {
   }
   
   public static func generateIr(for sourceCode: String) throws -> (program: IRProgram, debugInfo: DebugInfo) {
-    let file = try! Parser(sourceCode: sourceCode).parseFile()
-    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    let file = try Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try TypeCheckPipeline.typeCheck(stmts: file)
     
     return SLIRGen().generateIR(for: typeCheckedFile)
   }

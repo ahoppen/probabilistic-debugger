@@ -1,6 +1,6 @@
 import IR
 
-public enum IRValue: Equatable {
+public enum IRValue: Hashable, CustomStringConvertible {
   case integer(Int)
   case bool(Bool)
   
@@ -28,6 +28,15 @@ public enum IRValue: Equatable {
       return value
     default:
       return nil
+    }
+  }
+  
+  public var description: String {
+    switch self {
+    case .integer(let value):
+      return value.description
+    case .bool(let value):
+      return value.description
     }
   }
 }
