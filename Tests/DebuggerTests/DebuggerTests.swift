@@ -331,4 +331,37 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
   }
+  
+  func testCowbodyDuel() {
+    let sourceCode = """
+      int turn = discrete({1: 0.5, 2: 0.5})
+      bool alive = true
+      while alive {
+        if turn == 1 {
+          int coin = discrete({0: 0.5, 1: 0.5})
+          if coin == 0 {
+            turn = 2
+          }
+          if coin == 1 {
+            alive = false
+          }
+        }
+        if turn == 2 {
+          int coin = discrete({0: 0.5, 1: 0.5})
+          if coin == 0 {
+            turn = 1
+          }
+          if coin == 1 {
+            alive = false
+          }
+        }
+      }
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
+
+    XCTAssertNoThrow(try debugger.runUntilEnd())
+    XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1.5, accuracy: 0.1)
+  }
 }
