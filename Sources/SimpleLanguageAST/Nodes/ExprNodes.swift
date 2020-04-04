@@ -49,6 +49,16 @@ public struct IntegerLiteralExpr: Expr {
   }
 }
 
+public struct BoolLiteralExpr: Expr {
+  public let value: Bool
+  public let range: SourceRange
+  
+  public init(value: Bool, range: SourceRange) {
+    self.value = value
+    self.range = range
+  }
+}
+
 /// A reference to a variable.
 public struct VariableReferenceExpr: Expr {
   /// Before type checking (in particular variable resolving), `variable` is `.unresolved`, afterwards it is always `resolved`
@@ -101,6 +111,20 @@ public extension BinaryOperatorExpr {
 }
 
 public extension IntegerLiteralExpr {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
+    visitor.visit(self)
+  }
+  
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.ExprReturnType {
+    try visitor.visit(self)
+  }
+  
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
+  }
+}
+
+public extension BoolLiteralExpr {
   func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.ExprReturnType {
     visitor.visit(self)
   }
@@ -173,6 +197,15 @@ public extension BinaryOperatorExpr {
 public extension IntegerLiteralExpr {
   func equalsIgnoringRange(other: ASTNode) -> Bool {
     guard let other = other as? IntegerLiteralExpr else {
+      return false
+    }
+    return self.value == other.value
+  }
+}
+
+public extension BoolLiteralExpr {
+  func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? BoolLiteralExpr else {
       return false
     }
     return self.value == other.value

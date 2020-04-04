@@ -183,6 +183,12 @@ internal class Lexer {
       return .while
     case "int":
       return .int
+    case "bool":
+      return .bool
+    case "true":
+      return .true
+    case "false":
+      return .false
     case "observe":
       return .observe
     case "discrete":

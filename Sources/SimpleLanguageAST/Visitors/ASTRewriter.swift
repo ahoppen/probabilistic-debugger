@@ -3,6 +3,7 @@
 public protocol ASTRewriter {
   func visit(_ expr: BinaryOperatorExpr) throws -> BinaryOperatorExpr
   func visit(_ expr: IntegerLiteralExpr) throws -> IntegerLiteralExpr
+  func visit(_ expr: BoolLiteralExpr) throws -> BoolLiteralExpr
   func visit(_ expr: VariableReferenceExpr) throws -> VariableReferenceExpr
   func visit(_ expr: ParenExpr) throws -> ParenExpr
   func visit(_ expr: DiscreteIntegerDistributionExpr) throws -> DiscreteIntegerDistributionExpr
@@ -23,6 +24,10 @@ public extension ASTRewriter {
   }
   
   func visit(_ expr: IntegerLiteralExpr) -> IntegerLiteralExpr {
+    return expr
+  }
+  
+  func visit(_ expr: BoolLiteralExpr) -> BoolLiteralExpr {
     return expr
   }
   

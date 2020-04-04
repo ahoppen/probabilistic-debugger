@@ -32,6 +32,8 @@ fileprivate extension Type {
     switch token {
     case .int:
       self = .int
+    case .bool:
+      self = .bool
     default:
       return nil
     }
@@ -125,6 +127,8 @@ public class Parser {
     let stmt: Stmt?
     switch token?.content {
     case .int:
+      stmt = try parseVariableDecl()
+    case .bool:
       stmt = try parseVariableDecl()
     case .identifier:
       stmt = try parseAssignStmt()
@@ -270,6 +274,10 @@ public class Parser {
     switch nextToken.content {
     case .integerLiteral(let value):
       return IntegerLiteralExpr(value: value, range: nextToken.range)
+    case .true:
+      return BoolLiteralExpr(value: true, range: nextToken.range)
+    case .false:
+      return BoolLiteralExpr(value: false, range: nextToken.range)
     case .identifier(name: let name):
       return VariableReferenceExpr(variable: .unresolved(name: name), range: nextToken.range)
     case .discrete:

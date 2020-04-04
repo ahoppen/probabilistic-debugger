@@ -31,6 +31,10 @@ internal class TypeChecker: ASTVerifier {
     return .int
   }
   
+  func visit(_ expr: BoolLiteralExpr) throws -> Type {
+    return .bool
+  }
+  
   func visit(_ expr: VariableReferenceExpr) throws -> Type {
     guard case .resolved(let variable) = expr.variable else {
       fatalError("Variables must be resolved in the AST before type checking")

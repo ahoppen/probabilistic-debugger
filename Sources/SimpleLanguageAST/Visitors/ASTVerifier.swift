@@ -10,6 +10,7 @@ public protocol ASTVerifier {
   
   func visit(_ expr: BinaryOperatorExpr) throws -> ExprReturnType
   func visit(_ expr: IntegerLiteralExpr) throws -> ExprReturnType
+  func visit(_ expr: BoolLiteralExpr) throws -> ExprReturnType
   func visit(_ expr: VariableReferenceExpr) throws -> ExprReturnType
   func visit(_ expr: ParenExpr) throws -> ExprReturnType
   func visit(_ expr: DiscreteIntegerDistributionExpr) throws -> ExprReturnType
@@ -29,6 +30,8 @@ public extension ASTVerifier where ExprReturnType == Void, StmtReturnType == Voi
   }
   
   func visit(_ expr: IntegerLiteralExpr) throws {}
+  
+  func visit(_ expr: BoolLiteralExpr) throws {}
   
   func visit(_ expr: VariableReferenceExpr) throws {}
   

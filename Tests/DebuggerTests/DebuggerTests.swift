@@ -313,4 +313,22 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
   }
+  
+  func testConditionValueStoredInBooleanVariable() {
+    let sourceCode = """
+      int x = discrete({1: 0.3, 2: 0.7})
+      bool isOne = (x == 1)
+      if isOne {
+        x = x + 1
+      }
+      """
+
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
+
+    XCTAssertNoThrow(try debugger.run())
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 5, column: 2))
+    XCTAssertEqual(debugger.samples.count, 10_000)
+    XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
+  }
 }

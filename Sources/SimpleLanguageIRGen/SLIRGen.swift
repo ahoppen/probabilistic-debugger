@@ -183,6 +183,10 @@ public class SLIRGen: ASTVisitor {
     return .integer(expr.value)
   }
   
+  public func visit(_ expr: BoolLiteralExpr) -> VariableOrValue {
+    return .bool(expr.value)
+  }
+  
   public func visit(_ expr: VariableReferenceExpr) -> VariableOrValue {
     guard case .resolved(let variable) = expr.variable else {
       fatalError("Variables must be resolved before IRGen")

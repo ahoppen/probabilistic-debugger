@@ -363,4 +363,23 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast, stmts)
     }())
   }
+  
+  func testParseBoolConstant() {
+    XCTAssertNoThrow(try {
+      let parser = Parser.init(sourceCode: """
+      bool a = true
+      """)
+      let ast = try parser.parseFile()
+      
+      let boolLiteralExpr = BoolLiteralExpr(value: true, range: .whatever)
+      
+      let decl = VariableDeclStmt(variable: SourceVariable(name: "a", disambiguationIndex: 1, type: .bool),
+                                   expr: boolLiteralExpr,
+                                   range: .whatever)
+      
+      let stmts: [Stmt] = [decl]
+      
+      XCTAssertEqualASTIgnoringRanges(ast, stmts)
+    }())
+  }
 }

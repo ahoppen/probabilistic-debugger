@@ -45,6 +45,15 @@ public enum TokenContent: Equatable, CustomStringConvertible {
   /// The `int` keyword
   case int
   
+  /// The `bool` keyword
+  case bool
+  
+  /// The `true` keyword
+  case `true`
+  
+  /// The `false` keyword
+  case `false`
+  
   /// The `observe` keyword
   case observe
   
@@ -134,6 +143,12 @@ public enum TokenContent: Equatable, CustomStringConvertible {
       return "while"
     case .int:
       return "int"
+    case .bool:
+      return "bool"
+    case .true:
+      return "true"
+    case .false:
+      return "false"
     case .observe:
       return "observe"
     case .discrete:

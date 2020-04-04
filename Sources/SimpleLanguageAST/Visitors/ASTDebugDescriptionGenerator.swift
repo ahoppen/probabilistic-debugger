@@ -25,6 +25,10 @@ internal struct ASTDebugDescriptionGenerator: ASTVisitor {
     return "▷ IntegerLiteralExpr(\(expr.value))"
   }
   
+  func visit(_ expr: BoolLiteralExpr) -> String {
+    return "▷ boolLiteralExpr(\(expr.value))"
+  }
+  
   func visit(_ expr: VariableReferenceExpr) -> String {
     return "▷ VariableReferenceExpr(\(expr.variable.debugDescription))"
   }
