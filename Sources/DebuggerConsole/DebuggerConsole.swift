@@ -23,10 +23,16 @@ class DebuggerConsole {
     self.initialSampleCount = initialSampleCount
     
     self.commands = DebuggerCommand(
-      description: "Probabilistic Debugger Console",
+      description: """
+        Probabilistic Debugger Console
+        
+        Type any of the following commands followed by 'help' to get more information.
+        Type multiple commands separated by ';' to execute all of them.
+        """,
       subCommands: [
       ["display", "d"]: DebuggerCommand(
         description: "Display information about the current execution state",
+        action: { [unowned self] in try self.showSourceCodeAndVariableValues(arguments: $0) },
         subCommands: [
           ["position", "p"]: DebuggerCommand(
             description: "Print the source code annoted with the position the debugger is currently halted at",
@@ -49,9 +55,17 @@ class DebuggerConsole {
           ["into", "i"]: DebuggerCommand(
             description: """
               If execution is currently at a branching point (if, while), either step into the true or false branch.
-              Saves the current state on the state stack before stepping into the branch (see the 'state' command)
+              This filters out any samples that don't satisfy the condition that is necessary to reach the true/false branch.
+              Saves the current state on the state stack before stepping into the branch (see the 'state' command).
               """,
             action: { [unowned self] in try self.stepInto(arguments: $0) }
+          ),
+          ["out", "o"]: DebuggerCommand(
+            description: """
+              After stepping into a branch, undo the filtering of states and jump to the statement after the branch that was switched into.
+              Equivalent to 'state restore; step over'
+              """,
+            action: { [unowned self] in try self.stepOut(arguments: $0) }
           )
         ]
       ),
@@ -144,6 +158,22 @@ class DebuggerConsole {
       try? debugger.restoreState()
       throw error
     }
+  }
+  
+  private func stepOut(arguments: [String]) throws {
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    try debugger.restoreState()
+    try debugger.stepOver()
+  }
+  
+  private func showSourceCodeAndVariableValues(arguments: [String]) throws {
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    try showSourceCode(arguments: [])
+    try showAverageVariableValues(arguments: [])
   }
   
   private func showSourceCode(arguments: [String]) throws {
