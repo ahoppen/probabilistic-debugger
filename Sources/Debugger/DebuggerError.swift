@@ -1,6 +1,6 @@
 import Foundation
 
-public struct ExecutionError: LocalizedError {
+public struct DebuggerError: LocalizedError {
   public let message: String
   
   internal init(message: String) {

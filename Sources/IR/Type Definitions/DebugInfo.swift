@@ -1,4 +1,4 @@
-public struct SourceCodeLocation: Equatable {
+public struct SourceCodeLocation: Equatable, CustomStringConvertible {
   /// The line of this position (1-based)
   public let line: Int
   
@@ -8,6 +8,10 @@ public struct SourceCodeLocation: Equatable {
   public init(line: Int, column: Int) {
     self.line = line
     self.column = column
+  }
+  
+  public var description: String {
+    return "\(line):\(column)"
   }
 }
 

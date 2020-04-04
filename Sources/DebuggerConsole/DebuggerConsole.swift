@@ -25,8 +25,8 @@ class DebuggerConsole {
     self.commands = DebuggerCommand(
       description: "Probabilistic Debugger Console",
       subCommands: [
-      ["show", "p"]: DebuggerCommand(
-        description: "Show information about the current execution state",
+      ["display", "d"]: DebuggerCommand(
+        description: "Display information about the current execution state",
         subCommands: [
           ["position", "p"]: DebuggerCommand(
             description: "Print the source code annoted with the position the debugger is currently halted at",
@@ -47,8 +47,31 @@ class DebuggerConsole {
             action: { [unowned self] in try self.stepOver(arguments: $0) }
           ),
           ["into", "i"]: DebuggerCommand(
-            description: "If execution is currently at a branching point (if, while), either step into the true or false branch",
+            description: """
+              If execution is currently at a branching point (if, while), either step into the true or false branch.
+              Saves the current state on the state stack before stepping into the branch (see the 'state' command)
+              """,
             action: { [unowned self] in try self.stepInto(arguments: $0) }
+          )
+        ]
+      ),
+      ["state", "st"]: DebuggerCommand(
+        description: """
+          Save or restore debugger states.
+          The debugger has a notion of saving the current states and later restoring them. This is particularly useful to experimentally step into branch of a if/while statement which filters out samples and later return to the unfiltered state.
+          """,
+        subCommands: [
+          ["save", "s"]: DebuggerCommand(
+            description: "Save the current execution state on the states stack.",
+            action: { [unowned self] in try self.saveState(arguments: $0) }
+          ),
+          ["restore", "r"]: DebuggerCommand(
+            description: "Restore the execution state that was last saved.",
+            action: { [unowned self] in try self.restoreState(arguments: $0) }
+          ),
+          ["display", "d"]: DebuggerCommand(
+            description: "Show the states that have been saved. These can be restored in the order they were saved.",
+            action: { [unowned self] in try self.displaySavedStates(arguments: $0) }
           )
         ]
       )
@@ -105,15 +128,21 @@ class DebuggerConsole {
     guard let branchName = arguments.first else {
       throw ConsoleError(message: "Must specify which branch to execute by appending 'step into' with 'true' (short: 't') or 'false' (short: 'f')")
     }
-    switch branchName {
-    case "true", "t":
-      try debugger.stepInto(branch: true)
-      try showSourceCode(arguments: [])
-    case "false", "f":
-      try debugger.stepInto(branch: false)
-      try showSourceCode(arguments: [])
-    default:
-      throw ConsoleError(message: "Invalid branch name '\(branchName)'. Valid values are 'true', 'false', 't' (short for true), 'f' (short for false)")
+    debugger.saveState()
+    do {
+      switch branchName {
+      case "true", "t":
+        try debugger.stepInto(branch: true)
+        try showSourceCode(arguments: [])
+      case "false", "f":
+        try debugger.stepInto(branch: false)
+        try showSourceCode(arguments: [])
+      default:
+        throw ConsoleError(message: "Invalid branch name '\(branchName)'. Valid values are 'true', 'false', 't' (short for true), 'f' (short for false)")
+      }
+    } catch {
+      try? debugger.restoreState()
+      throw error
     }
   }
   
@@ -160,5 +189,37 @@ class DebuggerConsole {
       print("\(variable) | \(value)")
     }
     print("")
+  }
+  
+  private func saveState(arguments: [String]) throws {
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    debugger.saveState()
+  }
+  
+  private func restoreState(arguments: [String]) throws {
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    try debugger.restoreState()
+  }
+  
+  private func displaySavedStates(arguments: [String]) throws {
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    for (index, state) in debugger.stateStack.enumerated() {
+      let name = (index == 0) ? "Current" : String(index)
+      let positionDescription: String
+      if let state = state, let sourceLocation = debugger.sourceLocation(of: state) {
+        positionDescription = "line \(sourceLocation.line)"
+      } else if state == nil {
+        positionDescription = "<no samples left>"
+      } else {
+        positionDescription = "<unknown>"
+      }
+      print("\(name): \(positionDescription)")
+    }
   }
 }

@@ -15,28 +15,50 @@ public class Debugger {
   /// Debug information to translate IR variable values back to source variable values
   private let debugInfo: DebugInfo
   
-  /// The current state of the debugger. Can be `nil` if execution of the program has filtered out all samples
-  private var currentState: IRExecutionState?
+  /// The debugger can save execution states on a state stack. This is particularly useful to look into a branch using the 'step into' command and later returning to the state that does not have samples filtered out.
+  /// The last element on the stateStack is always the last element.
+  /// Must always contain at least one element.
+  public private(set) var stateStack: [IRExecutionState?] {
+    didSet {
+      assert(!stateStack.isEmpty)
+    }
+  }
+  
+  /// The current state of the debugger. Can be `nil` if execution of the program has filtered out all samples.
+  private var currentState: IRExecutionState? {
+    get {
+      return stateStack.last!
+    }
+    set {
+      stateStack[stateStack.count - 1] = newValue
+    }
+  }
   
   private func currentStateOrThrow() throws -> IRExecutionState {
     guard let currentState = currentState else {
-      throw ExecutionError(message: "Execution has filtered out all samples. Either the branch that was chosen is not feasible or the path is unlikely and there were an insufficient number of samples in the beginning to assign some to this branch.")
+      throw DebuggerError(message: "Execution has filtered out all samples. Either the branch that was chosen is not feasible or the path is unlikely and there were an insufficient number of samples in the beginning to assign some to this branch.")
     }
     return currentState
   }
   
-  // MARK: - Operating the debugger
+  private func runToNextInstructionWithDebugInfo(currentState: IRExecutionState) throws {
+    self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: Set(debugInfo.info.keys))
+  }
+  
+  // MARK: - Creating a debugger
   
   public init(program: IRProgram, debugInfo: DebugInfo, sampleCount: Int) {
     self.executor = IRExecutor(program: program)
     self.debugInfo = debugInfo
-    self.currentState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
+    self.stateStack = [IRExecutionState(initialStateIn: program, sampleCount: sampleCount)]
     
     if debugInfo.info[self.currentState!.position] == nil {
       // Step to the first instruction with debug info
       try! runToNextInstructionWithDebugInfo(currentState: self.currentState!)
     }
   }
+  
+  // MARK: - Retrieving current state
   
   public var sourceLocation: SourceCodeLocation? {
     guard let currentState = currentState else {
@@ -62,14 +84,16 @@ public class Debugger {
     return sourceCodeSamples
   }
   
+  public func sourceLocation(of executionState: IRExecutionState) -> SourceCodeLocation? {
+    return debugInfo.info[executionState.position]?.sourceCodeLocation
+  }
+  
+  // MARK: - Step through the program
+  
   /// Run the program until the end
   public func run() throws {
     let currentState = try currentStateOrThrow()
     self.currentState = try executor.runUntilEnd(state: currentState)
-  }
-  
-  private func runToNextInstructionWithDebugInfo(currentState: IRExecutionState) throws {
-    self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: Set(debugInfo.info.keys))
   }
   
   /// Continue execution of the program to the next statement with debug info that is reachable by all execution branches.
@@ -93,19 +117,35 @@ public class Debugger {
     }
   }
   
+  /// If the program is currently at a `BranchInstruction`, either focus on the `true` or the `false` branch, discarding any samples that would not execute this branch.
   public func stepInto(branch: Bool) throws {
     let currentState = try currentStateOrThrow()
     
     guard let branchInstruction = executor.program.instruction(at: currentState.position) as? BranchInstruction else {
-      throw ExecutionError(message: "Can only step into a branch if the debugger is currently positioned at a branching point")
+      throw DebuggerError(message: "Can only step into a branch if the debugger is currently positioned at a branching point")
     }
     
     let filteredState = currentState.filterSamples { sample in
       return branchInstruction.condition.evaluated(in: sample).boolValue! == branch
     }
     if filteredState.samples.isEmpty {
-      throw ExecutionError(message: "Stepping into the \(branch) branch results in 0 samples being left. Ignoring the step")
+      throw DebuggerError(message: "Stepping into the \(branch) branch results in 0 samples being left. Ignoring the step")
     }
     try runToNextInstructionWithDebugInfo(currentState: filteredState)
+  }
+  
+  // MARK: - Saving and restoring states
+  
+  /// Save the current state on the state stack so it can be restored later using `restoreState`.
+  public func saveState() {
+    self.stateStack.append(currentState)
+  }
+  
+  /// Restore the last saved state.
+  public func restoreState() throws {
+    if self.stateStack.count == 1 {
+      throw DebuggerError(message: "No state to restore on the states stack")
+    }
+    self.stateStack.removeLast()
   }
 }
