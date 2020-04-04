@@ -196,6 +196,53 @@ class SLIRGenTests: XCTestCase {
     ])
     
     XCTAssertEqual(ir, IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4, bb5, bb6]))
+  }
+  
+  func testNestedIfs() {
+    let sourceCode = """
+      int turn = 1
+      if false {
+        if true {
+          turn = 2
+        }
+      }
+      """
     
+    let file = try! Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    // Test that we don't hit any verification errors when generating the above program
+    _ = SLIRGen().generateIR(for: typeCheckedFile).program
+  }
+  
+  func testCowboyDuel() {
+    let sourceCode = """
+      int turn = discrete({1: 0.5, 2: 0.5})
+      bool alive = true
+      while alive {
+        if turn == 1 {
+          int coin = discrete({0: 0.5, 1: 0.5})
+          if coin == 0 {
+            turn = 2
+          }
+          if coin == 1 {
+            alive = false
+          }
+        }
+        if turn == 2 {
+          int coin = discrete({0: 0.5, 1: 0.5})
+          if coin == 0 {
+            turn = 1
+          }
+          if coin == 1 {
+            alive = false
+          }
+        }
+      }
+      """
+    
+    let file = try! Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    // Test that we don't hit any verification errors when generating the above program
+    _ = SLIRGen().generateIR(for: typeCheckedFile).program
   }
 }

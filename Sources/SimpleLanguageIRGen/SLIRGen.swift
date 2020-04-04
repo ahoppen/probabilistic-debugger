@@ -247,13 +247,14 @@ public class SLIRGen: ASTVisitor {
     stmt.body.accept(self)
     append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
     let declaredVariablesAfterIfBody = declaredVariables
+    let lastBlockOfIfBodyName = currentBasicBlock.name
     
     startNewBasicBlock(name: joinBlockBlockName, declaredVariables: declaredVariablesBeforeIf)
     generatePhiInstructions(
       mainBranchVariables: declaredVariablesBeforeIf,
       sideBranchVariables: declaredVariablesAfterIfBody,
       mainBranchName: beforeIfBlockName,
-      sideBranchName: ifBodyBlockName
+      sideBranchName: lastBlockOfIfBodyName
     )
   }
   
