@@ -25,20 +25,19 @@ class IRExecutorStepTests: XCTestCase {
 
     let executor = IRExecutor(program: irProgram)
     let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+    let returnPosition = InstructionPosition(basicBlock: bb0Name, instructionIndex: 2)
     
     XCTAssertNoThrow(try {
-      let step1StateOptional = try executor.runSingleBranchUntilCondition(state: initialState, stopCondition: { (position) in
-        position.instructionIndex == 1
-      })
+      let step1StateOptional = try executor.runUntilCondition(state: initialState, stopPositions: [
+        InstructionPosition(basicBlock: bb0Name, instructionIndex: 1)
+      ])
       guard let step1State = step1StateOptional else {
         XCTFail(); return
       }
       XCTAssertEqual(step1State.samples.only.values, [
         var0: .integer(1)
       ])
-      let step2StateOptional = try executor.runSingleBranchUntilCondition(state: step1State, stopCondition: { (position) in
-        position.instructionIndex == 2
-      })
+      let step2StateOptional = try executor.runUntilCondition(state: initialState, stopPositions: [returnPosition])
       guard let step2State = step2StateOptional else {
         XCTFail(); return
       }

@@ -30,17 +30,19 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   int %1 = add int %0 int 1
     //   return
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    
-    XCTAssertEqual(finalState.samples.only.values, [
-      var0: .integer(1),
-      var1: .integer(2)
-    ])
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      
+      XCTAssertEqual(finalState.samples.only.values, [
+        var0: .integer(1),
+        var1: .integer(2)
+      ])
+    }())
   }
   
   func testDeterministicExecutionWithJump() {
@@ -69,17 +71,19 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   int %1 = add int %0 int 41
     //   return
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    
-    XCTAssertEqual(finalState.samples.only.values, [
-      var0: .integer(1),
-      var1: .integer(42)
-    ])
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      
+      XCTAssertEqual(finalState.samples.only.values, [
+        var0: .integer(1),
+        var1: .integer(42)
+      ])
+    }())
   }
   
   func testDeterministicExecutionWithBranchAndTrueBranchTaken() {
@@ -122,14 +126,16 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   int %3 = phi bb0: int %0, bb1: int %2
     //   return
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    let onlySample = finalState.samples.only
-    XCTAssertEqual(onlySample.values[var3], .integer(4))
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      let onlySample = finalState.samples.only
+      XCTAssertEqual(onlySample.values[var3], .integer(4))
+      }())
   }
   
   func testDeterministicExecutionWithBranchAndFalseBranchTaken() {
@@ -173,15 +179,17 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     let irProgram = IRProgram(startBlock: bb0Name, basicBlocks: [bb0, bb1, bb2])
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    let onlySample = finalState.samples.only
-    
-    XCTAssertEqual(onlySample.values[var3], .integer(5))
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      let onlySample = finalState.samples.only
+      
+      XCTAssertEqual(onlySample.values[var3], .integer(5))
+      }())
   }
   
   func testDeterministicExecutionWithLoop() {
@@ -233,15 +241,17 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   return
     
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    let onlySample = finalState.samples.only
-    
-    XCTAssertEqual(onlySample.values[var1], .integer(1))
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      let onlySample = finalState.samples.only
+      
+      XCTAssertEqual(onlySample.values[var1], .integer(1))
+      }())
   }
   
   func testProbabilisticSingleBlockExecution() {
@@ -259,15 +269,17 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   int %0 = discrete 1: 0.5, 2: 0.5
     //   return
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    
-    let var0Values = finalState.samples.map( { $0.values[var0]!.integerValue! })
-    XCTAssertEqual(var0Values.average, 1.5, accuracy: 0.1)
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      
+      let var0Values = finalState.samples.map( { $0.values[var0]!.integerValue! })
+      XCTAssertEqual(var0Values.average, 1.5, accuracy: 0.1)
+      }())
   }
   
   func testProbabilisticExecutionWithBranch() {
@@ -316,15 +328,17 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   int %4 = phi bb0: int %0, bb1: int %3
     //   return
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    
-    let var0Values = finalState.samples.map( { $0.values[var4]!.integerValue! })
-    XCTAssertEqual(var0Values.average, 3, accuracy: 0.5)
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      
+      let var0Values = finalState.samples.map( { $0.values[var4]!.integerValue! })
+      XCTAssertEqual(var0Values.average, 3, accuracy: 0.5)
+      }())
   }
   
   func testObserve() {
@@ -350,14 +364,16 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     //   observe bool %1
     //   return
     
-    let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
-    guard let finalState = executor.runUntilEnd(state: initialState) else {
-      XCTFail("No final state returned")
-      return
-    }
-    
-    XCTAssert(finalState.samples.allSatisfy({ $0.values[var0]!.integerValue! == 1 }))
-    XCTAssertEqual(Double(finalState.samples.count), 5000, accuracy: 500)
+    XCTAssertNoThrow(try {
+      let executor = IRExecutor(program: irProgram)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
+      guard let finalState = try executor.runUntilEnd(state: initialState) else {
+        XCTFail("No final state returned")
+        return
+      }
+      
+      XCTAssert(finalState.samples.allSatisfy({ $0.values[var0]!.integerValue! == 1 }))
+      XCTAssertEqual(Double(finalState.samples.count), 5000, accuracy: 500)
+      }())
   }
 }

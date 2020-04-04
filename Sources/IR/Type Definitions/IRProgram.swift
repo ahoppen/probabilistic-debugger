@@ -21,21 +21,37 @@ public class IRProgram: CustomStringConvertible {
   }
   
   public var description: String {
-    return basicBlocks.values.map(\.description).joined(separator: "\n\n")
+    return basicBlocks.values.sorted(by: { $0.name.name < $1.name.name }).map(\.description).joined(separator: "\n\n")
   }
   
   // MARK: Analysis results
   // These could be cached if computation is a performance bottleneck
   
   public var directPredecessors: [BasicBlockName: Set<BasicBlockName>] {
-    return DirectPredecessors.compute(basicBlocks: basicBlocks.values)
+    return IRAnalysis.directPredecessors(basicBlocks: basicBlocks.values)
+  }
+  
+  public var directSuccessors: [BasicBlockName: Set<BasicBlockName>] {
+    return IRAnalysis.directSuccessors(basicBlocks: basicBlocks.values)
   }
   
   public var predominators: [BasicBlockName: Set<BasicBlockName>] {
-    return Predominators.compute(directPredecessors: directPredecessors, startBlock: startBlock)
+    return IRAnalysis.predominators(directPredecessors: directPredecessors, startBlock: startBlock)
+  }
+  
+  public var postdominators: [BasicBlockName: Set<BasicBlockName>] {
+    return IRAnalysis.postdominators(directSuccessors: directSuccessors, startBlock: startBlock)
   }
   
   public var properPredominators: [BasicBlockName: Set<BasicBlockName>] {
-    return ProperPredominators.compute(predominators: predominators)
+    return IRAnalysis.properDominators(dominators: predominators)
+  }
+  
+  public var properPostdominators: [BasicBlockName: Set<BasicBlockName>] {
+    return IRAnalysis.properDominators(dominators: postdominators)
+  }
+  
+  public var immediatePostdominator: [BasicBlockName: BasicBlockName?] {
+    return IRAnalysis.immediateDominator(properDominators: properPostdominators)
   }
 }

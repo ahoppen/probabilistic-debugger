@@ -8,6 +8,10 @@ public class Debugger {
   /// The executor that actually executes the IR
   private let executor: IRExecutor
   
+  private var program: IRProgram {
+    return executor.program
+  }
+  
   /// Debug information to translate IR variable values back to source variable values
   private let debugInfo: DebugInfo
   
@@ -61,22 +65,32 @@ public class Debugger {
   /// Run the program until the end
   public func run() throws {
     let currentState = try currentStateOrThrow()
-    self.currentState = executor.runUntilEnd(state: currentState)
+    self.currentState = try executor.runUntilEnd(state: currentState)
   }
   
   private func runToNextInstructionWithDebugInfo(currentState: IRExecutionState) throws {
-    self.currentState = try executor.runSingleBranchUntilCondition(state: currentState, stopCondition: { position in
-      return debugInfo.info[position] != nil
-    })
+    self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: Set(debugInfo.info.keys))
   }
   
-  public func step() throws {
+  /// Continue execution of the program to the next statement with debug info that is reachable by all execution branches.
+  /// For normal instructions this means stepping to the next instruction that has debug info (and thus maps to a statement in the source program).
+  /// For branch instruction, this means jumping to the immediate postdominator block.
+  public func stepOver() throws {
     let currentState = try currentStateOrThrow()
     
     if executor.program.instruction(at: currentState.position) is BranchInstruction {
-      throw ExecutionError(message: "Cannot execute a branch instruction using the 'step' command")
+      // Run to the first instruction with debug info in the postdominator block of the current block
+      guard let postdominatorBlock = program.immediatePostdominator[currentState.position.basicBlock]! else {
+        fatalError("A branch instruction must have an immediate postdominator since it does not terminate the program")
+      }
+      let numInstructionsInBlock = program.basicBlocks[postdominatorBlock]!.instructions.count
+      let firstInstructionIndexWithDebugInfo = (0..<numInstructionsInBlock).first(where: {
+        return debugInfo.info[InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: $0)] != nil
+      })!
+      self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: [InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: firstInstructionIndexWithDebugInfo)])
+    } else {
+      try runToNextInstructionWithDebugInfo(currentState: currentState)
     }
-    try runToNextInstructionWithDebugInfo(currentState: currentState)
   }
   
   public func stepInto(branch: Bool) throws {

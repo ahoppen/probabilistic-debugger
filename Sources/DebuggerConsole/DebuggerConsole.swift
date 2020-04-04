@@ -94,7 +94,7 @@ class DebuggerConsole {
     if !arguments.isEmpty {
       throw ConsoleError(unrecognisedArguments: arguments)
     }
-    try debugger.step()
+    try debugger.stepOver()
     try showSourceCode(arguments: [])
   }
   

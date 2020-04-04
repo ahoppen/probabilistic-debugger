@@ -1,7 +1,18 @@
-// MARK: - DirectPredecessors
+extension Set {
+  static func intersection(of sets: [Set<Element>]) -> Set<Element> {
+    guard let first = sets.first else {
+      return []
+    }
+    var intersection = first
+    for set in sets.dropFirst() {
+      intersection.formIntersection(set)
+    }
+    return intersection
+  }
+}
 
-enum DirectPredecessors {
-  static func compute<BasicBlocksType: Sequence>(basicBlocks: BasicBlocksType) -> [BasicBlockName: Set<BasicBlockName>] where BasicBlocksType.Element == BasicBlock {
+enum IRAnalysis {
+  static func directPredecessors<BasicBlocksType: Sequence>(basicBlocks: BasicBlocksType) -> [BasicBlockName: Set<BasicBlockName>] where BasicBlocksType.Element == BasicBlock {
     var predecessors: [BasicBlockName: Set<BasicBlockName>] = [:]
     // Initialise with no predecessors
     for basicBlock in basicBlocks {
@@ -20,25 +31,28 @@ enum DirectPredecessors {
     }
     return predecessors
   }
-}
-
-// MARK: - Predominators
-
-extension Set {
-  static func intersection(of sets: [Set<Element>]) -> Set<Element> {
-    guard let first = sets.first else {
-      return []
+  
+  static func directSuccessors<BasicBlocksType: Sequence>(basicBlocks: BasicBlocksType) -> [BasicBlockName: Set<BasicBlockName>] where BasicBlocksType.Element == BasicBlock {
+    var successors: [BasicBlockName: Set<BasicBlockName>] = [:]
+    // Initialise with no predecessors
+    for basicBlock in basicBlocks {
+      let lastInstruction = basicBlock.instructions.last!
+      switch lastInstruction {
+      case let instruction as BranchInstruction:
+        successors[basicBlock.name] = [instruction.targetTrue, instruction.targetFalse]
+      case let instruction as JumpInstruction:
+        successors[basicBlock.name] = [instruction.target]
+      case is ReturnInstruction:
+        successors[basicBlock.name] = []
+      default:
+        fatalError("Last instruction in a basic block must be a jumping instruction")
+      }
     }
-    var intersection = first
-    for set in sets.dropFirst() {
-      intersection.formIntersection(set)
-    }
-    return intersection
+    
+    return successors
   }
-}
-
-enum Predominators {
-  static func compute(directPredecessors: [BasicBlockName: Set<BasicBlockName>], startBlock: BasicBlockName) -> [BasicBlockName: Set<BasicBlockName>] {
+  
+  static func predominators(directPredecessors: [BasicBlockName: Set<BasicBlockName>], startBlock: BasicBlockName) -> [BasicBlockName: Set<BasicBlockName>] {
     var predominators = [BasicBlockName: Set<BasicBlockName>]()
     let allBasicBlockNames = Set(directPredecessors.keys)
     for basicBlockName in allBasicBlockNames {
@@ -60,16 +74,50 @@ enum Predominators {
 
     return predominators
   }
-}
-
-// MARK: - ProperPredominators
-
-enum ProperPredominators {
-  static func compute(predominators: [BasicBlockName: Set<BasicBlockName>]) ->  [BasicBlockName: Set<BasicBlockName>] {
-    var properPredominators = [BasicBlockName: Set<BasicBlockName>]()
-    for (blockName, predominators) in predominators {
-      properPredominators[blockName] = predominators.subtracting([blockName])
+  
+  static func postdominators(directSuccessors: [BasicBlockName: Set<BasicBlockName>], startBlock: BasicBlockName) -> [BasicBlockName: Set<BasicBlockName>] {
+    var postdominators = [BasicBlockName: Set<BasicBlockName>]()
+    let allBasicBlockNames = Set(directSuccessors.keys)
+    for basicBlockName in allBasicBlockNames {
+      postdominators[basicBlockName] = allBasicBlockNames
     }
-    return properPredominators
+    for (basicBlockName, successors) in directSuccessors {
+      if successors.isEmpty {
+        postdominators[basicBlockName] = [basicBlockName]
+      }
+    }
+
+    var converged = false
+    while !converged {
+      converged = true
+      for basicBlockName in allBasicBlockNames {
+        let newValue = Set.intersection(of: directSuccessors[basicBlockName]!.map({ postdominators[$0]! })).union([basicBlockName])
+        if newValue != postdominators[basicBlockName]! {
+          converged = false
+          postdominators[basicBlockName] = newValue
+        }
+      }
+    }
+
+    return postdominators
+  }
+  
+  static func properDominators(dominators: [BasicBlockName: Set<BasicBlockName>]) -> [BasicBlockName: Set<BasicBlockName>] {
+    var properDominators = [BasicBlockName: Set<BasicBlockName>]()
+    for (blockName, dominators) in dominators {
+      properDominators[blockName] = dominators.subtracting([blockName])
+    }
+    return properDominators
+  }
+  
+  static func immediateDominator(properDominators: [BasicBlockName: Set<BasicBlockName>]) -> [BasicBlockName: BasicBlockName?] {
+    var immediateDominators: [BasicBlockName: BasicBlockName?] = [:]
+    for (blockName, properDominatorsOfBlock) in properDominators {
+      let nonImmediateDominators = properDominatorsOfBlock.flatMap({ properDominators[$0]! })
+      let immediateDominatorsOfBlock = properDominatorsOfBlock.subtracting(nonImmediateDominators)
+      assert(immediateDominatorsOfBlock.count <= 1, "A block should have at most one immediate dominator")
+      immediateDominators[blockName] = immediateDominatorsOfBlock.first
+    }
+    return immediateDominators
   }
 }
