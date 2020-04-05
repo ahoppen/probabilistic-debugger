@@ -388,4 +388,24 @@ class DebuggerTests: XCTestCase {
     XCTAssertNoThrow(try debugger.runUntilEnd())
     XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1.5, accuracy: 0.1)
   }
+  
+  func testStepOverBranchIfPostdominatorHasNoDebugInfo() {
+    let sourceCode = """
+      int turn = 1
+      if true {
+        if true {
+          turn = 2
+        }
+      }
+      turn = 3
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
+
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 7, column: 1))
+  }
 }

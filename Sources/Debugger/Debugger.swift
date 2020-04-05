@@ -107,11 +107,14 @@ public class Debugger {
       guard let postdominatorBlock = program.immediatePostdominator[currentState.position.basicBlock]! else {
         fatalError("A branch instruction must have an immediate postdominator since it does not terminate the program")
       }
-      let numInstructionsInBlock = program.basicBlocks[postdominatorBlock]!.instructions.count
-      let firstInstructionIndexWithDebugInfo = (0..<numInstructionsInBlock).first(where: {
-        return debugInfo.info[InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: $0)] != nil
-      })!
-      self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: [InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: firstInstructionIndexWithDebugInfo)])
+      let firstNonPhiInstructionInBlock = program.basicBlocks[postdominatorBlock]!.instructions.firstIndex(where: { !($0 is PhiInstruction) })!
+      self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: [
+        InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: firstNonPhiInstructionInBlock)]
+      )
+      if debugInfo.info[self.currentState!.position] == nil {
+        // Step to the first instruction with debug info
+        try runToNextInstructionWithDebugInfo(currentState: self.currentState!)
+      }
     } else {
       try runToNextInstructionWithDebugInfo(currentState: currentState)
     }
