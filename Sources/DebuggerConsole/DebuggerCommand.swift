@@ -18,9 +18,12 @@ struct DebuggerCommand {
   /// Print the help text for this command
   private func printHelp() {
     print(description)
+    print()
     print("Available subcommands:")
     for (names, command) in subCommands {
-      print("\(names.joined(separator: ", ")): \(command.description)")
+      let description = command.description
+      let firstHelpLine = description[..<(description.firstIndex(of: "\n") ?? description.endIndex)]
+      print(" - \(names.joined(separator: ", ")): \(firstHelpLine)")
     }
   }
   

@@ -60,7 +60,7 @@ class DebuggerConsole {
               """,
             action: { [unowned self] in try self.stepInto(arguments: $0) }
           ),
-          ["out", "o"]: DebuggerCommand(
+          ["out"]: DebuggerCommand(
             description: """
               After stepping into a branch, undo the filtering of states and jump to the statement after the branch that was switched into.
               Equivalent to 'state restore; step over'
