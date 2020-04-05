@@ -19,5 +19,6 @@ public protocol ASTVisitor {
   func visit(_ stmt: ObserveStmt) -> StmtReturnType
   func visit(_ stmt: CodeBlockStmt) -> StmtReturnType
   func visit(_ stmt: IfStmt) -> StmtReturnType
+  func visit(_ stmt: IfElseStmt) -> StmtReturnType
   func visit(_ stmt: WhileStmt) -> StmtReturnType
 }

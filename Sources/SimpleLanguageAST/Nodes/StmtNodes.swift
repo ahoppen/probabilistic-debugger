@@ -85,6 +85,21 @@ public struct IfStmt: Stmt {
   }
 }
 
+public struct IfElseStmt: Stmt {
+  public let condition: Expr
+  public let ifBody: CodeBlockStmt
+  public let elseBody: CodeBlockStmt
+  
+  public let range: SourceRange
+  
+  public init(condition: Expr, ifBody: CodeBlockStmt, elseBody: CodeBlockStmt, range: SourceRange) {
+    self.condition = condition
+    self.ifBody = ifBody
+    self.elseBody = elseBody
+    self.range = range
+  }
+}
+
 public struct WhileStmt: Stmt {
   public let condition: Expr
   public let body: CodeBlockStmt
@@ -170,6 +185,20 @@ public extension IfStmt {
   }
 }
 
+public extension IfElseStmt {
+  func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
+    visitor.visit(self)
+  }
+  
+  func accept<VisitorType: ASTVerifier>(_ visitor: VisitorType) throws -> VisitorType.StmtReturnType {
+    try visitor.visit(self)
+  }
+  
+  func accept<VisitorType: ASTRewriter>(_ visitor: VisitorType) throws -> Self {
+    return try visitor.visit(self)
+  }
+}
+
 public extension WhileStmt {
   func accept<VisitorType: ASTVisitor>(_ visitor: VisitorType) -> VisitorType.StmtReturnType {
     visitor.visit(self)
@@ -236,6 +265,17 @@ extension IfStmt {
     }
     return self.condition.equalsIgnoringRange(other: other.condition) &&
       self.body.equalsIgnoringRange(other: other.body)
+  }
+}
+
+extension IfElseStmt {
+  public func equalsIgnoringRange(other: ASTNode) -> Bool {
+    guard let other = other as? IfElseStmt else {
+      return false
+    }
+    return self.condition.equalsIgnoringRange(other: other.condition) &&
+      self.ifBody.equalsIgnoringRange(other: other.ifBody) &&
+      self.elseBody.equalsIgnoringRange(other: other.elseBody)
   }
 }
 

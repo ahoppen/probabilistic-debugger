@@ -12,6 +12,7 @@ public protocol ASTRewriter {
   func visit(_ stmt: ObserveStmt) throws -> ObserveStmt
   func visit(_ stmt: CodeBlockStmt) throws -> CodeBlockStmt
   func visit(_ stmt: IfStmt) throws -> IfStmt
+  func visit(_ stmt: IfElseStmt) throws -> IfElseStmt
   func visit(_ stmt: WhileStmt) throws -> WhileStmt
 }
 
@@ -70,6 +71,13 @@ public extension ASTRewriter {
     return IfStmt(condition: try stmt.condition.accept(self),
                   body: try stmt.body.accept(self),
                   range: stmt.range)
+  }
+  
+  func visit(_ stmt: IfElseStmt) throws -> IfElseStmt {
+    return IfElseStmt(condition: try stmt.condition.accept(self),
+                      ifBody: try stmt.ifBody.accept(self),
+                      elseBody: try stmt.elseBody.accept(self),
+                      range: stmt.range)
   }
   
   func visit(_ stmt: WhileStmt) throws -> WhileStmt {

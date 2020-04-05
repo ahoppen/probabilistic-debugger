@@ -87,6 +87,13 @@ internal class TypeChecker: ASTVerifier {
     }
   }
   
+  func visit(_ stmt: IfElseStmt) throws {
+    let conditionType = try stmt.condition.accept(self)
+    if conditionType != .bool {
+      throw CompilerError(range: stmt.range, message: "'if' condition must to be boolean")
+    }
+  }
+  
   func visit(_ stmt: WhileStmt) throws {
     let conditionType = try stmt.condition.accept(self)
     if conditionType != .bool {

@@ -159,17 +159,18 @@ public class SLIRGen: ASTVisitor {
   /// Generate Phi-Instructions for the join of control flow between two branches
   /// The main branch is the branch that pre-dominates the basic block that is currently being worked on while the side branch might or might not have been executed.
   /// We therefore don't need to worry about source variables that might have been declared in the side branch
-  private func generatePhiInstructions(mainBranchVariables: [SourceVariable: IRVariable], sideBranchVariables: [SourceVariable: IRVariable], mainBranchName: BasicBlockName, sideBranchName: BasicBlockName) {
-    for (sourceVariable, mainBranchIRVariable) in mainBranchVariables {
-      let sideBranchIRVariable = sideBranchVariables[sourceVariable]!
+  private func generatePhiInstructions(branch1Variables: [SourceVariable: IRVariable], branch2Variables: [SourceVariable: IRVariable], branch1Name: BasicBlockName, branch2Name: BasicBlockName) {
+    for sourceVariable in Set(branch1Variables.keys).intersection(Set(branch2Variables.keys)) {
+      let branch1IRVariable = branch1Variables[sourceVariable]!
+      let branch2IRVariable = branch2Variables[sourceVariable]!
       
-      if mainBranchIRVariable != sideBranchIRVariable {
-        assert(mainBranchIRVariable.type == sideBranchIRVariable.type)
+      if branch1IRVariable != branch2IRVariable {
+        assert(branch1IRVariable.type == branch2IRVariable.type)
         
-        let assignee = unusedIRVariable(type: mainBranchIRVariable.type)
+        let assignee = unusedIRVariable(type: branch1IRVariable.type)
         let phiInstr = PhiInstruction(assignee: assignee, choices: [
-          mainBranchName: mainBranchIRVariable,
-          sideBranchName: sideBranchIRVariable
+          branch1Name: branch1IRVariable,
+          branch2Name: branch2IRVariable
         ])
         append(instruction: phiInstr, sourceLocation: nil)
         record(sourceVariable: sourceVariable, irVariable: assignee)
@@ -251,10 +252,47 @@ public class SLIRGen: ASTVisitor {
     
     startNewBasicBlock(name: joinBlockBlockName, declaredVariables: declaredVariablesBeforeIf)
     generatePhiInstructions(
-      mainBranchVariables: declaredVariablesBeforeIf,
-      sideBranchVariables: declaredVariablesAfterIfBody,
-      mainBranchName: beforeIfBlockName,
-      sideBranchName: lastBlockOfIfBodyName
+      branch1Variables: declaredVariablesBeforeIf,
+      branch2Variables: declaredVariablesAfterIfBody,
+      branch1Name: beforeIfBlockName,
+      branch2Name: lastBlockOfIfBodyName
+    )
+  }
+  
+  public func visit(_ stmt: IfElseStmt) {
+    let ifBodyBlockName = unusedBasicBlockName()
+    let elseBodyBlockName = unusedBasicBlockName()
+    let joinBlockBlockName = unusedBasicBlockName()
+    
+    let declaredVariablesBeforeIf = declaredVariables
+    
+    // Generate condition
+    
+    let conditionValue = stmt.condition.accept(self)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: elseBodyBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    
+    
+    // Generate if body
+    
+    startNewBasicBlock(name: ifBodyBlockName, declaredVariables: declaredVariablesBeforeIf)
+    stmt.ifBody.accept(self)
+    append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
+    let declaredVariablesAfterIfBody = declaredVariables
+    let lastBlockOfIfBodyName = currentBasicBlock.name
+    
+    // Generate else body
+    startNewBasicBlock(name: elseBodyBlockName, declaredVariables: declaredVariablesBeforeIf)
+    stmt.elseBody.accept(self)
+    append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
+    let declaredVariablesAfterElseBody = declaredVariables
+    let lastBlockOfElseBodyName = currentBasicBlock.name
+    
+    startNewBasicBlock(name: joinBlockBlockName, declaredVariables: declaredVariablesBeforeIf)
+    generatePhiInstructions(
+      branch1Variables: declaredVariablesAfterIfBody,
+      branch2Variables: declaredVariablesAfterElseBody,
+      branch1Name: lastBlockOfIfBodyName,
+      branch2Name: lastBlockOfElseBodyName
     )
   }
   

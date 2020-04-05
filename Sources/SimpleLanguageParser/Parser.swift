@@ -187,15 +187,21 @@ public class Parser {
     return AssignStmt(variable: .unresolved(name: variableName), expr: expr, range: variableIdentifier.range.lowerBound..<expr.range.upperBound)
   }
   
-  private func parseIfStmt() throws -> IfStmt {
+  private func parseIfStmt() throws -> Stmt {
     let ifToken = try consumeToken()!
     assert(ifToken.content == .if)
     
     let condition = try parseExpr()
     
-    let body = try parseCodeBlock()
+    let ifBody = try parseCodeBlock()
     
-    return IfStmt(condition: condition, body: body, range: ifToken.range.lowerBound..<body.range.upperBound)
+    if try peekToken()?.content == .else {
+      try consumeToken()
+      let elseBody = try parseCodeBlock()
+      return IfElseStmt(condition: condition, ifBody: ifBody, elseBody: elseBody, range: ifToken.range.lowerBound..<elseBody.range.upperBound)
+    } else {
+      return IfStmt(condition: condition, body: ifBody, range: ifToken.range.lowerBound..<ifBody.range.upperBound)
+    }
   }
   
   private func parseWhileStmt() throws -> WhileStmt {

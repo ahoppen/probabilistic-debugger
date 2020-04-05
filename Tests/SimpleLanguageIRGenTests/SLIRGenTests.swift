@@ -245,4 +245,76 @@ class SLIRGenTests: XCTestCase {
     // Test that we don't hit any verification errors when generating the above program
     _ = SLIRGen().generateIR(for: typeCheckedFile).program
   }
+  
+  func testGenerateIfElse() {
+    let sourceCode = """
+      int x = 1
+      if true {
+        x = 2
+      } else {
+        x = 3
+      }
+      """
+    
+    let file = try! Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    let ir = SLIRGen().generateIR(for: typeCheckedFile).program
+    
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .int)
+    let var4 = IRVariable(name: "4", type: .int)
+    
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(1)),
+      BranchInstruction(condition: .bool(true), targetTrue: bb2Name, targetFalse: bb3Name),
+    ])
+    
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      AssignInstruction(assignee: var2, value: .integer(2)),
+      JumpInstruction(target: bb4Name)
+    ])
+    
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      AssignInstruction(assignee: var3, value: .integer(3)),
+      JumpInstruction(target: bb4Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      PhiInstruction(assignee: var4, choices: [bb2Name: var2, bb3Name: var3]),
+      ReturnInstruction()
+    ])
+    
+    XCTAssertEqual(ir, IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4]))
+  }
+  
+  func testNestedIfElse() {
+    let sourceCode = """
+    int x = discrete({1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25})
+    int y = x
+    if 2 < x {
+      if x == 3 {
+        x = 3
+      } else {
+        x = 4
+      }
+    } else {
+      if x == 1 {
+        x = 1
+      } else {
+        x = 2
+      }
+    }
+    """
+    
+    let file = try! Parser(sourceCode: sourceCode).parseFile()
+    let typeCheckedFile = try! TypeCheckPipeline.typeCheck(stmts: file)
+    // Test that we don't hit any verification errors when generating the above program
+    _ = SLIRGen().generateIR(for: typeCheckedFile).program
+  }
 }

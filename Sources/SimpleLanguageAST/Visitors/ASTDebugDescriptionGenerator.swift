@@ -84,6 +84,17 @@ internal struct ASTDebugDescriptionGenerator: ASTVisitor {
       \(stmt.body.debugDescription.indented())
       """
   }
+  func visit(_ stmt: IfElseStmt) -> String {
+    return """
+      ▽ IfElseStmt
+        ▽ Condition
+      \(stmt.condition.debugDescription.indented(2))
+        ▽ If-Body
+      \(stmt.ifBody.debugDescription.indented(2))
+        ▽ Else-Body
+      \(stmt.elseBody.debugDescription.indented(2))
+      """
+  }
   
   func visit(_ stmt: WhileStmt) -> String {
     return """

@@ -19,6 +19,7 @@ public protocol ASTVerifier {
   func visit(_ stmt: ObserveStmt) throws -> StmtReturnType
   func visit(_ stmt: CodeBlockStmt) throws -> StmtReturnType
   func visit(_ stmt: IfStmt) throws -> StmtReturnType
+  func visit(_ stmt: IfElseStmt) throws -> StmtReturnType
   func visit(_ stmt: WhileStmt) throws -> StmtReturnType
 }
 
@@ -62,6 +63,12 @@ public extension ASTVerifier where ExprReturnType == Void, StmtReturnType == Voi
   func visit(_ stmt: IfStmt) throws {
     try stmt.condition.accept(self)
     try stmt.body.accept(self)
+  }
+  
+  func visit(_ stmt: IfElseStmt) throws {
+    try stmt.condition.accept(self)
+    try stmt.ifBody.accept(self)
+    try stmt.elseBody.accept(self)
   }
   
   func visit(_ stmt: WhileStmt) throws {

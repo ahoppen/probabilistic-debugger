@@ -382,4 +382,41 @@ class ParserTests: XCTestCase {
       XCTAssertEqualASTIgnoringRanges(ast, stmts)
     }())
   }
+  
+  func testParseIfElseStmt() {
+    XCTAssertNoThrow(try {
+      let parser = Parser.init(sourceCode: """
+        int x = 1
+        if true {
+          x = 2
+        } else {
+          x = 3
+        }
+        """)
+      let ast = try parser.parseFile()
+      
+      let xDecl = VariableDeclStmt(variable: SourceVariable(name: "x", disambiguationIndex: 1, type: .int),
+                                   expr: IntegerLiteralExpr(value: 1, range: .whatever),
+                                   range: .whatever)
+      
+      let ifBody = CodeBlockStmt(body: [
+        AssignStmt(variable: .unresolved(name: "x"), expr: IntegerLiteralExpr(value: 2, range: .whatever), range: .whatever)
+      ], range: .whatever)
+      
+      let elseBody = CodeBlockStmt(body: [
+        AssignStmt(variable: .unresolved(name: "x"), expr: IntegerLiteralExpr(value: 3, range: .whatever), range: .whatever)
+      ], range: .whatever)
+      
+      let ifElseStmt = IfElseStmt(
+        condition: BoolLiteralExpr(value: true, range: .whatever),
+        ifBody: ifBody,
+        elseBody: elseBody,
+        range: .whatever
+      )
+      
+      let stmts: [Stmt] = [xDecl, ifElseStmt]
+      
+      XCTAssertEqualASTIgnoringRanges(ast, stmts)
+    }())
+  }
 }
