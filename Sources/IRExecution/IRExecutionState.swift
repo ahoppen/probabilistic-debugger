@@ -8,17 +8,30 @@ public struct IRExecutionState {
   /// The samples that describe the probability distribution of the variables at the given execution state.
   public let samples: [IRSample]
   
+  public var hasSamples: Bool {
+    return samples.count > 0
+  }
+  
   public init(initialStateIn program: IRProgram, sampleCount: Int) {
     self.init(position: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0), emptySamples: sampleCount)
   }
   
-  internal init(position: InstructionPosition, emptySamples sampleCount: Int) {
+  public init(position: InstructionPosition, emptySamples sampleCount: Int) {
     self.init(position: position, samples: Array(repeating: IRSample(values: [:]), count: sampleCount))
   }
   
-  internal init(position: InstructionPosition, samples: [IRSample]) {
+  private init(position: InstructionPosition, samples: [IRSample]) {
     self.position = position
     self.samples = samples
+  }
+  
+  public static func merged(states: [IRExecutionState]) -> IRExecutionState? {
+    guard let position = states.first?.position else {
+      return nil
+    }
+    assert(states.map(\.position).allEqual)
+    let combinedSamples = states.flatMap({ $0.samples })
+    return IRExecutionState(position: position, samples: combinedSamples)
   }
   
   /// Return an  execution state at the same position that only contains the samples that satisfy the given `condition`.
@@ -67,7 +80,6 @@ public struct IRExecutionState {
         let falseState = self.jumpTo(block: instruction.targetFalse, in: program, samples: falseSamples, previousBlock: position.basicBlock)
         newStates.append(falseState)
       }
-      assert(newStates.count > 0, "At least one execution path needs to be viable")
       
       return newStates
     case is PhiInstruction:

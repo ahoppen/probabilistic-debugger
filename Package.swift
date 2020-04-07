@@ -46,7 +46,9 @@ let package = Package(
     ),
     .target(
       name: "SimpleLanguageAST",
-      dependencies: []
+      dependencies: [
+        "Utils"
+      ]
     ),
     
     .target(
@@ -87,6 +89,7 @@ let package = Package(
       dependencies: [
         "Debugger",
         "IR",
+        "IRExecution",
         "SimpleLanguageIRGen",
         "TestUtils",
       ]

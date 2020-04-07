@@ -65,13 +65,13 @@ public class SLIRGen: ASTVisitor {
   }
   
   /// Append an instruction to the current basic block. If `sourceLocation` is not `nil`, also create debug info for this instruction.
-  private func append(instruction: Instruction, sourceLocation: SourceLocation?) {
+  private func append(instruction: Instruction, debugInfo: (instructionType: InstructionType, sourceLocation: SourceLocation)?) {
     currentBasicBlock = currentBasicBlock.appending(instruction: instruction)
-    if let sourceLocation = sourceLocation {
+    if let debugInfo = debugInfo {
       let programPosition = InstructionPosition(basicBlock: currentBasicBlock.name, instructionIndex: currentBasicBlock.instructions.count - 1)
       // FIXME: Hide variables that are no longer valid in the current scope
-      let debugInfo = InstructionDebugInfo(variables: declaredVariables.mapKeys({ $0.usr }), sourceCodeLocation: SourceCodeLocation(sourceLocation))
-      self.debugInfo[programPosition] = debugInfo
+      let instructionDebugInfo = InstructionDebugInfo(variables: declaredVariables.mapKeys({ $0.usr }), instructionType: debugInfo.instructionType, sourceCodeLocation: SourceCodeLocation(debugInfo.sourceLocation))
+      self.debugInfo[programPosition] = instructionDebugInfo
     }
   }
   
@@ -115,7 +115,7 @@ public class SLIRGen: ASTVisitor {
     for stmt in stmts {
       stmt.accept(self)
     }
-    append(instruction: ReturnInstruction(), sourceLocation: stmts.last!.range.upperBound)
+    append(instruction: ReturnInstruction(), debugInfo: (.return, stmts.last!.range.upperBound))
     finishedBasicBlocks.append(currentBasicBlock)
     return (program: IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks), debugInfo: DebugInfo(debugInfo))
   }
@@ -150,7 +150,7 @@ public class SLIRGen: ASTVisitor {
       fatalError("No IR instruction to apply operator '\(expr.operator)' to  types '\(lhs.type)' and '\(rhs.type)'. This should have been caught by the type checker.")
     }
     
-    append(instruction: instruction, sourceLocation: nil)
+    append(instruction: instruction, debugInfo: nil)
     return .variable(assignee)
   }
   
@@ -172,7 +172,7 @@ public class SLIRGen: ASTVisitor {
           branch1Name: branch1IRVariable,
           branch2Name: branch2IRVariable
         ])
-        append(instruction: phiInstr, sourceLocation: nil)
+        append(instruction: phiInstr, debugInfo: nil)
         record(sourceVariable: sourceVariable, irVariable: assignee)
       }
     }
@@ -202,14 +202,14 @@ public class SLIRGen: ASTVisitor {
   
   public func visit(_ expr: DiscreteIntegerDistributionExpr) -> VariableOrValue {
     let assignee = unusedIRVariable(type: .int)
-    append(instruction: DiscreteDistributionInstruction(assignee: assignee, distribution: expr.distribution), sourceLocation: nil)
+    append(instruction: DiscreteDistributionInstruction(assignee: assignee, distribution: expr.distribution), debugInfo: nil)
     return .variable(assignee)
   }
   
   public func visit(_ stmt: VariableDeclStmt) {
     let value = stmt.expr.accept(self)
     let irVariable = unusedIRVariable(type: value.type)
-    append(instruction: AssignInstruction(assignee: irVariable, value: value), sourceLocation: stmt.range.lowerBound)
+    append(instruction: AssignInstruction(assignee: irVariable, value: value), debugInfo: (.simple, stmt.range.lowerBound))
     record(sourceVariable: stmt.variable, irVariable: irVariable)
   }
   
@@ -219,13 +219,13 @@ public class SLIRGen: ASTVisitor {
     }
     let value = stmt.expr.accept(self)
     let irVariable = unusedIRVariable(type: value.type)
-    append(instruction: AssignInstruction(assignee: irVariable, value: value), sourceLocation: stmt.range.lowerBound)
+    append(instruction: AssignInstruction(assignee: irVariable, value: value), debugInfo: (.simple, stmt.range.lowerBound))
     record(sourceVariable: variable, irVariable: irVariable)
   }
   
   public func visit(_ stmt: ObserveStmt) {
     let value = stmt.condition.accept(self)
-    append(instruction: ObserveInstruction(observation: value), sourceLocation: stmt.range.lowerBound)
+    append(instruction: ObserveInstruction(observation: value), debugInfo: (.simple, stmt.range.lowerBound))
   }
   
   public func visit(_ codeBlock: CodeBlockStmt) {
@@ -240,13 +240,13 @@ public class SLIRGen: ASTVisitor {
     let joinBlockBlockName = unusedBasicBlockName()
     
     let conditionValue = stmt.condition.accept(self)
-    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: joinBlockBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: joinBlockBlockName), debugInfo: (.ifElseBranch, stmt.condition.range.lowerBound))
     
     let declaredVariablesBeforeIf = declaredVariables
     startNewBasicBlock(name: ifBodyBlockName, declaredVariables: declaredVariablesBeforeIf)
     
     stmt.body.accept(self)
-    append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: joinBlockBlockName), debugInfo: nil)
     let declaredVariablesAfterIfBody = declaredVariables
     let lastBlockOfIfBodyName = currentBasicBlock.name
     
@@ -269,21 +269,21 @@ public class SLIRGen: ASTVisitor {
     // Generate condition
     
     let conditionValue = stmt.condition.accept(self)
-    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: elseBodyBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: ifBodyBlockName, targetFalse: elseBodyBlockName), debugInfo: (.ifElseBranch, stmt.condition.range.lowerBound))
     
     
     // Generate if body
     
     startNewBasicBlock(name: ifBodyBlockName, declaredVariables: declaredVariablesBeforeIf)
     stmt.ifBody.accept(self)
-    append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: joinBlockBlockName), debugInfo: nil)
     let declaredVariablesAfterIfBody = declaredVariables
     let lastBlockOfIfBodyName = currentBasicBlock.name
     
     // Generate else body
     startNewBasicBlock(name: elseBodyBlockName, declaredVariables: declaredVariablesBeforeIf)
     stmt.elseBody.accept(self)
-    append(instruction: JumpInstruction(target: joinBlockBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: joinBlockBlockName), debugInfo: nil)
     let declaredVariablesAfterElseBody = declaredVariables
     let lastBlockOfElseBodyName = currentBasicBlock.name
     
@@ -311,7 +311,7 @@ public class SLIRGen: ASTVisitor {
     
     let variablesDeclaredBeforeCondition = declaredVariables
     
-    append(instruction: JumpInstruction(target: conditionBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: conditionBlockName), debugInfo: nil)
     
     startNewBasicBlock(name: conditionBlockName, declaredVariables: declaredVariables)
     
@@ -323,13 +323,13 @@ public class SLIRGen: ASTVisitor {
     finishedBasicBlocks = []
     
     let conditionValue = stmt.condition.accept(self)
-    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: bodyStartBlockName, targetFalse: joinBlockName), sourceLocation: stmt.condition.range.lowerBound)
+    append(instruction: BranchInstruction(condition: conditionValue, targetTrue: bodyStartBlockName, targetFalse: joinBlockName), debugInfo: (.loop, stmt.condition.range.lowerBound))
     var conditionBlock = currentBasicBlock
     
     // Don't add the condition block to finishedBasicBlocks yet because we still need to insert Phi-instructions into it
     currentBasicBlock = BasicBlock(name: bodyStartBlockName, instructions: [])
     stmt.body.accept(self)
-    append(instruction: JumpInstruction(target: conditionBlockName), sourceLocation: nil)
+    append(instruction: JumpInstruction(target: conditionBlockName), debugInfo: nil)
     let lastBlockInBodyName = currentBasicBlock.name
     startNewBasicBlock(name: joinBlockName, declaredVariables: declaredVariables)
     
@@ -367,7 +367,7 @@ public class SLIRGen: ASTVisitor {
         let newVariableMap = debugInfo.variables.mapValues({
           renamedVariables[$0] ?? $0
         })
-        return (newPosition, InstructionDebugInfo(variables: newVariableMap, sourceCodeLocation: debugInfo.sourceCodeLocation))
+        return (newPosition, InstructionDebugInfo(variables: newVariableMap, instructionType: debugInfo.instructionType, sourceCodeLocation: debugInfo.sourceCodeLocation))
       } else {
         return (position, debugInfo)
       }

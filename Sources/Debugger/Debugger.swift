@@ -42,7 +42,7 @@ public class Debugger {
   }
   
   private func runToNextInstructionWithDebugInfo(currentState: IRExecutionState) throws {
-    self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: Set(debugInfo.info.keys))
+    self.currentState = try executor.runUntilPosition(state: currentState, stopPositions: Set(debugInfo.info.keys))
   }
   
   // MARK: - Creating a debugger
@@ -108,7 +108,7 @@ public class Debugger {
         fatalError("A branch instruction must have an immediate postdominator since it does not terminate the program")
       }
       let firstNonPhiInstructionInBlock = program.basicBlocks[postdominatorBlock]!.instructions.firstIndex(where: { !($0 is PhiInstruction) })!
-      self.currentState = try executor.runUntilCondition(state: currentState, stopPositions: [
+      self.currentState = try executor.runUntilPosition(state: currentState, stopPositions: [
         InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: firstNonPhiInstructionInBlock)]
       )
       if debugInfo.info[self.currentState!.position] == nil {

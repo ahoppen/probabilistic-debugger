@@ -28,7 +28,7 @@ class IRExecutorStepTests: XCTestCase {
     let returnPosition = InstructionPosition(basicBlock: bb0Name, instructionIndex: 2)
     
     XCTAssertNoThrow(try {
-      let step1StateOptional = try executor.runUntilCondition(state: initialState, stopPositions: [
+      let step1StateOptional = try executor.runUntilPosition(state: initialState, stopPositions: [
         InstructionPosition(basicBlock: bb0Name, instructionIndex: 1)
       ])
       guard let step1State = step1StateOptional else {
@@ -37,7 +37,7 @@ class IRExecutorStepTests: XCTestCase {
       XCTAssertEqual(step1State.samples.only.values, [
         var0: .integer(1)
       ])
-      let step2StateOptional = try executor.runUntilCondition(state: initialState, stopPositions: [returnPosition])
+      let step2StateOptional = try executor.runUntilPosition(state: initialState, stopPositions: [returnPosition])
       guard let step2State = step2StateOptional else {
         XCTFail(); return
       }

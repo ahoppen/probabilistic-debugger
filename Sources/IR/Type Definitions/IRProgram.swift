@@ -1,6 +1,6 @@
+// MARK: - IR Program
+
 public class IRProgram: Equatable, CustomStringConvertible {
-  // MARK: IR Program
-  
   public let basicBlocks: [BasicBlockName: BasicBlock]
   public let startBlock: BasicBlockName
   
@@ -29,7 +29,11 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return lhs.basicBlocks == rhs.basicBlocks && lhs.startBlock == rhs.startBlock
   }
   
-  // MARK: Analysis results
+}
+
+// MARK: - Analysis results
+
+extension IRProgram {
   // These could be cached if computation is a performance bottleneck
   
   public var directPredecessors: [BasicBlockName: Set<BasicBlockName>] {
@@ -58,5 +62,21 @@ public class IRProgram: Equatable, CustomStringConvertible {
   
   public var immediatePostdominator: [BasicBlockName: BasicBlockName?] {
     return IRAnalysis.immediateDominator(properDominators: properPostdominators)
+  }
+}
+
+// MARK: - Utility functions
+
+public extension IRProgram {
+  /// The position of the (only) return instruction in the program
+  var returnPosition: InstructionPosition {
+    for basicBlock in self.basicBlocks.values {
+      for (instructionIndex, instruction) in basicBlock.instructions.enumerated() {
+        if instruction is ReturnInstruction {
+          return InstructionPosition(basicBlock: basicBlock.name, instructionIndex: instructionIndex)
+        }
+      }
+    }
+    fatalError("Could not find a ReturnInstruction in the program")
   }
 }
