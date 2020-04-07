@@ -1,6 +1,6 @@
 import IR
 
-public enum IRValue: Hashable, CustomStringConvertible {
+public enum IRValue: Hashable, Comparable, CustomStringConvertible {
   case integer(Int)
   case bool(Bool)
   
@@ -37,6 +37,25 @@ public enum IRValue: Hashable, CustomStringConvertible {
       return value.description
     case .bool(let value):
       return value.description
+    }
+  }
+  
+  public static func < (lhs: IRValue, rhs: IRValue) -> Bool {
+    switch (lhs, rhs) {
+    case (.integer(let lhsValue), .integer(let rhsValue)):
+      return lhsValue < rhsValue
+    case (.bool(let lhsValue), .bool(let rhsValue)):
+      switch (lhsValue, rhsValue) {
+      case (false, true):
+        return true
+      case (true, false):
+        return false
+      case (true, true), (false, false):
+        return false
+      }
+    default:
+      // Values are not comparable
+      return false
     }
   }
 }

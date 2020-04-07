@@ -223,7 +223,7 @@ class DebuggerConsole {
         value = histogram.first!.key.description
       } else {
         // Print the frequencies of the values
-        value = histogram.map({ (value, frequency) in
+        value = histogram.sorted(by: { $0.key < $1.key }).map({ (value, frequency) in
           "\(value): \(Double(frequency) / Double(debugger.samples.count) * 100)%"
         }).joined(separator: ", ")
       }
