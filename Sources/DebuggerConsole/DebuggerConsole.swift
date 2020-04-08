@@ -1,4 +1,6 @@
 import Debugger
+import IR
+import SimpleLanguageIRGen
 
 class DebuggerConsole {
   /// The debugger that this console operates
@@ -6,6 +8,10 @@ class DebuggerConsole {
   
   /// The source code that is being debuged
   private let sourceCode: String
+  
+  private let irProgram: IRProgram
+  
+  private let debugInfo: DebugInfo
   
   /// The number of samples that were initially used
   private let initialSampleCount: Int
@@ -17,8 +23,11 @@ class DebuggerConsole {
   private var stopRunLoop = false
   
   
-  internal init(sourceCode: String, debugger: Debugger, initialSampleCount: Int) {
-    self.debugger = debugger
+  internal init(sourceCode: String, initialSampleCount: Int) throws {
+    let ir = try SLIRGen.generateIr(for: sourceCode)
+    self.irProgram = ir.program
+    self.debugInfo = ir.debugInfo
+    self.debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: initialSampleCount)
     self.sourceCode = sourceCode
     self.initialSampleCount = initialSampleCount
     
@@ -92,6 +101,10 @@ class DebuggerConsole {
             action: { [unowned self] in try self.displaySavedStates(arguments: $0) }
           )
         ]
+      ),
+      ["outline", "o"]: DebuggerCommand(
+        description: "Generate an outlline of all runs of the program",
+        action: { [unowned self] in try self.displayExecutionOutline(arguments: $0) }
       )
     ])
   }
@@ -262,5 +275,15 @@ class DebuggerConsole {
       }
       print("\(name): \(positionDescription)")
     }
+  }
+  
+  private func displayExecutionOutline(arguments: [String]) throws {
+//    print("start")
+    if !arguments.isEmpty {
+      throw ConsoleError(unrecognisedArguments: arguments)
+    }
+    let outlineGenerator = ExecutionOutlineGenerator(program: irProgram, debugInfo: debugInfo)
+    let outline = try outlineGenerator.generateOutline(sampleCount: initialSampleCount)
+    print(outline.description(sourceCode: sourceCode, debugInfo: debugInfo))
   }
 }

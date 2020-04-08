@@ -10,6 +10,8 @@ struct DebuggerCommand {
   let subCommands: [[String]: DebuggerCommand]
   
   init(description: String, action: ((_ arguments: [String]) throws -> Void)? = nil, subCommands: [[String]: DebuggerCommand] = [:]) {
+    let subCommandNames = subCommands.keys.flatMap({ $0 })
+    assert(Set(subCommandNames).count == subCommandNames.count, "Some subcommand name is used twice")
     self.description = description
     self.action = action
     self.subCommands = subCommands

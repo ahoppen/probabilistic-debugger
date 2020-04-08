@@ -29,11 +29,8 @@ struct DebuggerConsoleCommand: ParsableCommand {
   
   func run() throws {
     let sourceCode = try String(contentsOf: sourceFilePath)
-    let ir = try SLIRGen.generateIr(for: sourceCode)
     
-    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
-    
-    let console = DebuggerConsole(sourceCode: sourceCode, debugger: debugger, initialSampleCount: sampleCount)
+    let console = try DebuggerConsole(sourceCode: sourceCode, initialSampleCount: sampleCount)
     
     if let commands = commands {
       console.execute(command: "\(commands);")
