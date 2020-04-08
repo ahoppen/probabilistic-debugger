@@ -18,10 +18,7 @@ public class ExecutionOutlineGenerator {
   // MARK: - Public outline generations
 
   public func generateOutline(sampleCount: Int) throws -> ExecutionOutline {
-    var initialState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
-    if debugInfo.info[initialState.position] == nil {
-      initialState = try runToNextInstructionWithDebugInfo(currentState: initialState)!
-    }
+    let initialState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
     let (outline, finalState) = try generateOutline(startingAt: initialState, finalPosition: program.returnPosition)
     if let finalState = finalState {
       return ExecutionOutline(outline.entries + [.instruction(state: finalState)])
@@ -55,7 +52,7 @@ public class ExecutionOutlineGenerator {
     }
     
     // Jump into this branch
-    let trueBranchState = try runToNextInstructionWithDebugInfo(currentState: filteredSamplesState)!
+    let trueBranchState = try executor.runUntilNextInstruction(state: filteredSamplesState)!
     
     // Now that we have left the branch instruction, generate the outline for this branch until the join point
     let (branchOutline, finalState) = try self.generateOutline(startingAt: trueBranchState, finalPosition: joinPosition)
@@ -83,14 +80,7 @@ public class ExecutionOutlineGenerator {
     let outline = ExecutionOutlineEntry.branch(state: branchingState, true: trueBranchOutline, false: falseBranchOutline)
     
     // Merge the join states of the two branches
-    var finalState = IRExecutionState.merged(states: [trueBranchJoinState, falseBranchJoinState].compactMap({ $0 }))
-    
-    // The join state might not have had debug info attached to it. If it didn't, run to the next instruction with debug info for the final state since generateOutline assumes to always be located at an instruction with debug info.
-    if let unwrappedFinalState = finalState {
-      if debugInfo.info[unwrappedFinalState.position] == nil {
-        finalState = try runToNextInstructionWithDebugInfo(currentState: unwrappedFinalState)
-      }
-    }
+    let finalState = IRExecutionState.merged(states: [trueBranchJoinState, falseBranchJoinState].compactMap({ $0 }))
     
     return (outline, finalState)
   }
@@ -139,7 +129,7 @@ public class ExecutionOutlineGenerator {
         break
       }
       // Jump into the loop body
-      let loopBodyState = try runToNextInstructionWithDebugInfo(currentState: stateSatsifyingCondition)!
+      let loopBodyState = try executor.runUntilNextInstruction(state: stateSatsifyingCondition)!
       
       // Generate the outline for the loop body
       let (iterationOutline, stateAfterIteration) = try generateOutline(startingAt: loopBodyState, finalPosition: branchingState.position)
@@ -161,15 +151,15 @@ public class ExecutionOutlineGenerator {
 
   /// Generate the `ExecutionOutline` for execution that starts at `startState` until it reaches `finalPosition`.
   /// Returns a `nil` `finalState` if all samples were filtered out during the execution.
-  /// Assumes that `startState` has debug info attached to it.
-  public func generateOutline(startingAt startState: IRExecutionState, finalPosition: InstructionPosition) throws -> (outline: ExecutionOutline, finalState: IRExecutionState?) {
-    
+  private func generateOutline(startingAt startState: IRExecutionState, finalPosition: InstructionPosition) throws -> (outline: ExecutionOutline, finalState: IRExecutionState?) {
     var currentState: IRExecutionState? = startState
-    assert(debugInfo.info[startState.position] != nil, "generateOutline must be started at a position with debug info")
+    if debugInfo.info[startState.position] == nil, startState.position != finalPosition {
+      currentState = try executor.runUntilPosition(state: startState, stopPositions: Set(debugInfo.info.keys).union([finalPosition]))
+    }
     
     var outline = [ExecutionOutlineEntry]()
 
-    while let unwrappedCurrentState = currentState, unwrappedCurrentState.position != finalPosition {
+    executionLoop: while let unwrappedCurrentState = currentState, unwrappedCurrentState.position != finalPosition {
       guard let instructionDebugInfo = debugInfo.info[unwrappedCurrentState.position] else {
         fatalError("Should only have halted at instructions with debug info")
       }
@@ -187,7 +177,13 @@ public class ExecutionOutlineGenerator {
         outline.append(outlineEntry)
         currentState = mergedState
       case .return:
-        break
+        assert(finalPosition == unwrappedCurrentState.position, "Reached an return instruction while expecting to stop at an earlier instruction")
+      }
+      
+      if let unwrappedCurrentState = currentState, unwrappedCurrentState.position != finalPosition {
+        if debugInfo.info[unwrappedCurrentState.position] == nil {
+          currentState = try executor.runUntilPosition(state: unwrappedCurrentState, stopPositions: Set(debugInfo.info.keys).union([finalPosition]))
+        }
       }
     }
     
@@ -198,11 +194,6 @@ public class ExecutionOutlineGenerator {
   }
   
   // MARK: Utility functions
-  
-  /// Run to the next instruction that has debug info attached to it. If this instruction already has debug info attached to it, this will jump to the **next** instruction with debug info.
-  private func runToNextInstructionWithDebugInfo(currentState: IRExecutionState) throws -> IRExecutionState? {
-    try executor.runUntilPosition(state: currentState, stopPositions: Set(debugInfo.info.keys))
-  }
   
   /// Return the first instruction in the immediate postdominator block of the given position which is not a `PhiInstruction`. This is the first position in the postdominator block at which an `IRExecutor` can halt.
   private func firstNonPhiPostdominatorInstruction(of position: InstructionPosition) -> InstructionPosition {

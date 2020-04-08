@@ -352,4 +352,39 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       ], accuracy: 0.1)
       }())
   }
+  
+  func testGenerateGeometricDistributionDuel() {
+    let sourceCode = """
+      bool run = true
+      while run {
+        if discrete({0: 0.5, 1: 0.5}) == 0 {
+          run = false
+        }
+      }
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let outline = try outlineGenerator.generateOutline(sampleCount: 10_000)
+      
+      XCTAssertEqualOutline(outline, [
+        .instruction(state: IRExecutionState(sourceLine: 1, sampleCount: 10_000, debugInfo: ir.debugInfo)),
+        .loop(state: IRExecutionState(sourceLine: 2, sampleCount: 10_000, debugInfo: ir.debugInfo), iterations: [
+            [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 10_000, debugInfo: ir.debugInfo),
+                    true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 5_000, debugInfo: ir.debugInfo))],
+                    false: nil)],
+            [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 5_000, debugInfo: ir.debugInfo),
+                    true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 2_500, debugInfo: ir.debugInfo))],
+                    false: nil)],
+            [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 2_500, debugInfo: ir.debugInfo),
+                    true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 1_250, debugInfo: ir.debugInfo))],
+                    false: nil)]
+          ]),
+          .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 10_000)),
+      ], accuracy: 0.1, maxLoopIterations: 3)
+    }())
+  }
 }

@@ -48,4 +48,13 @@ public class IRExecutor {
     }
     return IRExecutionState.merged(states: stoppedExecutionBranches)
   }
+  
+  public func runUntilNextInstruction(state: IRExecutionState) throws -> IRExecutionState? {
+    if state.instruction(in: program) is ReturnInstruction {
+      throw ExecutionError(message: "Program has already terminated")
+    }
+    let childStates = state.executeNextInstruction(in: program)
+    assert(childStates.count <= 2, "runUntilNextInstruction must not be run on branch instructions where both branches are viable")
+    return childStates.first
+  }
 }
