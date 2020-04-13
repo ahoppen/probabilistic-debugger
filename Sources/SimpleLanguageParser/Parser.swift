@@ -76,6 +76,9 @@ public class Parser {
       }
       stmts.append(stmt)
     }
+    if stmts.isEmpty {
+      throw CompilerError(location: lexer.endLocation, message: "Source file is empty")
+    }
     return stmts
   }
   
