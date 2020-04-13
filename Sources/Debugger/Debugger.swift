@@ -151,4 +151,9 @@ public class Debugger {
     }
     self.stateStack.removeLast()
   }
+  
+  /// Clears the stack of saved states and positions the debugger at this execution state
+  public func jumpToState(_ state: IRExecutionState) {
+    self.stateStack = [state]
+  }
 }

@@ -409,6 +409,43 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         ]),
         .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 10_000)),
       ], accuracy: 0.1, maxLoopIterations: 3)
+      }())
+  }
+  
+  func testJumpDebuggerToExecutionStateState() {
+    let sourceCode = """
+      int turn = 2
+      bool alive = true
+      while alive {
+        if turn == 1 {
+          alive = false
+        }
+        turn = 1
+      }
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    print(ir.program)
+    print(ir.debugInfo)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 1
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      
+      print(outline)
+      
+      guard case .loop(_, let iterations, _) = outline.entries[2] else {
+        XCTFail()
+        return
+      }
+      
+      let state = iterations[1].entries.first!.state
+      
+      let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
+      debugger.jumpToState(state)
+      XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1)
     }())
   }
 }
