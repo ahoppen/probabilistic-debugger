@@ -8,7 +8,8 @@ let package = Package(
   // MARK: - Products
   
   products: [
-    .executable(name: "ppdb", targets: ["DebuggerConsole"])
+    .executable(name: "ppdb", targets: ["DebuggerConsole"]),
+    .library(name: "libppdb", targets: ["Debugger", "SimpleLanguageIRGen"])
   ],
   
   dependencies: [
