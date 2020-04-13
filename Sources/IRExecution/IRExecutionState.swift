@@ -25,6 +25,9 @@ public struct IRExecutionState {
     self.samples = samples
   }
   
+  /// Create a new `IRExecutionState` with the combined samples of the given states.
+  /// Assumes that all `states` are at the same position.
+  /// Returns `nil` if `states` is empty.
   public static func merged(states: [IRExecutionState]) -> IRExecutionState? {
     guard let position = states.first?.position else {
       return nil

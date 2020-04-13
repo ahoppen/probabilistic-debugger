@@ -100,6 +100,8 @@ public class ExecutionOutlineGenerator {
     // The state from which we currently generate either iterationOutlines of finishedStates
     var currentState = branchingState
     
+    var exitStates: [IRExecutionState] = []
+    
     while true {
       assert(currentState.position == branchingState.position)
       
@@ -109,6 +111,13 @@ public class ExecutionOutlineGenerator {
       let stateNotSatisfyingCondition = currentState.filterSamples(condition: {
         return branchInstruction.condition.evaluated(in: $0).boolValue! == false
       })
+            
+      if let lastExitState = exitStates.last {
+        exitStates.append(IRExecutionState.merged(states: [lastExitState, stateNotSatisfyingCondition])!)
+      } else {
+        exitStates.append(stateNotSatisfyingCondition)
+      }
+      
       // If there are no samples violating the condition, we can simply ignore this part
       if stateNotSatisfyingCondition.hasSamples {
         // The false branch of the looping instruction directly jumps to the postdominator instruction without any intermediate instructions with debug info, so we don't need to create an outline for this part of the run.
@@ -144,7 +153,7 @@ public class ExecutionOutlineGenerator {
       currentState = unwrappedStateAfterIteration
     }
     
-    let outlineEntry = ExecutionOutlineEntry.loop(state: branchingState, iterations: iterationOutlines)
+    let outlineEntry = ExecutionOutlineEntry.loop(state: branchingState, iterations: iterationOutlines, exitStates: exitStates)
     let finalState = IRExecutionState.merged(states: finishedStates)
     return (outlineEntry, finalState)
   }

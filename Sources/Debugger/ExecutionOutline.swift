@@ -52,7 +52,8 @@ public enum ExecutionOutlineEntry: CustomStringConvertible {
   case branch(state: IRExecutionState, true: ExecutionOutline?, false: ExecutionOutline?)
   
   /// A loop in the source code. Each iteration is represented by an `ExecutionOutline`, consisting of the statements that were executed in the loop body.
-  case loop(state: IRExecutionState, iterations: [ExecutionOutline])
+  /// The exit states represent the states that are reached after executing **at most** 0, 1, etc. iterations.
+  case loop(state: IRExecutionState, iterations: [ExecutionOutline], exitStates: [IRExecutionState])
   
   public var state: IRExecutionState {
     switch self {
@@ -60,7 +61,7 @@ public enum ExecutionOutlineEntry: CustomStringConvertible {
       return state
     case .branch(state: let state, true: _, false: _):
       return state
-    case .loop(state: let state, iterations: _):
+    case .loop(state: let state, iterations: _, exitStates: _):
       return state
     }
   }
@@ -80,15 +81,11 @@ extension ExecutionOutline {
   }
 }
 
-extension ExecutionOutlineEntry {
-  public var description: String {
-    return description(sourceCode: nil, debugInfo: nil)
-  }
-  
+extension IRExecutionState {
   public func description(sourceCode: String?, debugInfo: DebugInfo?) -> String {
     let instructionDescription: String
     if let sourceCode = sourceCode, let debugInfo = debugInfo {
-      let instructionPosition = self.state.position
+      let instructionPosition = self.position
       let sourcePosition = debugInfo.info[instructionPosition]!.sourceCodeLocation
       if debugInfo.info[instructionPosition]!.instructionType == .return {
         instructionDescription = "end"
@@ -96,14 +93,25 @@ extension ExecutionOutlineEntry {
         instructionDescription = String(sourceCode.split(separator: "\n")[sourcePosition.line - 1]).trimmingCharacters(in: .whitespaces)
       }
     } else {
-      instructionDescription = state.position.description
+      instructionDescription = self.position.description
     }
+    return "\(instructionDescription), \(self.samples.count) samples"
+  }
+}
+
+extension ExecutionOutlineEntry {
+  public var description: String {
+    return description(sourceCode: nil, debugInfo: nil)
+  }
+  
+  public func description(sourceCode: String?, debugInfo: DebugInfo?) -> String {
+    
     switch self {
     case .instruction(state: let state):
-      return "▷ \(instructionDescription), \(state.samples.count) samples"
+      return "▷ \(state.description(sourceCode: sourceCode, debugInfo: debugInfo))"
     case .branch(state: let state, true: let trueBranch, false: let falseBranch):
       var descriptionPieces: [String] = []
-      descriptionPieces.append("▽ \(instructionDescription), \(state.samples.count) samples")
+      descriptionPieces.append("▽ \(state.description(sourceCode: sourceCode, debugInfo: debugInfo))")
       if let trueBranch = trueBranch {
         descriptionPieces.append("""
           ▽ true-Branch
@@ -117,13 +125,19 @@ extension ExecutionOutlineEntry {
         """)
       }
       return descriptionPieces.joined(separator: "\n")
-    case .loop(state: let state, iterations: let iterations):
+    case .loop(state: let state, iterations: let iterations, exitStates: let exitStates):
       var descriptionPieces: [String] = []
-      descriptionPieces.append("▽ \(instructionDescription), \(state.samples.count) samples")
+      descriptionPieces.append("▽ \(state.description(sourceCode: sourceCode, debugInfo: debugInfo))")
       for (index, iteration) in iterations.enumerated() {
         descriptionPieces.append("""
             ▽ Iteration \(index + 1)
           \(iteration.description(sourceCode: sourceCode, debugInfo: debugInfo).indented(2))
+          """)
+      }
+      for (index, exitState) in exitStates.enumerated() {
+        descriptionPieces.append("""
+            ▽ Exit after at most \(index) iterations
+              ▷ \(exitState.description(sourceCode: sourceCode, debugInfo: debugInfo))
           """)
       }
       return descriptionPieces.joined(separator: "\n")

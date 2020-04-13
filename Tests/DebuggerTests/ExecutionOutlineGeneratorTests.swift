@@ -36,17 +36,20 @@ fileprivate func outlinesEqual(_ lhs: ExecutionOutline?, _ rhs: ExecutionOutline
       return statesEqual(lhsState, rhsState, accuracy: accuracy) &&
         outlinesEqual(lhsTrue, rhsTrue, accuracy: accuracy, maxLoopIterations: maxLoopIterations) &&
         outlinesEqual(lhsFalse, rhsFalse, accuracy: accuracy, maxLoopIterations: maxLoopIterations)
-    case (.loop(let lhsState, let lhsIterations),
-          .loop(let rhsState, let rhsIterations)):
+    case (.loop(let lhsState, let lhsIterations, let lhsExitStates),
+          .loop(let rhsState, let rhsIterations, let rhsExitStates)):
       let lhsIterationsToInspect = lhsIterations.prefix(maxLoopIterations)
       let rhsIterationsToInspect = rhsIterations.prefix(maxLoopIterations)
-      if lhsIterationsToInspect.count != rhsIterationsToInspect.count {
-        return false
-      }
+      let lhsExitStatesToInspect = lhsExitStates.prefix(maxLoopIterations)
+      let rhsExitStatesToInspect = rhsExitStates.prefix(maxLoopIterations)
       return statesEqual(lhsState, rhsState, accuracy: accuracy) &&
         lhsIterationsToInspect.count == rhsIterationsToInspect.count &&
         zip(lhsIterationsToInspect, rhsIterationsToInspect).allSatisfy({
-          outlinesEqual($0, $1, accuracy: accuracy, maxLoopIterations: maxLoopIterations)
+          return outlinesEqual($0, $1, accuracy: accuracy, maxLoopIterations: maxLoopIterations)
+        }) &&
+        lhsExitStatesToInspect.count == rhsExitStatesToInspect.count &&
+        zip(lhsExitStatesToInspect, rhsExitStatesToInspect).allSatisfy({
+          return statesEqual($0, $1, accuracy: accuracy)
         })
     default:
       return false
@@ -209,6 +212,10 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         .loop(state: IRExecutionState(sourceLine: 2, sampleCount: 1, debugInfo: ir.debugInfo), iterations: [
           [.instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 1, debugInfo: ir.debugInfo))],
           [.instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 1, debugInfo: ir.debugInfo))],
+        ], exitStates: [
+          IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 1, debugInfo: ir.debugInfo),
         ]),
         .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 1))
       ])
@@ -236,6 +243,11 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
           [.instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 750, debugInfo: ir.debugInfo))],
           [.instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 500, debugInfo: ir.debugInfo))],
           [.instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 250, debugInfo: ir.debugInfo))],
+        ], exitStates: [
+          IRExecutionState(sourceLine: 2, sampleCount: 250, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 500, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 750, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 1000, debugInfo: ir.debugInfo),
         ]),
         .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 1000))
       ], accuracy: 0.2)
@@ -260,7 +272,7 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         .instruction(state: IRExecutionState(sourceLine: 2, sampleCount: 1000, debugInfo: ir.debugInfo)),
         .instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 250, debugInfo: ir.debugInfo)),
         .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 250))
-      ], accuracy: 0.1)
+      ], accuracy: 0.2)
     }())
   }
   
@@ -286,7 +298,7 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
                 true: [.instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 750, debugInfo: ir.debugInfo))],
                 false: [.instruction(state: IRExecutionState(sourceLine: 5, sampleCount: 250, debugInfo: ir.debugInfo))]),
         .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 1000))
-      ], accuracy: 0.1)
+      ], accuracy: 0.2)
     }())
   }
   
@@ -317,6 +329,10 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
           [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 1, debugInfo: ir.debugInfo),
                    true: nil,
                    false: [.instruction(state: IRExecutionState(sourceLine: 6, sampleCount: 1, debugInfo: ir.debugInfo))])]
+        ], exitStates: [
+          IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 1, debugInfo: ir.debugInfo),
         ]),
         .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 1))
       ], accuracy: 0.1)
@@ -348,6 +364,9 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
           [
             .instruction(state: IRExecutionState(sourceLine: 3, sampleCount: 1, debugInfo: ir.debugInfo)),
           ]
+        ], exitStates: [
+          IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
+          IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
         ]),
       ], accuracy: 0.1)
       }())
@@ -373,17 +392,22 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       XCTAssertEqualOutline(outline, [
         .instruction(state: IRExecutionState(sourceLine: 1, sampleCount: 10_000, debugInfo: ir.debugInfo)),
         .loop(state: IRExecutionState(sourceLine: 2, sampleCount: 10_000, debugInfo: ir.debugInfo), iterations: [
-            [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 10_000, debugInfo: ir.debugInfo),
-                    true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 5_000, debugInfo: ir.debugInfo))],
-                    false: nil)],
-            [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 5_000, debugInfo: ir.debugInfo),
-                    true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 2_500, debugInfo: ir.debugInfo))],
-                    false: nil)],
-            [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 2_500, debugInfo: ir.debugInfo),
-                    true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 1_250, debugInfo: ir.debugInfo))],
-                    false: nil)]
-          ]),
-          .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 10_000)),
+          [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 10_000, debugInfo: ir.debugInfo),
+                   true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 5_000, debugInfo: ir.debugInfo))],
+                   false: nil)],
+          [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 5_000, debugInfo: ir.debugInfo),
+                   true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 2_500, debugInfo: ir.debugInfo))],
+                   false: nil)],
+          [.branch(state: IRExecutionState(sourceLine: 3, sampleCount: 2_500, debugInfo: ir.debugInfo),
+                   true: [.instruction(state: IRExecutionState(sourceLine: 4, sampleCount: 1_250, debugInfo: ir.debugInfo))],
+                   false: nil)]
+          ], exitStates: [
+            IRExecutionState(sourceLine: 2, sampleCount: 0, debugInfo: ir.debugInfo),
+            IRExecutionState(sourceLine: 2, sampleCount: 5_000, debugInfo: ir.debugInfo),
+            IRExecutionState(sourceLine: 2, sampleCount: 7_500, debugInfo: ir.debugInfo),
+            IRExecutionState(sourceLine: 2, sampleCount: 8_625, debugInfo: ir.debugInfo),
+        ]),
+        .instruction(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 10_000)),
       ], accuracy: 0.1, maxLoopIterations: 3)
     }())
   }
