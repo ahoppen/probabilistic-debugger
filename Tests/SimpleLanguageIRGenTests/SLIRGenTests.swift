@@ -317,4 +317,73 @@ class SLIRGenTests: XCTestCase {
     // Test that we don't hit any verification errors when generating the above program
     _ = SLIRGen().generateIR(for: typeCheckedFile).program
   }
+  
+  func testDebugInfoGetsAdjustedForPhiInstructionsInsideWhileLoop() {
+    let sourceCode = """
+      int turn = 2
+      bool alive = true
+      while alive {
+        if turn == 1 {
+          alive = false
+        }
+        turn = 1
+      }
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    print(ir.program)
+    
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .bool)
+    let var3 = IRVariable(name: "3", type: .bool)
+    let var4 = IRVariable(name: "4", type: .bool)
+    let var5 = IRVariable(name: "5", type: .bool)
+    let var6 = IRVariable(name: "6", type: .int)
+    let var7 = IRVariable(name: "7", type: .int)
+    let var8 = IRVariable(name: "8", type: .bool)
+    
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    let bb5Name = BasicBlockName("bb5")
+    let bb6Name = BasicBlockName("bb6")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(2)),
+      AssignInstruction(assignee: var2, value: .bool(true)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      PhiInstruction(assignee: var8, choices: [bb1Name: var2, bb6Name: var5]),
+      PhiInstruction(assignee: var7, choices: [bb1Name: var1, bb6Name: var6]),
+      BranchInstruction(condition: .variable(var8), targetTrue: bb3Name, targetFalse: bb4Name)
+    ])
+    
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      CompareInstruction(comparison: .equal, assignee: var3, lhs: .variable(var7), rhs: .integer(1)),
+      BranchInstruction(condition: .variable(var3), targetTrue: bb5Name, targetFalse: bb6Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      ReturnInstruction()
+    ])
+    
+    let bb5 = BasicBlock(name: bb5Name, instructions: [
+      AssignInstruction(assignee: var4, value: .bool(false)),
+      JumpInstruction(target: bb6Name)
+    ])
+    
+    let bb6 = BasicBlock(name: bb6Name, instructions: [
+      PhiInstruction(assignee: var5, choices: [bb3Name: var8, bb5Name: var4]),
+      AssignInstruction(assignee: var6, value: .integer(1)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let expectedIr = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4, bb5, bb6])
+    XCTAssertEqual(ir.program, expectedIr)
+    
+    XCTAssertEqual(ir.debugInfo.info[InstructionPosition(basicBlock: BasicBlockName("bb3"), instructionIndex: 1)]!.variables["turn"]!, IRVariable(name: "7", type: .int))
+  }
 }

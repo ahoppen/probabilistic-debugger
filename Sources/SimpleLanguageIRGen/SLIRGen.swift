@@ -320,7 +320,9 @@ public class SLIRGen: ASTVisitor {
     // This way, we make sure, we don't accidentally rename variables before the loop body.
     // In the end, these will be added to finishedBasicBlocks again.
     let finishedBasicBlocksBeforeLoop = finishedBasicBlocks
+    let debugInfoBeforeLoop = debugInfo
     finishedBasicBlocks = []
+    debugInfo = [:]
     
     let conditionValue = stmt.condition.accept(self)
     append(instruction: BranchInstruction(condition: conditionValue, targetTrue: bodyStartBlockName, targetFalse: joinBlockName), debugInfo: (.loop, stmt.condition.range.lowerBound))
@@ -338,7 +340,7 @@ public class SLIRGen: ASTVisitor {
     // All control flow flows through the condition block, so the assignees of the phi instructions are the correct storage for the source variables. Record this.
     var numInsertedPhiInstructions = 0
     var renamedVariables: [IRVariable: IRVariable] = [:]
-    for (sourceVariable, mainBranchIRVariable) in variablesDeclaredBeforeCondition {
+    for (sourceVariable, mainBranchIRVariable) in variablesDeclaredBeforeCondition.sorted(by: { $0.value.name < $1.value.name }) {
       let whileBodyIRVariable = declaredVariables[sourceVariable]!
       
       if mainBranchIRVariable != whileBodyIRVariable {
@@ -349,6 +351,16 @@ public class SLIRGen: ASTVisitor {
           beforeWhileBlockName: mainBranchIRVariable,
           lastBlockInBodyName: whileBodyIRVariable
         ])
+        debugInfo = debugInfo.mapValues({ (debugInfo) -> InstructionDebugInfo in
+          let renamedVariables = debugInfo.variables.mapValues({ (irVariable: IRVariable) -> IRVariable in
+            if irVariable == mainBranchIRVariable {
+              return assignee
+            } else {
+              return irVariable
+            }
+          })
+          return InstructionDebugInfo(variables: renamedVariables, instructionType: debugInfo.instructionType, sourceCodeLocation: debugInfo.sourceCodeLocation)
+        })
         finishedBasicBlocks = finishedBasicBlocks.map({ (block) in
           return block.renaming(variable: mainBranchIRVariable, to: assignee)
         })
@@ -378,5 +390,8 @@ public class SLIRGen: ASTVisitor {
     // Add the finished blocks and start a new block
     finishedBasicBlocks.append(conditionBlock)
     finishedBasicBlocks.append(contentsOf: finishedBasicBlocksBeforeLoop)
+    debugInfo.merge(debugInfoBeforeLoop, uniquingKeysWith: { (a, b) -> InstructionDebugInfo in
+      fatalError()
+    })
   }
 }
