@@ -79,7 +79,7 @@ public class Debugger {
       let variableValues = instructionInfo.variables.mapValues({ (irVariable) in
         irSample.values[irVariable]!
       })
-      return SourceCodeSample(values: variableValues)
+      return SourceCodeSample(id: irSample.id, values: variableValues)
     })
     return sourceCodeSamples
   }

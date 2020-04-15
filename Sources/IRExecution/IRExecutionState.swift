@@ -17,7 +17,8 @@ public struct IRExecutionState {
   }
   
   public init(position: InstructionPosition, emptySamples sampleCount: Int) {
-    self.init(position: position, samples: Array(repeating: IRSample(values: [:]), count: sampleCount))
+    let samples = (0..<sampleCount).map({ IRSample(id: $0, values: [:])})
+    self.init(position: position, samples: samples)
   }
   
   private init(position: InstructionPosition, samples: [IRSample]) {

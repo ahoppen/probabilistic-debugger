@@ -7,17 +7,19 @@ import IR
 /// The purpose of this struct is to define a sample for a single program position so that, together with other samples, it can describe the probability distribution of the variables at a given program position.
 /// During a set of `ExecutionState`s takes care of modelling the different program positions at which execution may simultaneously be.
 public struct IRSample {
+  public let id: Int
+  
   /// The values assigned to the variables in a sample.
   public let values: [IRVariable: IRValue]
   
-  /// Get a new `IRSample` by assigning the given variable the value of the given `variableOrValue`.
+  /// Get a new `IRSample` with the same ID by assigning the given variable the value of the given `variableOrValue`.
   internal func assigning(variable: IRVariable, variableOrValue: VariableOrValue) -> IRSample {
     #if DEBUG
     if let previousValue = values[variable] {
       assert(previousValue.type == variableOrValue.type)
     }
     #endif
-    return IRSample(values: values.assiging(key: variable, value: variableOrValue.evaluated(in: self)))
+    return IRSample(id: id, values: values.assiging(key: variable, value: variableOrValue.evaluated(in: self)))
   }
   
   /// Get a new `IRSample` by assigning the given variable a given `value`.
@@ -27,7 +29,7 @@ public struct IRSample {
       assert(previousValue.type == value.type)
     }
     #endif
-    return IRSample(values: values.assiging(key: variable, value: value))
+    return IRSample(id: id, values: values.assiging(key: variable, value: value))
   }
   
   /// Return a new sample by changing the variable values through the execution of the given instruction.
