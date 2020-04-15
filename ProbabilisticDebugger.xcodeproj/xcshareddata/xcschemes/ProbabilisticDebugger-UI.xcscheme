@@ -88,6 +88,16 @@
                ReferencedContainer = "container:Swift Package">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "WPInferenceTests"
+               BuildableName = "WPInferenceTests"
+               BlueprintName = "WPInferenceTests"
+               ReferencedContainer = "container:Swift Package">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -9,7 +9,7 @@ let package = Package(
   
   products: [
     .executable(name: "ppdb", targets: ["DebuggerConsole"]),
-    .library(name: "libppdb", targets: ["Debugger", "SimpleLanguageIRGen"])
+    .library(name: "libppdb", targets: ["Debugger", "SimpleLanguageIRGen", "WPInference"])
   ],
   
   dependencies: [
@@ -82,6 +82,12 @@ let package = Package(
       name: "Utils",
       dependencies: []
     ),
+    .target(
+      name: "WPInference",
+      dependencies: [
+        "IR",
+      ]
+    ),
 
     
     // MARK: - Test targets
@@ -135,6 +141,13 @@ let package = Package(
         "SimpleLanguageParser",
         "SimpleLanguageTypeChecker",
         "TestUtils",
+      ]
+    ),
+    .testTarget(
+      name: "WPInferenceTests",
+      dependencies: [
+        "IR",
+        "WPInference"
       ]
     ),
   ]
