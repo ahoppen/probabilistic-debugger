@@ -1,12 +1,15 @@
+import Foundation
 import IR
 
 public indirect enum WPTerm: Equatable, CustomStringConvertible {
   case variable(IRVariable)
   case integer(Int)
+  case double(Double)
   case bool(Bool)
   case equal(lhs: WPTerm, rhs: WPTerm)
-  case add(lhs: WPTerm, rhs: WPTerm)
+  case add(terms: [WPTerm])
   case sub(lhs: WPTerm, rhs: WPTerm)
+  case mul(lhs: WPTerm, rhs: WPTerm)
   
   public func replacing(variable: IRVariable, with term: WPTerm) -> WPTerm {
     switch self {
@@ -18,14 +21,18 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
       }
     case .integer:
       return self
+    case .double:
+      return self
     case .bool:
       return self
     case .equal(lhs: let lhs, rhs: let rhs):
       return .equal(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
-    case .add(lhs: let lhs, rhs: let rhs):
-      return .add(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
+    case .add(terms: let terms):
+      return .add(terms: terms.map({ $0.replacing(variable: variable, with: term) }))
     case .sub(lhs: let lhs, rhs: let rhs):
       return .sub(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
+    case .mul(lhs: let lhs, rhs: let rhs):
+      return .mul(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
     }
   }
   
@@ -35,14 +42,18 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
       return variable.description
     case .integer(let value):
       return value.description
+    case .double(let value):
+      return value.description
     case .bool(let value):
       return value.description
     case .equal(lhs: let lhs, rhs: let rhs):
       return "[\(lhs.description) = \(rhs.description)]"
-    case .add(lhs: let lhs, rhs: let rhs):
-      return "\(lhs.description) + \(rhs.description)"
+    case .add(terms: let terms):
+      return terms.map({ $0.description }).joined(separator: " + ")
     case .sub(lhs: let lhs, rhs: let rhs):
       return "\(lhs.description) - \(rhs.description)"
+    case .mul(lhs: let lhs, rhs: let rhs):
+      return "(\(lhs.description)) * (\(rhs.description))"
     }
   }
 }
@@ -61,37 +72,93 @@ extension WPTerm {
 }
 
 extension WPTerm {
-  var simplified: WPTerm {
+  public var simplified: WPTerm {
     switch self {
     case .variable:
       return self
     case .integer:
+      return self
+    case .double:
       return self
     case .bool:
       return self
     case .equal(lhs: let lhs, rhs: let rhs):
       switch (lhs.simplified, rhs.simplified) {
       case (.integer(let lhsValue), .integer(let rhsValue)):
-        return .bool(lhsValue == rhsValue)
+        return .integer(lhsValue == rhsValue ? 1 : 0)
+      case (.double(let lhsValue), .double(let rhsValue)):
+        return .integer(lhsValue == rhsValue ? 1 : 0)
       case (.bool(let lhsValue), .bool(let rhsValue)):
-        return .bool(lhsValue == rhsValue)
+        return .integer(lhsValue == rhsValue ? 1 : 0)
       case (let lhsValue, let rhsValue):
         return .equal(lhs: lhsValue, rhs: rhsValue)
       }
-    case .add(lhs: let lhs, rhs: let rhs):
-      switch (lhs, rhs) {
-      case (.integer(let lhsValue), .integer(let rhsValue)):
-        return .integer(lhsValue + rhsValue)
-      case (let lhsValue, let rhsValue):
-        return .add(lhs: lhsValue, rhs: rhsValue)
+    case .add(terms: let terms):
+      var integerComponent = 0
+      var doubleComponent = 0.0
+      var otherComponents: [WPTerm] = []
+      for term in terms {
+        switch term.simplified {
+        case .integer(let value):
+          integerComponent += value
+        case .double(let value):
+          doubleComponent += value
+        case let simplifiedTerm:
+          otherComponents.append(simplifiedTerm)
+        }
+      }
+      var finalTerms = otherComponents
+      if integerComponent != 0 {
+        finalTerms.append(.integer(integerComponent))
+      }
+      if doubleComponent != 0 {
+        finalTerms.append(.double(doubleComponent))
+      }
+      if finalTerms.count == 0 {
+        return .integer(0)
+      } else if finalTerms.count == 1 {
+        return finalTerms.first!
+      } else {
+        return .add(terms: finalTerms)
       }
     case .sub(lhs: let lhs, rhs: let rhs):
       switch (lhs, rhs) {
+      case (let lhs, .integer(0)):
+        return lhs
+      case (let lhs, .double(0)):
+        return lhs
       case (.integer(let lhsValue), .integer(let rhsValue)):
         return .integer(lhsValue - rhsValue)
+      case (.double(let lhsValue), .double(let rhsValue)):
+        return .double(lhsValue - rhsValue)
       case (let lhsValue, let rhsValue):
         return .sub(lhs: lhsValue, rhs: rhsValue)
       }
+    case .mul(lhs: let lhs, rhs: let rhs):
+      switch (lhs.simplified, rhs.simplified) {
+      case (.integer(let lhsValue), .integer(let rhsValue)):
+        return .integer(lhsValue * rhsValue)
+      case (.double(let lhsValue), .double(let rhsValue)):
+        return .double(lhsValue * rhsValue)
+      case (.double(let lhsValue), .integer(let rhsValue)):
+        return .double(lhsValue * Double(rhsValue))
+      case (.integer(let lhsValue), .double(let rhsValue)):
+        return .double(Double(lhsValue) * rhsValue)
+      case (let lhsValue, let rhsValue):
+        return .mul(lhs: lhsValue, rhs: rhsValue)
+      }
     }
   }
+}
+
+public func +(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+  return .add(terms: [lhs, rhs])
+}
+
+public func -(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+  return .sub(lhs: lhs, rhs: rhs)
+}
+
+public func *(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+  return .mul(lhs: lhs, rhs: rhs)
 }

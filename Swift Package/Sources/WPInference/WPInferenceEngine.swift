@@ -29,7 +29,7 @@ public class WPInferenceEngine {
     }
   }
   
-  public func infer(term: WPTerm) -> WPTerm {
+  public func infer(term: WPTerm) -> Double {
     var inferenceState = WPInferenceState(position: program.returnPosition, term: term)
     
     while let position = inferenceState.position {
@@ -40,15 +40,27 @@ public class WPInferenceEngine {
         inferenceState.term = inferenceState.term.replacing(variable: instruction.assignee, with: WPTerm(instruction.value))
         inferenceState.position = preceedingInstructionPosition(of: position)
       case let instruction as AddInstruction:
-        inferenceState.term = inferenceState.term.replacing(variable: instruction.assignee, with: .add(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+        inferenceState.term = inferenceState.term.replacing(
+          variable: instruction.assignee,
+          with: WPTerm(instruction.lhs) + WPTerm(instruction.rhs)
+        )
         inferenceState.position = preceedingInstructionPosition(of: position)
       case let instruction as SubtractInstruction:
-        inferenceState.term = inferenceState.term.replacing(variable: instruction.assignee, with: .sub(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+        inferenceState.term = inferenceState.term.replacing(
+          variable: instruction.assignee,
+          with: WPTerm(instruction.lhs) - WPTerm(instruction.rhs)
+        )
         inferenceState.position = preceedingInstructionPosition(of: position)
       case let instruction as CompareInstruction:
         fatalError("not implemented: \(instruction)")
       case let instruction as DiscreteDistributionInstruction:
-        fatalError("not implemented: \(instruction)")
+        var terms: [WPTerm] = []
+        for (value, probability) in instruction.distribution {
+          let term = .double(probability) * inferenceState.term.replacing(variable: instruction.assignee, with: .integer(value))
+          terms.append(term)
+        }
+        inferenceState.term = .add(terms: terms)
+        inferenceState.position = preceedingInstructionPosition(of: position)
       case let instruction as ObserveInstruction:
         fatalError("not implemented: \(instruction)")
       case let instruction as JumpInstruction:
@@ -62,6 +74,13 @@ public class WPInferenceEngine {
       }
     }
     
-    return inferenceState.term.simplified
+    switch inferenceState.term.simplified {
+    case .integer(let value):
+      return Double(value)
+    case .double(let value):
+      return value
+    case let simplifiedTerm:
+      fatalError("WP evaluation term \(simplifiedTerm) was not fully simplified")
+    }
   }
 }
