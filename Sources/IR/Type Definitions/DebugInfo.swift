@@ -1,4 +1,4 @@
-public struct SourceCodeLocation: Equatable, CustomStringConvertible {
+public struct SourceCodeLocation: Comparable, CustomStringConvertible {
   /// The line of this position (1-based)
   public let line: Int
   
@@ -12,6 +12,16 @@ public struct SourceCodeLocation: Equatable, CustomStringConvertible {
   
   public var description: String {
     return "\(line):\(column)"
+  }
+  
+  static public func <(lhs: SourceCodeLocation, rhs: SourceCodeLocation) -> Bool {
+    if lhs.line < rhs.line {
+      return true
+    } else if lhs.line == rhs.line {
+      return lhs.column < rhs.column
+    } else {
+      return false
+    }
   }
 }
 
@@ -41,13 +51,17 @@ public struct InstructionDebugInfo {
   /// The type of the instruction for visualisation in the `RunOutlineGenerator`.
   public let instructionType: InstructionType
   
-  /// The location in the original source code that corresponds to this instruction
-  public let sourceCodeLocation: SourceCodeLocation
+  public let sourceCodeRange: Range<SourceCodeLocation>
   
-  public init(variables: [String: IRVariable], instructionType: InstructionType, sourceCodeLocation: SourceCodeLocation) {
+  /// The location in the original source code that corresponds to this instruction
+  public var sourceCodeLocation: SourceCodeLocation {
+    return sourceCodeRange.lowerBound
+  }
+  
+  public init(variables: [String: IRVariable], instructionType: InstructionType, sourceCodeRange: Range<SourceCodeLocation>) {
     self.variables = variables
     self.instructionType = instructionType
-    self.sourceCodeLocation = sourceCodeLocation
+    self.sourceCodeRange = sourceCodeRange
   }
 }
 
