@@ -19,12 +19,7 @@ public class ExecutionOutlineGenerator {
 
   public func generateOutline(sampleCount: Int) throws -> ExecutionOutline {
     let initialState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
-    let (outline, finalState) = try generateOutline(startingAt: initialState, finalPosition: program.returnPosition)
-    if let finalState = finalState {
-      return ExecutionOutline(outline.entries + [.instruction(state: finalState)])
-    } else {
-      return outline
-    }
+    return try generateOutline(startingAt: initialState, finalPosition: program.returnPosition, includeFinalState: true).outline
   }
   
   // MARK: - Outline generation implementation
@@ -141,7 +136,7 @@ public class ExecutionOutlineGenerator {
       let loopBodyState = try executor.runUntilNextInstruction(state: stateSatsifyingCondition)!
       
       // Generate the outline for the loop body
-      let (iterationOutline, stateAfterIteration) = try generateOutline(startingAt: loopBodyState, finalPosition: branchingState.position)
+      let (iterationOutline, stateAfterIteration) = try generateOutline(startingAt: loopBodyState, finalPosition: branchingState.position, includeFinalState: true)
       iterationOutlines.append(iterationOutline)
       
       // The body might have filtered out more samples through observe statements. If it did filter out all of them, we are done looping.
@@ -160,7 +155,7 @@ public class ExecutionOutlineGenerator {
 
   /// Generate the `ExecutionOutline` for execution that starts at `startState` until it reaches `finalPosition`.
   /// Returns a `nil` `finalState` if all samples were filtered out during the execution.
-  private func generateOutline(startingAt startState: IRExecutionState, finalPosition: InstructionPosition) throws -> (outline: ExecutionOutline, finalState: IRExecutionState?) {
+  private func generateOutline(startingAt startState: IRExecutionState, finalPosition: InstructionPosition, includeFinalState: Bool = false) throws -> (outline: ExecutionOutline, finalState: IRExecutionState?) {
     var currentState: IRExecutionState? = startState
     if debugInfo.info[startState.position] == nil, startState.position != finalPosition {
       currentState = try executor.runUntilPosition(state: startState, stopPositions: Set(debugInfo.info.keys).union([finalPosition]))
@@ -194,6 +189,9 @@ public class ExecutionOutlineGenerator {
           currentState = try executor.runUntilPosition(state: unwrappedCurrentState, stopPositions: Set(debugInfo.info.keys).union([finalPosition]))
         }
       }
+    }
+    if includeFinalState, let currentState = currentState {
+      outline.append(.end(state: currentState))
     }
     
     if let currentState = currentState {

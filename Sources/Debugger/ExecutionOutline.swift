@@ -48,6 +48,9 @@ public enum ExecutionOutlineEntry: CustomStringConvertible {
   /// This might still be an `observe` statement and filter out some or all samples
   case instruction(state: IRExecutionState)
   
+  /// A state that ends some context. The context could be a loop iteration or an entire program
+  case end(state: IRExecutionState)
+  
   /// An if/else branch. Not both branches need to be viable. If a branch is not viable it is `nil`.
   case branch(state: IRExecutionState, true: ExecutionOutline?, false: ExecutionOutline?)
   
@@ -58,6 +61,8 @@ public enum ExecutionOutlineEntry: CustomStringConvertible {
   public var state: IRExecutionState {
     switch self {
     case .instruction(state: let state):
+      return state
+    case .end(state: let state):
       return state
     case .branch(state: let state, true: _, false: _):
       return state
@@ -109,6 +114,8 @@ extension ExecutionOutlineEntry {
     switch self {
     case .instruction(state: let state):
       return "▷ \(state.description(sourceCode: sourceCode, debugInfo: debugInfo))"
+    case .end(state: let state):
+      return "▷ end \(state.description(sourceCode: sourceCode, debugInfo: debugInfo))"
     case .branch(state: let state, true: let trueBranch, false: let falseBranch):
       var descriptionPieces: [String] = []
       descriptionPieces.append("▽ \(state.description(sourceCode: sourceCode, debugInfo: debugInfo))")
