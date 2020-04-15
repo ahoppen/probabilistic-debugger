@@ -159,7 +159,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 4))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
     
@@ -186,7 +186,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 4))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
 
@@ -208,7 +208,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 4))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
 
@@ -230,7 +230,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 1)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 7))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(2)
     ])
@@ -243,7 +243,7 @@ class DebuggerTests: XCTestCase {
     ])
     
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 7))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 1)
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(1)
@@ -269,7 +269,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 7))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 4.5, accuracy: 0.2)
 
@@ -291,7 +291,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 4))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
     
@@ -304,7 +304,7 @@ class DebuggerTests: XCTestCase {
     
     XCTAssertNoThrow(try debugger.restoreState())
 
-    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 4))
+    XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
 
