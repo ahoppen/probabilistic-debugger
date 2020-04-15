@@ -16,33 +16,51 @@ public class WPInferenceEngine {
     self.program = program
   }
   
+  private func inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> (position: InstructionPosition, term: WPTerm) {
+    assert(state.position.instructionIndex == 0)
+    
+    let branchPosition = InstructionPosition(
+      basicBlock: predecessor,
+      instructionIndex: program.basicBlocks[predecessor]!.instructions.count - 1
+    )
+    let instruction = program.instruction(at: branchPosition)
+    switch instruction {
+    case is JumpInstruction:
+      // The jump jumps unconditionally, so there is no need to modify the state
+      return (branchPosition, state.term)
+    case let instruction as BranchInstruction:
+      let takenBranch: Bool
+      if state.position.basicBlock == instruction.targetTrue {
+        takenBranch = true
+      } else {
+        assert(state.position.basicBlock == instruction.targetFalse)
+        takenBranch = false
+      }
+      return (branchPosition, .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * state.term)
+    default:
+      fatalError("Block that jumps to a different block should have terminated with a jump or branch instruction")
+    }
+  }
+  
   private func branchesToInfer(before state: WPInferenceState) -> [(position: InstructionPosition, term: WPTerm)] {
     if state.position.instructionIndex > 0 {
       let previousPosition = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
+      
+      if let phiInstruction = program.instruction(at: previousPosition) as? PhiInstruction {
+        // FIXME: Handle multiple Phi instructions
+        return program.directPredecessors[state.position.basicBlock]!.map({ (predecessor) in
+          let newState = WPInferenceState(
+            position: previousPosition,
+            term: state.term.replacing(variable: phiInstruction.assignee, with: .variable(phiInstruction.choices[predecessor]!))
+          )
+          return inferAcrossBlockBoundary(state: newState, predecessor: predecessor)
+        })
+      }
       return [(position: previousPosition, term: state.term)]
     } else {
-      let predecessorBlocks = program.directPredecessors[state.position.basicBlock]!
-      if predecessorBlocks.isEmpty {
-        fatalError("Already reached the start of the program. Nothing to infer before it.")
-      }
-      var branches: [(position: InstructionPosition, term: WPTerm)] = []
-      for predecessor in predecessorBlocks {
-        let branchPosition = InstructionPosition(
-          basicBlock: predecessor,
-          instructionIndex: program.basicBlocks[predecessor]!.instructions.count - 1
-        )
-        let instruction = program.instruction(at: branchPosition)
-        switch instruction {
-        case is JumpInstruction:
-          // The jump jumps unconditionally, so there is no need to modify the state
-          branches.append((branchPosition, state.term))
-        case is BranchInstruction:
-          fatalError("Not implemented")
-        default:
-          fatalError("Block that jumps to a different block should have terminated with a jump or branch instruction")
-        }
-      }
-      return branches
+      return program.directPredecessors[state.position.basicBlock]!.map({ (predecessor) in
+        return inferAcrossBlockBoundary(state: state, predecessor: predecessor)
+      })
     }
   }
   
@@ -84,7 +102,11 @@ public class WPInferenceEngine {
             term: newTerm
           )
         case let instruction as CompareInstruction:
-          fatalError("not implemented: \(instruction)")
+          let newTerm = term.replacing(
+            variable: instruction.assignee,
+            with: .equal(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs))
+          )
+          newStateToInfer = WPInferenceState(position: position, term: newTerm)
         case let instruction as DiscreteDistributionInstruction:
           var terms: [WPTerm] = []
           for (value, probability) in instruction.distribution {
@@ -100,12 +122,13 @@ public class WPInferenceEngine {
         case is JumpInstruction:
           // Already handled by branchesToInfer. Nothing to do anymore.
           newStateToInfer = WPInferenceState(position: position, term: term)
-        case let instruction as BranchInstruction:
-          fatalError("not implemented: \(instruction)")
+        case is BranchInstruction:
+          // Already handled by branchesToInfer. Nothing to do anymore.
+          newStateToInfer = WPInferenceState(position: position, term: term)
         case is ReturnInstruction:
           fatalError("WP inference is initialised at the ReturnInstruction which means the ReturnInstruction has already been inferred")
-        case let instruction as PhiInstruction:
-          fatalError("not implemented: \(instruction)")
+        case is PhiInstruction:
+          fatalError("Should always be jumped over by branchesToInfer")
         case let unknownInstruction:
           fatalError("Unknown instruction: \(type(of: unknownInstruction))")
         }
@@ -125,7 +148,7 @@ public class WPInferenceEngine {
     case .double(let value):
       return value
     case let simplifiedTerm:
-      fatalError("WP evaluation term \(simplifiedTerm) was not fully simplified")
+      fatalError("WP evaluation term \(simplifiedTerm) (original: \(combinedTerm) was not fully simplified")
     }
   }
 }

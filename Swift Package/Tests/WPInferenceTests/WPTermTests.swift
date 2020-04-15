@@ -1,4 +1,4 @@
-import WPInference
+@testable import WPInference
 
 import XCTest
 

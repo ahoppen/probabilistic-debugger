@@ -2,16 +2,59 @@ import Foundation
 import IR
 
 public indirect enum WPTerm: Equatable, CustomStringConvertible {
+  /// An IR variable that has not been replaced by a concrete value yet
   case variable(IRVariable)
+  
+  /// An integer literal
   case integer(Int)
+  
+  /// A floating-Point literal
   case double(Double)
+  
+  /// A boolean literal
   case bool(Bool)
+  
+  /// Convert a boolean value to an integer by mapping `false` to `0` and `true` to `1`.
+  case boolToInt(WPTerm)
+  
+  /// Compare the two given terms. Returns a boolean value. The two terms must be of the same type to be considered equal
   case equal(lhs: WPTerm, rhs: WPTerm)
+  
+  /// Add all the given `terms`. An empty sum has the value `0`.
   case add(terms: [WPTerm])
+  
+  /// Subtract `rhs` from `lhs`
   case sub(lhs: WPTerm, rhs: WPTerm)
+  
+  /// Multiply `lhs` with `rhs`
   case mul(lhs: WPTerm, rhs: WPTerm)
   
-  public func replacing(variable: IRVariable, with term: WPTerm) -> WPTerm {
+  public var description: String {
+    switch self {
+    case .variable(let variable):
+      return variable.description
+    case .integer(let value):
+      return value.description
+    case .double(let value):
+      return value.description
+    case .bool(let value):
+      return value.description
+    case .boolToInt(let term):
+      return "[\(term)]"
+    case .equal(lhs: let lhs, rhs: let rhs):
+      return "\(lhs.description) = \(rhs.description)"
+    case .add(terms: let terms):
+      return terms.map({ $0.description }).joined(separator: " + ")
+    case .sub(lhs: let lhs, rhs: let rhs):
+      return "\(lhs.description) - \(rhs.description)"
+    case .mul(lhs: let lhs, rhs: let rhs):
+      return "(\(lhs.description)) * (\(rhs.description))"
+    }
+  }
+}
+
+public extension WPTerm {
+  func replacing(variable: IRVariable, with term: WPTerm) -> WPTerm {
     switch self {
     case .variable(let myVariable):
       if myVariable == variable {
@@ -25,6 +68,8 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
       return self
     case .bool:
       return self
+    case .boolToInt(let wrappedBool):
+      return .boolToInt(wrappedBool.replacing(variable: variable, with: term))
     case .equal(lhs: let lhs, rhs: let rhs):
       return .equal(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
     case .add(terms: let terms):
@@ -35,30 +80,9 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
       return .mul(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
     }
   }
-  
-  public var description: String {
-    switch self {
-    case .variable(let variable):
-      return variable.description
-    case .integer(let value):
-      return value.description
-    case .double(let value):
-      return value.description
-    case .bool(let value):
-      return value.description
-    case .equal(lhs: let lhs, rhs: let rhs):
-      return "[\(lhs.description) = \(rhs.description)]"
-    case .add(terms: let terms):
-      return terms.map({ $0.description }).joined(separator: " + ")
-    case .sub(lhs: let lhs, rhs: let rhs):
-      return "\(lhs.description) - \(rhs.description)"
-    case .mul(lhs: let lhs, rhs: let rhs):
-      return "(\(lhs.description)) * (\(rhs.description))"
-    }
-  }
 }
 
-extension WPTerm {
+internal extension WPTerm {
   init(_ variableOrValue: VariableOrValue) {
     switch variableOrValue {
     case .variable(let variable):
@@ -71,8 +95,8 @@ extension WPTerm {
   }
 }
 
-extension WPTerm {
-  public var simplified: WPTerm {
+internal extension WPTerm {
+  var simplified: WPTerm {
     switch self {
     case .variable:
       return self
@@ -82,14 +106,23 @@ extension WPTerm {
       return self
     case .bool:
       return self
+    case .boolToInt(let term):
+      switch term.simplified {
+      case .bool(false):
+        return .integer(0)
+      case .bool(true):
+        return .integer(1)
+      case let simplifiedTerm:
+        return .boolToInt(simplifiedTerm)
+      }
     case .equal(lhs: let lhs, rhs: let rhs):
       switch (lhs.simplified, rhs.simplified) {
       case (.integer(let lhsValue), .integer(let rhsValue)):
-        return .integer(lhsValue == rhsValue ? 1 : 0)
+        return .bool(lhsValue == rhsValue)
       case (.double(let lhsValue), .double(let rhsValue)):
-        return .integer(lhsValue == rhsValue ? 1 : 0)
+        return .bool(lhsValue == rhsValue)
       case (.bool(let lhsValue), .bool(let rhsValue)):
-        return .integer(lhsValue == rhsValue ? 1 : 0)
+        return .bool(lhsValue == rhsValue)
       case (let lhsValue, let rhsValue):
         return .equal(lhs: lhsValue, rhs: rhsValue)
       }
