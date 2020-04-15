@@ -331,7 +331,6 @@ class SLIRGenTests: XCTestCase {
       """
     
     let ir = try! SLIRGen.generateIr(for: sourceCode)
-    print(ir.program)
     
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .bool)

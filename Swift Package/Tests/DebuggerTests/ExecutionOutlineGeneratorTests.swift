@@ -243,8 +243,7 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
     let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
     XCTAssertNoThrow(try {
       let outline = try outlineGenerator.generateOutline(sampleCount: 1000)
-      print(outline.description(sourceCode: sourceCode, debugInfo: ir.debugInfo))
-
+      
       XCTAssertEqualOutline(outline, [
         .instruction(state: IRExecutionState(sourceLine: 1, sampleCount: 1000, debugInfo: ir.debugInfo)),
         .loop(state: IRExecutionState(sourceLine: 2, sampleCount: 1000, debugInfo: ir.debugInfo), iterations: [
@@ -458,16 +457,12 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       """
     
     let ir = try! SLIRGen.generateIr(for: sourceCode)
-    print(ir.program)
-    print(ir.debugInfo)
     
     let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
     
     XCTAssertNoThrow(try {
       let sampleCount = 1
       let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
-      
-      print(outline)
       
       guard case .loop(_, let iterations, _) = outline.entries[2] else {
         XCTFail()
