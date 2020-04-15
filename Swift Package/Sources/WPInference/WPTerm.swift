@@ -20,6 +20,9 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
   /// Compare the two given terms. Returns a boolean value. The two terms must be of the same type to be considered equal
   case equal(lhs: WPTerm, rhs: WPTerm)
   
+  /// Compare if `lhs` is strictly less than `rhs` (`lhs < rhs`)
+  case lessThan(lhs: WPTerm, rhs: WPTerm)
+  
   /// Add all the given `terms`. An empty sum has the value `0`.
   case add(terms: [WPTerm])
   
@@ -42,7 +45,9 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
     case .boolToInt(let term):
       return "[\(term)]"
     case .equal(lhs: let lhs, rhs: let rhs):
-      return "\(lhs.description) = \(rhs.description)"
+      return "(\(lhs.description) = \(rhs.description))"
+    case .lessThan(lhs: let lhs, rhs: let rhs):
+      return "(\(lhs.description) < \(rhs.description))"
     case .add(terms: let terms):
       return terms.map({ $0.description }).joined(separator: " + ")
     case .sub(lhs: let lhs, rhs: let rhs):
@@ -72,6 +77,8 @@ public extension WPTerm {
       return .boolToInt(wrappedBool.replacing(variable: variable, with: term))
     case .equal(lhs: let lhs, rhs: let rhs):
       return .equal(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
+    case .lessThan(lhs: let lhs, rhs: let rhs):
+      return .lessThan(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
     case .add(terms: let terms):
       return .add(terms: terms.map({ $0.replacing(variable: variable, with: term) }))
     case .sub(lhs: let lhs, rhs: let rhs):
@@ -126,6 +133,15 @@ internal extension WPTerm {
       case (let lhsValue, let rhsValue):
         return .equal(lhs: lhsValue, rhs: rhsValue)
       }
+    case .lessThan(lhs: let lhs, rhs: let rhs):
+      switch (lhs.simplified, rhs.simplified) {
+      case (.integer(let lhsValue), .integer(let rhsValue)):
+        return .bool(lhsValue < rhsValue)
+      case (.double(let lhsValue), .double(let rhsValue)):
+        return .bool(lhsValue < rhsValue)
+      case (let lhsValue, let rhsValue):
+        return .lessThan(lhs: lhsValue, rhs: rhsValue)
+      }
     case .add(terms: let terms):
       var integerComponent = 0
       var doubleComponent = 0.0
@@ -155,7 +171,7 @@ internal extension WPTerm {
         return .add(terms: finalTerms)
       }
     case .sub(lhs: let lhs, rhs: let rhs):
-      switch (lhs, rhs) {
+      switch (lhs.simplified, rhs.simplified) {
       case (let lhs, .integer(0)):
         return lhs
       case (let lhs, .double(0)):
