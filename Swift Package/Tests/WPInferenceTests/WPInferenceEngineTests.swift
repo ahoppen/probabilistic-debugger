@@ -364,4 +364,23 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var2), rhs: .integer(1)))), 1)
     XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var3), rhs: .integer(1)))), 1)
   }
+  
+  func testInferWithObserveInstruction() {
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .bool)
+    
+    let bb1Name = BasicBlockName("bb1")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      DiscreteDistributionInstruction(assignee: var1, distribution: [1: 0.6, 2: 0.4]),
+      CompareInstruction(comparison: .equal, assignee: var2, lhs: .variable(var1), rhs: .integer(1)),
+      ObserveInstruction(observation: .variable(var2)),
+      ReturnInstruction()
+    ])
+    
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
+    
+    let inferenceEngine = WPInferenceEngine(program: program)
+    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(1)))), 1)
+  }
 }
