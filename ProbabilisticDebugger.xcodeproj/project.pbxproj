@@ -1,0 +1,382 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 52;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FA518DDA2445F52A0046FF03 /* HistogramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA518DD92445F52A0046FF03 /* HistogramView.swift */; };
+		FA53F633243DF80900F9CD38 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA53F632243DF80900F9CD38 /* AppDelegate.swift */; };
+		FA53F635243DF80900F9CD38 /* DebuggerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA53F634243DF80900F9CD38 /* DebuggerViewController.swift */; };
+		FA53F637243DF80900F9CD38 /* SourceCodeDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA53F636243DF80900F9CD38 /* SourceCodeDocument.swift */; };
+		FA53F639243DF80C00F9CD38 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA53F638243DF80C00F9CD38 /* Assets.xcassets */; };
+		FA53F63C243DF80C00F9CD38 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FA53F63A243DF80C00F9CD38 /* Main.storyboard */; };
+		FA53F645243DFB7000F9CD38 /* SourceCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA53F644243DFB7000F9CD38 /* SourceCode.swift */; };
+		FA9FCC0A243E092F00347882 /* libppdb in Frameworks */ = {isa = PBXBuildFile; productRef = FA9FCC09243E092F00347882 /* libppdb */; };
+		FAC48B29243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B28243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift */; };
+		FAC48B2B243F132E00DE39F8 /* DelayedImmutable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B2A243F132E00DE39F8 /* DelayedImmutable.swift */; };
+		FAC48B2D243F134000DE39F8 /* DebuggerWrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B2C243F134000DE39F8 /* DebuggerWrapper.swift */; };
+		FAC48B2F243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B2E243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift */; };
+		FAC48B31243F1E6800DE39F8 /* DebuggerCentral.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B30243F1E6800DE39F8 /* DebuggerCentral.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		FA518DD92445F52A0046FF03 /* HistogramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistogramView.swift; sourceTree = "<group>"; };
+		FA518DDB24471C220046FF03 /* Swift Package */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Swift Package"; sourceTree = "<group>"; };
+		FA53F62F243DF80900F9CD38 /* ProbabilisticDebugger-UI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "ProbabilisticDebugger-UI.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA53F632243DF80900F9CD38 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		FA53F634243DF80900F9CD38 /* DebuggerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebuggerViewController.swift; sourceTree = "<group>"; };
+		FA53F636243DF80900F9CD38 /* SourceCodeDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceCodeDocument.swift; sourceTree = "<group>"; };
+		FA53F638243DF80C00F9CD38 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FA53F63B243DF80C00F9CD38 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		FA53F63D243DF80C00F9CD38 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FA53F63E243DF80C00F9CD38 /* ProbabilisticDebugger_UI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProbabilisticDebugger_UI.entitlements; sourceTree = "<group>"; };
+		FA53F644243DFB7000F9CD38 /* SourceCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceCode.swift; sourceTree = "<group>"; };
+		FAC48B28243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebuggerVariablesTableViewDataSource.swift; sourceTree = "<group>"; };
+		FAC48B2A243F132E00DE39F8 /* DelayedImmutable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelayedImmutable.swift; sourceTree = "<group>"; };
+		FAC48B2C243F134000DE39F8 /* DebuggerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebuggerWrapper.swift; sourceTree = "<group>"; };
+		FAC48B2E243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExecutionOutlineViewDataSource.swift; sourceTree = "<group>"; };
+		FAC48B30243F1E6800DE39F8 /* DebuggerCentral.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebuggerCentral.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FA53F62C243DF80900F9CD38 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA9FCC0A243E092F00347882 /* libppdb in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		FA53F626243DF80900F9CD38 = {
+			isa = PBXGroup;
+			children = (
+				FA518DDB24471C220046FF03 /* Swift Package */,
+				FA53F631243DF80900F9CD38 /* GUI */,
+				FA53F630243DF80900F9CD38 /* Products */,
+				FA9FCC08243E092F00347882 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		FA53F630243DF80900F9CD38 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FA53F62F243DF80900F9CD38 /* ProbabilisticDebugger-UI.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		FA53F631243DF80900F9CD38 /* GUI */ = {
+			isa = PBXGroup;
+			children = (
+				FA53F632243DF80900F9CD38 /* AppDelegate.swift */,
+				FA53F634243DF80900F9CD38 /* DebuggerViewController.swift */,
+				FAC48B2A243F132E00DE39F8 /* DelayedImmutable.swift */,
+				FAC48B2E243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift */,
+				FAC48B28243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift */,
+				FA518DD92445F52A0046FF03 /* HistogramView.swift */,
+				FAC48B2C243F134000DE39F8 /* DebuggerWrapper.swift */,
+				FA53F636243DF80900F9CD38 /* SourceCodeDocument.swift */,
+				FA53F644243DFB7000F9CD38 /* SourceCode.swift */,
+				FAC48B30243F1E6800DE39F8 /* DebuggerCentral.swift */,
+				FA53F638243DF80C00F9CD38 /* Assets.xcassets */,
+				FA53F63A243DF80C00F9CD38 /* Main.storyboard */,
+				FA53F63D243DF80C00F9CD38 /* Info.plist */,
+				FA53F63E243DF80C00F9CD38 /* ProbabilisticDebugger_UI.entitlements */,
+			);
+			path = GUI;
+			sourceTree = "<group>";
+		};
+		FA9FCC08243E092F00347882 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		FA53F62E243DF80900F9CD38 /* ProbabilisticDebugger-UI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA53F641243DF80C00F9CD38 /* Build configuration list for PBXNativeTarget "ProbabilisticDebugger-UI" */;
+			buildPhases = (
+				FA53F62B243DF80900F9CD38 /* Sources */,
+				FA53F62C243DF80900F9CD38 /* Frameworks */,
+				FA53F62D243DF80900F9CD38 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ProbabilisticDebugger-UI";
+			packageProductDependencies = (
+				FA9FCC09243E092F00347882 /* libppdb */,
+			);
+			productName = "ProbabilisticDebugger-UI";
+			productReference = FA53F62F243DF80900F9CD38 /* ProbabilisticDebugger-UI.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FA53F627243DF80900F9CD38 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastSwiftUpdateCheck = 1140;
+				LastUpgradeCheck = 1140;
+				ORGANIZATIONNAME = "Alex Hoppen";
+				TargetAttributes = {
+					FA53F62E243DF80900F9CD38 = {
+						CreatedOnToolsVersion = 11.4;
+					};
+				};
+			};
+			buildConfigurationList = FA53F62A243DF80900F9CD38 /* Build configuration list for PBXProject "ProbabilisticDebugger" */;
+			compatibilityVersion = "Xcode 9.3";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = FA53F626243DF80900F9CD38;
+			productRefGroup = FA53F630243DF80900F9CD38 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				FA53F62E243DF80900F9CD38 /* ProbabilisticDebugger-UI */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FA53F62D243DF80900F9CD38 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA53F639243DF80C00F9CD38 /* Assets.xcassets in Resources */,
+				FA53F63C243DF80C00F9CD38 /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		FA53F62B243DF80900F9CD38 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA53F635243DF80900F9CD38 /* DebuggerViewController.swift in Sources */,
+				FAC48B2F243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift in Sources */,
+				FAC48B29243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift in Sources */,
+				FA53F633243DF80900F9CD38 /* AppDelegate.swift in Sources */,
+				FA53F637243DF80900F9CD38 /* SourceCodeDocument.swift in Sources */,
+				FA53F645243DFB7000F9CD38 /* SourceCode.swift in Sources */,
+				FAC48B2D243F134000DE39F8 /* DebuggerWrapper.swift in Sources */,
+				FAC48B2B243F132E00DE39F8 /* DelayedImmutable.swift in Sources */,
+				FAC48B31243F1E6800DE39F8 /* DebuggerCentral.swift in Sources */,
+				FA518DDA2445F52A0046FF03 /* HistogramView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		FA53F63A243DF80C00F9CD38 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				FA53F63B243DF80C00F9CD38 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		FA53F63F243DF80C00F9CD38 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		FA53F640243DF80C00F9CD38 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.15;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+			};
+			name = Release;
+		};
+		FA53F642243DF80C00F9CD38 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "ProbabilisticDebugger-UI/ProbabilisticDebugger_UI.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = GUI/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.alexhoppen.ProbabilisticDebugger-UI";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		FA53F643243DF80C00F9CD38 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = "ProbabilisticDebugger-UI/ProbabilisticDebugger_UI.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = GUI/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "de.alexhoppen.ProbabilisticDebugger-UI";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		FA53F62A243DF80900F9CD38 /* Build configuration list for PBXProject "ProbabilisticDebugger" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA53F63F243DF80C00F9CD38 /* Debug */,
+				FA53F640243DF80C00F9CD38 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA53F641243DF80C00F9CD38 /* Build configuration list for PBXNativeTarget "ProbabilisticDebugger-UI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA53F642243DF80C00F9CD38 /* Debug */,
+				FA53F643243DF80C00F9CD38 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FA9FCC09243E092F00347882 /* libppdb */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = libppdb;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = FA53F627243DF80900F9CD38 /* Project object */;
+}
