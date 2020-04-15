@@ -70,7 +70,12 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
       return "Samples: \(percentage)%"
     }).assign(to: \.stringValue, on: samplesTextField)
     cancellables += Publishers.CombineLatest(debuggerCentral.$samples, debuggerCentral.survivingSampleIds).map({ (samples, survivingSampleIds) -> String in
-      let percentage = (Double(survivingSampleIds.count) / Double(samples.count) * 100).rounded(decimalPlaces: 2)
+      let percentage: Double
+      if samples.count > 0 {
+        percentage = (Double(survivingSampleIds.count) / Double(samples.count) * 100).rounded(decimalPlaces: 2)
+      } else {
+        percentage = 0
+      }
       return "Surviving: \(percentage)%"
     }).assign(to: \.stringValue, on: survivingTextField)
     
