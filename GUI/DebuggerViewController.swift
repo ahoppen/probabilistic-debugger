@@ -75,7 +75,8 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
     cancellables += Publishers.CombineLatest(debuggerCentral.$samples, debuggerCentral.survivingSampleIds).map({ (samples, survivingSampleIds) -> String in
       let percentage: Double
       if samples.count > 0 {
-        percentage = (Double(survivingSampleIds.count) / Double(samples.count) * 100).rounded(decimalPlaces: 2)
+        let survivingSamples = samples.filter({ survivingSampleIds.contains($0.id) })
+        percentage = (Double(survivingSamples.count) / Double(samples.count) * 100).rounded(decimalPlaces: 2)
       } else {
         percentage = 0
       }
