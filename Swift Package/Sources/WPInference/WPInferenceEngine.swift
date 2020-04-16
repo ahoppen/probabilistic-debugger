@@ -222,8 +222,11 @@ public class WPInferenceEngine {
     }
   }
   
-  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: [LoopingBranch: LoopUnrolling]) -> Double {
-    let inferredTerm = infer(term: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls)
+  /// Infer the probability that `variable` has the value `value` after executing the program to `inferenceStopPosition`.
+  /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
+  /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
+  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: [LoopingBranch: LoopUnrolling], to inferenceStopPosition: InstructionPosition? = nil) -> Double {
+    let inferredTerm = infer(term: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition ?? program.returnPosition)
     switch inferredTerm {
     case .integer(let value):
       return Double(value)
@@ -236,7 +239,7 @@ public class WPInferenceEngine {
   
   /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
   /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
-  public func infer(term: WPTerm, loopUnrolls: [LoopingBranch: LoopUnrolling] = [:]) -> WPTerm {
+  public func infer(term: WPTerm, loopUnrolls: [LoopingBranch: LoopUnrolling] = [:], inferenceStopPosition: InstructionPosition) -> WPTerm {
     #if DEBUG
     // Check that we have a loop repetition bound for every loop in the program
     for loop in program.loops {
@@ -253,13 +256,11 @@ public class WPInferenceEngine {
     }
     #endif
     
-    
-    
     let programStartState = InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0)
     
     // WPInferenceStates that have not yet reached the start of the program and for which further inference needs to be performed
     let initialState = WPInferenceState(
-      position: program.returnPosition,
+      position: inferenceStopPosition,
       term: term,
       runsWithSatisifiedObserves: .integer(1),
       runsNotCutOffByLoopIterationBounds: .integer(1),
