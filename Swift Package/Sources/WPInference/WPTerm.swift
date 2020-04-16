@@ -32,6 +32,9 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
   /// Multiply `lhs` with `rhs`
   case mul(lhs: WPTerm, rhs: WPTerm)
   
+  /// Divide `lhs` by `rhs`
+  case div(lhs: WPTerm, rhs: WPTerm)
+  
   public var description: String {
     switch self {
     case .variable(let variable):
@@ -54,6 +57,8 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
       return "\(lhs.description) - \(rhs.description)"
     case .mul(lhs: let lhs, rhs: let rhs):
       return "(\(lhs.description)) * (\(rhs.description))"
+    case .div(lhs: let lhs, rhs: let rhs):
+      return "(\(lhs.description)) / (\(rhs.description))"
     }
   }
 }
@@ -85,6 +90,8 @@ public extension WPTerm {
       return .sub(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
     case .mul(lhs: let lhs, rhs: let rhs):
       return .mul(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
+    case .div(lhs: let lhs, rhs: let rhs):
+      return .div(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
     }
   }
 }
@@ -196,6 +203,19 @@ internal extension WPTerm {
       case (let lhsValue, let rhsValue):
         return .mul(lhs: lhsValue, rhs: rhsValue)
       }
+    case .div(lhs: let lhs, rhs: let rhs):
+      switch (lhs.simplified, rhs.simplified) {
+      case (.integer(let lhsValue), .integer(let rhsValue)):
+        return .double(Double(lhsValue) / Double(rhsValue))
+      case (.double(let lhsValue), .double(let rhsValue)):
+        return .double(lhsValue / rhsValue)
+      case (.double(let lhsValue), .integer(let rhsValue)):
+        return .double(lhsValue / Double(rhsValue))
+      case (.integer(let lhsValue), .double(let rhsValue)):
+        return .double(Double(lhsValue) / rhsValue)
+      case (let lhsValue, let rhsValue):
+        return .div(lhs: lhsValue, rhs: rhsValue)
+      }
     }
   }
 }
@@ -210,4 +230,8 @@ public func -(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
 
 public func *(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
   return .mul(lhs: lhs, rhs: rhs)
+}
+
+public func /(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+  return .div(lhs: lhs, rhs: rhs)
 }

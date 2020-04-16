@@ -23,8 +23,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
     
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(2)))), 1)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(1)))), 0)
+    
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopRepetitionBounds: [:]), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(1), loopRepetitionBounds: [:]), 0)
   }
   
   func testInferProbabilisticStraightLineProgram() {
@@ -46,9 +47,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
     
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(2)))), 0.6)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(3)))), 0.4)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(4)))), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopRepetitionBounds: [:]), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), loopRepetitionBounds: [:]), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), loopRepetitionBounds: [:]), 0)
   }
 
   func testInferProgramWithJump() {
@@ -78,9 +79,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
 
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(2)))), 0.6)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(3)))), 0.4)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(4)))), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopRepetitionBounds: [:]), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), loopRepetitionBounds: [:]), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), loopRepetitionBounds: [:]), 0)
   }
   
   func testInferProgramWithTwoSuccessiveJump() {
@@ -118,9 +119,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
 
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(2)))), 0.6)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(3)))), 0.4)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(4)))), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopRepetitionBounds: [:]), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), loopRepetitionBounds: [:]), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), loopRepetitionBounds: [:]), 0)
   }
   
   func testInferProgramWithIf() {
@@ -184,9 +185,9 @@ class WPInferenceEngineTests: XCTestCase {
     // }
 
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var4), rhs: .integer(10)))), 0.6)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var4), rhs: .integer(20)))), 0.4)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var4), rhs: .integer(15)))), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), loopRepetitionBounds: [:]), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(20), loopRepetitionBounds: [:]), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(16), loopRepetitionBounds: [:]), 0)
   }
   
   func testInferFiniteDeterministicLoop() {
@@ -256,13 +257,13 @@ class WPInferenceEngineTests: XCTestCase {
     let loopRepetitionBounds = [whileLoopBranch: 5]
     
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(0)))), 0.0)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(1)))), 1.0)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(2)))), 0.0)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(3)))), 0.0)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(4)))), 0.0)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(5)))), 0.0)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(6)))), 0.0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), loopRepetitionBounds: loopRepetitionBounds), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopRepetitionBounds: loopRepetitionBounds), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), loopRepetitionBounds: loopRepetitionBounds), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopRepetitionBounds: loopRepetitionBounds), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopRepetitionBounds: loopRepetitionBounds), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(5), loopRepetitionBounds: loopRepetitionBounds), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(6), loopRepetitionBounds: loopRepetitionBounds), 0)
   }
   
   func testInferGeometricDistribution() {
@@ -332,11 +333,11 @@ class WPInferenceEngineTests: XCTestCase {
     let loopRepetitionBounds = [whileLoopBranch: 3]
     
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(0)))), 0.5)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(1)))), 0.25)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(2)))), 0.125)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(3)))), 0.0625)
-    XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(4)))), 0.0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), loopRepetitionBounds: loopRepetitionBounds), 0.5)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopRepetitionBounds: loopRepetitionBounds), 0.25)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), loopRepetitionBounds: loopRepetitionBounds), 0.125)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopRepetitionBounds: loopRepetitionBounds), 0.0625)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopRepetitionBounds: loopRepetitionBounds), 0)
   }
   
   func testInferWithMultiplePhiInstructions() {
@@ -361,8 +362,8 @@ class WPInferenceEngineTests: XCTestCase {
     let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2])
     
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var2), rhs: .integer(1)))), 1)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var3), rhs: .integer(1)))), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var2, beingEqualTo: .integer(1), loopRepetitionBounds: [:]), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var3, beingEqualTo: .integer(1), loopRepetitionBounds: [:]), 1)
   }
   
   func testInferWithObserveInstruction() {
@@ -381,6 +382,6 @@ class WPInferenceEngineTests: XCTestCase {
     let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
     
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var1), rhs: .integer(1)))), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(1), loopRepetitionBounds: [:]), 1)
   }
 }
