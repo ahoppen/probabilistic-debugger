@@ -133,4 +133,10 @@ class DebuggerCentral {
     debugger?.jumpToState(executionState)
     updatePublishedDebuggerVariables()
   }
+  
+  /// Infer the probability of the given variable at the end of the program using WP-inference.
+  /// The value might change if the debugger state changes. The caller is responsible for detecting such conditions and updating the UI accordingly.
+  public func inferProbability(of variableName: String, value: IRValue, executionOutline: ExecutionOutline) throws -> Double {
+    return try debugger?.inferProbability(of: variableName, value: value, executionOutline: executionOutline) ?? 0
+  }
 }

@@ -1,5 +1,17 @@
 import IR
 import IRExecution
+import WPInference
+
+fileprivate extension VariableOrValue {
+  init(_ irValue: IRValue) {
+    switch irValue {
+    case .integer(let value):
+      self = .integer(value)
+    case .bool(let value):
+      self = .bool(value)
+    }
+  }
+}
 
 /// Wrapper around `IRExecutor` that keeps track of the current execution state and translates the `IRExecutionState`s into values for variables in the source code.
 public class Debugger {
@@ -86,6 +98,21 @@ public class Debugger {
   
   public func sourceLocation(of executionState: IRExecutionState) -> SourceCodeLocation? {
     return debugInfo.info[executionState.position]?.sourceCodeLocation
+  }
+  
+  // MARK: - Performing WP-inference to refine the probability of a variable value
+  
+  public func inferProbability(of variableName: String, value: IRValue, executionOutline: ExecutionOutline) throws -> Double {
+    guard let currentState = currentState else {
+      return 0
+    }
+    
+    let instructionInfo = debugInfo.info[currentState.position]!
+    guard let irVariable = instructionInfo.variables[variableName] else {
+      throw DebuggerError(message: "Could not find variable with name '\(variableName)'")
+    }
+    let inferenceEngine = WPInferenceEngine(program: program)
+    return inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: executionOutline.loopIterationBounds(for: program))
   }
   
   // MARK: - Step through the program

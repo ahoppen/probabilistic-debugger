@@ -98,6 +98,16 @@
                ReferencedContainer = "container:Swift Package">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "IRTests"
+               BuildableName = "IRTests"
+               BlueprintName = "IRTests"
+               ReferencedContainer = "container:Swift Package">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -39,6 +39,7 @@ fileprivate class HistogramView: NSView {
     for view in histogramSubviews {
       view.removeFromSuperview()
     }
+    self.frame.size.width = max(200, CGFloat(self.values.count) * 30)
     if values.isEmpty {
       return
     }

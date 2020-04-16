@@ -25,6 +25,7 @@ let package = Package(
         "IR",
         "IRExecution",
         "Utils",
+        "WPInference"
       ]
     ),
     .target(
@@ -52,7 +53,6 @@ let package = Package(
         "Utils"
       ]
     ),
-    
     .target(
       name: "SimpleLanguageIRGen",
       dependencies: [

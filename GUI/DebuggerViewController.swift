@@ -27,6 +27,9 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
   @Published
   @objc var survivingSamplesOnlyInVariablesView: Bool = false
   
+  @Published
+  @objc var refineProbabilitiesUsingWpInference: Bool = true
+  
   @DelayedImmutable
   private var debuggerCentral: DebuggerCentral
   
@@ -79,7 +82,7 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
       return "Surviving: \(percentage)%"
     }).assign(to: \.stringValue, on: survivingTextField)
     
-    variablesDataSource = DebuggerVariablesTableViewDataSource(debugger: self.debuggerCentral, survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView, tableView: self.variablesTableView)
+    variablesDataSource = DebuggerVariablesTableViewDataSource(debugger: self.debuggerCentral, survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView, refineProbabilitiesUsingWpInference: self.$refineProbabilitiesUsingWpInference, tableView: self.variablesTableView)
     self.variablesTableView.dataSource = variablesDataSource
     self.variablesTableView.delegate = variablesDataSource
     
