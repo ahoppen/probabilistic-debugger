@@ -458,4 +458,77 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopUnrolls: loopUnrolls), 0)
     XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopUnrolls: loopUnrolls), 0)
   }
+  
+  
+  func testPerformance() {
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .bool)
+    let var4 = IRVariable(name: "4", type: .int)
+    let var5 = IRVariable(name: "5", type: .int)
+    let var6 = IRVariable(name: "6", type: .int)
+    
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(0)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      PhiInstruction(assignee: var6, choices: [bb1Name: var1, bb3Name: var5]),
+      DiscreteDistributionInstruction(assignee: var2, distribution: [0: 0.5, 1: 0.5]),
+      CompareInstruction(comparison: .equal, assignee: var3, lhs: .variable(var2), rhs: .integer(0)),
+      BranchInstruction(condition: .variable(var3), targetTrue: bb3Name, targetFalse: bb4Name)
+    ])
+    
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      AddInstruction(assignee: var4, lhs: .variable(var6), rhs: .integer(1)),
+      AssignInstruction(assignee: var5, value: .variable(var4)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      ReturnInstruction(),
+    ])
+    // bb1:
+    //   int %1 = int 0
+    //   jump bb2
+    //
+    // bb2:
+    //   int %6 = phi bb1: int %1, bb3: int %5
+    //   int %2 = discrete 1: 0.5, 0: 0.5
+    //   bool %3 = cmp eq int %2 int 0
+    //   br bool %3 bb3 bb4
+    //
+    // bb3:
+    //   int %4 = add int %6 int 1
+    //   int %5 = int %4
+    //   jump bb2
+    //
+    // bb4:
+    //   return
+    //
+    // equivalent to:
+    //
+    // int value = 0
+    // while discrete({0: 0.5, 1: 0.5}) == 0 {
+    //   value = value + 1
+    // }
+    
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
+    let whileLoopBranch = LoopingBranch(
+      conditionBlock: bb2Name,
+      bodyBlock: bb3Name
+    )
+    
+    let inferenceEngine = WPInferenceEngine(program: program)
+    self.measure {
+      let loopUnrolls = [whileLoopBranch: LoopUnrolling.normal(50)]
+      _ = inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls)
+    }
+  }
 }

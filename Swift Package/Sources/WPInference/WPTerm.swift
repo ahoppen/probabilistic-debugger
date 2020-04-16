@@ -200,6 +200,10 @@ internal extension WPTerm {
         return .double(lhsValue * Double(rhsValue))
       case (.integer(let lhsValue), .double(let rhsValue)):
         return .double(Double(lhsValue) * rhsValue)
+      case (.integer(0), _), (_, .integer(0)):
+        return .integer(0)
+      case (.double(0), _), (_, .double(0)):
+        return .double(0)
       case (let lhsValue, let rhsValue):
         return .mul(lhs: lhsValue, rhs: rhsValue)
       }
@@ -213,6 +217,10 @@ internal extension WPTerm {
         return .double(lhsValue / Double(rhsValue))
       case (.integer(let lhsValue), .double(let rhsValue)):
         return .double(Double(lhsValue) / rhsValue)
+      case (.integer(0), _):
+        return .integer(0)
+      case (.double(0), _):
+        return .double(0)
       case (let lhsValue, let rhsValue):
         return .div(lhs: lhsValue, rhs: rhsValue)
       }
