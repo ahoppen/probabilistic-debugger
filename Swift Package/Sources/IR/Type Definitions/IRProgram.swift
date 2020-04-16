@@ -22,7 +22,7 @@ public class IRProgram: Equatable, CustomStringConvertible {
   }
   
   public var description: String {
-    return basicBlocks.values.sorted(by: { $0.name.name < $1.name.name }).map(\.description).joined(separator: "\n\n")
+    return basicBlocks.values.sorted(by: { $0.name < $1.name }).map(\.description).joined(separator: "\n\n")
   }
   
   public static func == (lhs: IRProgram, rhs: IRProgram) -> Bool {
@@ -38,6 +38,10 @@ extension IRProgram {
   
   public var directPredecessors: [BasicBlockName: Set<BasicBlockName>] {
     return IRAnalysis.directPredecessors(basicBlocks: basicBlocks.values)
+  }
+  
+  public var loops: Set<[BasicBlockName]> {
+    return IRAnalysis.loops(directPredecessors: directPredecessors)
   }
   
   public var directSuccessors: [BasicBlockName: Set<BasicBlockName>] {

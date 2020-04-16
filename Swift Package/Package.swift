@@ -103,6 +103,12 @@ let package = Package(
       ]
     ),
     .testTarget(
+      name: "IRTests",
+      dependencies: [
+        "IR",
+      ]
+    ),
+    .testTarget(
       name: "IRExecutionTests",
       dependencies: [
         "IR",

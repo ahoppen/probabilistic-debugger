@@ -32,6 +32,40 @@ enum IRAnalysis {
     return predecessors
   }
   
+  private static func paths(from: BasicBlockName, to: BasicBlockName, recursionStopPoints: Set<BasicBlockName> = [], directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
+    if recursionStopPoints.contains(from) {
+      return []
+    }
+    if directPredecessors[from]!.contains(to) {
+      return [[from]]
+    } else {
+      var paths: Set<[BasicBlockName]> = []
+      for predecessor in directPredecessors[from]! {
+        for path in IRAnalysis.paths(from: predecessor, to: to, recursionStopPoints: recursionStopPoints.union([from]), directPredecessors: directPredecessors) {
+          paths.insert([from] + path)
+        }
+      }
+      return paths
+    }
+  }
+  
+  static func loops(directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
+    var loops: Set<[BasicBlockName]> = []
+    for block in directPredecessors.keys {
+      loops.formUnion(paths(from: block, to: block, directPredecessors: directPredecessors))
+    }
+    // Normalize the loops to unify loops like bb3 -> bb2 -> bb3 and bb2 -> bb3 -> bb2
+    let normalizedLoops = loops.map({ (loop: [BasicBlockName]) -> [BasicBlockName] in
+      // Find the minimum basic block name. This is the canocialized start of the loop
+      let min = loop.min()!
+      let minIndex = loop.firstIndex(of: min)!
+      // Rotate the loop so the minimum basic block name is the first entry in the loop
+      return Array(loop[minIndex...] + loop[..<minIndex])
+    })
+    
+    return Set(normalizedLoops)
+  }
+  
   static func directSuccessors<BasicBlocksType: Sequence>(basicBlocks: BasicBlocksType) -> [BasicBlockName: Set<BasicBlockName>] where BasicBlocksType.Element == BasicBlock {
     var successors: [BasicBlockName: Set<BasicBlockName>] = [:]
     // Initialise with no predecessors

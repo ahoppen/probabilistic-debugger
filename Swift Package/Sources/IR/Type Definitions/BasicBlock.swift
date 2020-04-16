@@ -1,4 +1,4 @@
-public struct BasicBlockName: Hashable, CustomStringConvertible {
+public struct BasicBlockName: Comparable, Hashable, CustomStringConvertible {
   public let name: String
   
   public init(_ name: String) {
@@ -7,6 +7,10 @@ public struct BasicBlockName: Hashable, CustomStringConvertible {
   
   public var description: String {
     return name
+  }
+  
+  public static func < (lhs: BasicBlockName, rhs: BasicBlockName) -> Bool {
+    return lhs.name < rhs.name
   }
 }
 

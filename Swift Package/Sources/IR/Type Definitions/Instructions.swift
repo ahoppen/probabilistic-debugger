@@ -441,7 +441,7 @@ extension BranchInstruction {
 
 extension PhiInstruction {
   public var description: String {
-    let choicesDescription = choices.sorted(by: { $0.key.name < $1.key.name }).map({ "\($0.key): \($0.value)"}).joined(separator: ", ")
+    let choicesDescription = choices.sorted(by: { $0.key < $1.key }).map({ "\($0.key): \($0.value)"}).joined(separator: ", ")
     return "\(assignee) = phi \(choicesDescription)"
   }
 }

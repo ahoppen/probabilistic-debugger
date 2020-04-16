@@ -1,15 +1,16 @@
 import IR
 
-/// A specification of a loop in an IR program. The loop is characterised by the branch that jumps into the loop's body and the basic block that contains the first instructions of the loop's body. This is, the branch may jump to the body block.
-public struct LoopSpec: Hashable {
-  /// The instruction that jumps into the loops body
-  public let branchingInstruction: InstructionPosition
+/// A specification of a looping branch in the IR program characterised by the basic block that contains the condition and the basic block that contains the start of the loop's body.
+/// There should be a path from the `bodyBlock` to the `conditionBlock` in the program.
+public struct LoopingBranch: Hashable {
+  /// The basic block that contains the condition of the loop
+  public let conditionBlock: BasicBlockName
   
   /// The block that contains the first instructions of the loop body.
   public let bodyBlock: BasicBlockName
   
-  public init(branchingInstruction: InstructionPosition, bodyBlock: BasicBlockName) {
-    self.branchingInstruction = branchingInstruction
+  public init(conditionBlock: BasicBlockName, bodyBlock: BasicBlockName) {
+    self.conditionBlock = conditionBlock
     self.bodyBlock = bodyBlock
   }
 }
@@ -35,9 +36,9 @@ fileprivate struct WPInferenceState {
   
   /// To allow WP-inference of loops without finding fixpoints for finding loop invariants, we set an upper limit on the number of loop iterations for each loop in the program.
   /// This dictionary keeps track of how many iterations we have left in each loop before aborting WP-inference.
-  let remainingLoopRepetitions: [LoopSpec: Int]
+  let remainingLoopRepetitions: [LoopingBranch: Int]
   
-  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopRepetitions: [LoopSpec: Int]) {
+  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopRepetitions: [LoopingBranch: Int]) {
     self.position = position
     self.term = term.simplified
     self.runsWithSatisifiedObserves = runsWithSatisifiedObserves
@@ -71,7 +72,7 @@ fileprivate struct WPInferenceState {
     )
   }
   
-  func withRemainingLoopIterations(_ remainingLoopIterations: [LoopSpec: Int]) -> WPInferenceState {
+  func withRemainingLoopIterations(_ remainingLoopIterations: [LoopingBranch: Int]) -> WPInferenceState {
     return WPInferenceState(
       position: position,
       term: term,
@@ -115,7 +116,7 @@ public class WPInferenceEngine {
     )
     
     // Check if we are at a loop for which we have have an upper bound on the number of iterations
-    let loopSpec = LoopSpec(branchingInstruction: predecessorBlockPosition, bodyBlock: state.position.basicBlock)
+    let loopSpec = LoopingBranch(conditionBlock: predecessorBlockPosition.basicBlock, bodyBlock: state.position.basicBlock)
     if let remainingIterations = state.remainingLoopRepetitions[loopSpec] {
       if remainingIterations == 0 {
         return nil
@@ -170,7 +171,7 @@ public class WPInferenceEngine {
       
       if program.instruction(at: previousPosition) is PhiInstruction {
         // Evaluate all Phi instructions in the current block and jump to the predecessor blocks.
-        return program.directPredecessors[state.position.basicBlock]!.sorted(by: { $0.name < $1.name }).compactMap({ (predecessor) in
+        return program.directPredecessors[state.position.basicBlock]!.sorted().compactMap({ (predecessor) in
           let stateAtBeginningOfBlock = evalutePhiInstructions(in: state, predecessorBlock: predecessor)
           return inferAcrossBlockBoundary(state: stateAtBeginningOfBlock, predecessor: predecessor)
         })
@@ -180,7 +181,7 @@ public class WPInferenceEngine {
       }
     } else {
       // We have reached the start of a block. Continue inference in the predecessor blocks.
-      return program.directPredecessors[state.position.basicBlock]!.sorted(by: { $0.name < $1.name }).compactMap({ (predecessor) in
+      return program.directPredecessors[state.position.basicBlock]!.sorted().compactMap({ (predecessor) in
         return inferAcrossBlockBoundary(state: state, predecessor: predecessor)
       })
     }
@@ -188,7 +189,25 @@ public class WPInferenceEngine {
   
   /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
   /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
-  public func infer(loopRepetitionBounds: [LoopSpec: Int] = [:], term: WPTerm) -> Double {
+  public func infer(loopRepetitionBounds: [LoopingBranch: Int] = [:], term: WPTerm) -> Double {
+    #if DEBUG
+    // Check that we have a loop repetition bound for every loop in the program
+    for loop in program.loops {
+      assert(!loop.isEmpty)
+      var foundLoopRepetitionBound = false
+      for (block1, block2) in zip(loop, loop.dropFirst() + [loop.first!]) {
+        // Iterate through all successors in the loop
+        if loopRepetitionBounds[LoopingBranch(conditionBlock: block1, bodyBlock: block2)] != nil {
+          foundLoopRepetitionBound = true
+          break
+        }
+      }
+      assert(foundLoopRepetitionBound, "No loop repetition bound specified for loop \(loop)")
+    }
+    #endif
+    
+    
+    
     let programStartState = InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0)
     
     // WPInferenceStates that have not yet reached the start of the program and for which further inference needs to be performed

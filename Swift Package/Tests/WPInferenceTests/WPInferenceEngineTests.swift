@@ -249,11 +249,11 @@ class WPInferenceEngineTests: XCTestCase {
     // }
     
     let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
-    let whileLoopSpec = LoopSpec(
-      branchingInstruction: InstructionPosition(basicBlock: bb2Name, instructionIndex: 2),
+    let whileLoopBranch = LoopingBranch(
+      conditionBlock: bb2Name,
       bodyBlock: bb3Name
     )
-    let loopRepetitionBounds = [whileLoopSpec: 5]
+    let loopRepetitionBounds = [whileLoopBranch: 5]
     
     let inferenceEngine = WPInferenceEngine(program: program)
     XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(0)))), 0.0)
@@ -325,11 +325,11 @@ class WPInferenceEngineTests: XCTestCase {
     // }
     
     let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
-    let whileLoopSpec = LoopSpec(
-      branchingInstruction: InstructionPosition(basicBlock: bb2Name, instructionIndex: 3),
+    let whileLoopBranch = LoopingBranch(
+      conditionBlock: bb2Name,
       bodyBlock: bb3Name
     )
-    let loopRepetitionBounds = [whileLoopSpec: 3]
+    let loopRepetitionBounds = [whileLoopBranch: 3]
     
     let inferenceEngine = WPInferenceEngine(program: program)
     XCTAssertEqual(inferenceEngine.infer(loopRepetitionBounds: loopRepetitionBounds, term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(0)))), 0.5)
