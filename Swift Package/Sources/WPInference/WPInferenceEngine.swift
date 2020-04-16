@@ -15,6 +15,17 @@ public struct LoopingBranch: Hashable {
   }
 }
 
+extension WPTerm {
+  var isZero: Bool {
+    switch self {
+    case .integer(0), .double(0):
+      return true
+    default:
+      return false
+    }
+  }
+}
+
 public enum LoopUnrolling {
   /// Unroll the loop *n* times and allow leaving the unrolled loop after any of loop iteration.
   /// This is the normal loop unrolling behaviour.
@@ -123,9 +134,8 @@ public class WPInferenceEngine {
     while state.position.instructionIndex > 0 {
       let newPosition = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
       let instruction = program.instruction(at: newPosition)! as! PhiInstruction
-      state = state
-        .withPosition(newPosition)
-        .updatingTerms({ $0.replacing(variable: instruction.assignee, with: .variable(instruction.choices[predecessorBlock]!)) })
+      state.position = newPosition
+      state.updateTerms({ $0.replacing(variable: instruction.assignee, with: .variable(instruction.choices[predecessorBlock]!)) })
     }
     return state
   }
@@ -252,7 +262,9 @@ public class WPInferenceEngine {
         case let unknownInstruction:
           fatalError("Unknown instruction: \(type(of: unknownInstruction))")
         }
-        if newStateToInfer.position == programStartState {
+        if newStateToInfer.term.isZero {
+          // This state is not contributing anything. There is no point in pursuing it.
+        } else if newStateToInfer.position == programStartState {
           finishedInferenceStates.append(newStateToInfer)
         } else {
           inferenceStatesWorklist.append(newStateToInfer)
