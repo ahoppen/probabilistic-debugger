@@ -3,7 +3,7 @@ import IR
 /// A specification of a looping branch in the IR program characterised by the basic block that contains the condition and the basic block that contains the start of the loop's body.
 /// There should be a path from the `bodyBlock` to the `conditionBlock` in the program.
 public struct LoopingBranch: Hashable {
-  /// The basic block that contains the condition of the loop
+  /// The basic block that contains the condition of the loop. This block must end with a branch instruction.
   public let conditionBlock: BasicBlockName
   
   /// The block that contains the first instructions of the loop body.
@@ -12,6 +12,37 @@ public struct LoopingBranch: Hashable {
   public init(conditionBlock: BasicBlockName, bodyBlock: BasicBlockName) {
     self.conditionBlock = conditionBlock
     self.bodyBlock = bodyBlock
+  }
+}
+
+public enum LoopUnrolling {
+  /// Unroll the loop *n* times and allow leaving the unrolled loop after any of loop iteration.
+  /// This is the normal loop unrolling behaviour.
+  case normal(Int)
+  
+  /// Unroll the loop by adding the loop body *n* times below each other without any way to leave the loop.
+  /// This is useful to perform WP-inference to inspect one particular loop iteration.
+  case exactly(Int)
+  
+  /// Whether the body should be unrolled another time or if the loop unrolling limit has been reached
+  var shouldUnrollBodyBranch: Bool {
+    switch self {
+    case .normal(let count):
+      return count > 0
+    case .exactly(let count):
+      return count > 0
+    }
+  }
+  
+  func decreasingCount() -> LoopUnrolling {
+    switch self {
+    case .normal(let count):
+      assert(count > 0)
+      return .normal(count - 1)
+    case .exactly(let count):
+      assert(count > 0)
+      return .exactly(count - 1)
+    }
   }
 }
 
@@ -34,16 +65,16 @@ fileprivate struct WPInferenceState {
   /// The final normalized value is determined by `term / runsWithSatisfiedObserves * runsNotCutOffByLoopIterationBounds`
   let runsNotCutOffByLoopIterationBounds: WPTerm
   
-  /// To allow WP-inference of loops without finding fixpoints for finding loop invariants, we set an upper limit on the number of loop iterations for each loop in the program.
+  /// To allow WP-inference of loops without finding fixpoints for finding loop invariants, we unroll the loops to
   /// This dictionary keeps track of how many iterations we have left in each loop before aborting WP-inference.
-  let remainingLoopRepetitions: [LoopingBranch: Int]
+  let remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]
   
-  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopRepetitions: [LoopingBranch: Int]) {
+  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]) {
     self.position = position
     self.term = term.simplified
     self.runsWithSatisifiedObserves = runsWithSatisifiedObserves
     self.runsNotCutOffByLoopIterationBounds = runsNotCutOffByLoopIterationBounds
-    self.remainingLoopRepetitions = remainingLoopRepetitions
+    self.remainingLoopUnrolls = remainingLoopUnrolls
   }
   
   func replacing(variable: IRVariable, by replacementTerm: WPTerm) -> WPInferenceState {
@@ -58,7 +89,7 @@ fileprivate struct WPInferenceState {
       term: update(term),
       runsWithSatisifiedObserves: update(runsWithSatisifiedObserves),
       runsNotCutOffByLoopIterationBounds: keepingRunsNotCutOffByLoopIterationBounds ? runsNotCutOffByLoopIterationBounds : update(runsNotCutOffByLoopIterationBounds),
-      remainingLoopRepetitions: remainingLoopRepetitions
+      remainingLoopUnrolls: remainingLoopUnrolls
     )
   }
   
@@ -68,17 +99,17 @@ fileprivate struct WPInferenceState {
       term: term,
       runsWithSatisifiedObserves: runsWithSatisifiedObserves,
       runsNotCutOffByLoopIterationBounds: runsNotCutOffByLoopIterationBounds,
-      remainingLoopRepetitions: remainingLoopRepetitions
+      remainingLoopUnrolls: remainingLoopUnrolls
     )
   }
   
-  func withRemainingLoopIterations(_ remainingLoopIterations: [LoopingBranch: Int]) -> WPInferenceState {
+  func withRemainingLoopUnrolls(_ remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]) -> WPInferenceState {
     return WPInferenceState(
       position: position,
       term: term,
       runsWithSatisifiedObserves: runsWithSatisifiedObserves,
       runsNotCutOffByLoopIterationBounds: runsNotCutOffByLoopIterationBounds,
-      remainingLoopRepetitions: remainingLoopIterations
+      remainingLoopUnrolls: remainingLoopUnrolls
     )
   }
 }
@@ -92,25 +123,29 @@ public class WPInferenceEngine {
   
   /// Given a state that is pointed to the first instruction in a basic block and a predecessor block of this state, move the instruction position to the predecessor block and perform WP-inference for the branch or jump instruction in the predecessor block.
   private func inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> WPInferenceState? {
+    // Check if we are leaving a loop that needs to be unrolled an exact number of times
+    for (key, unrolls) in state.remainingLoopUnrolls {
+      // Check if we have a loop specification for a loop with this exit block
+      // Then check if we are leaving the exit block towards the non-body block
+      if key.conditionBlock == state.position.basicBlock && key.bodyBlock != predecessor {
+        // If we have found such a loop, check if we need to unroll it an exact number of times.
+        if case .exactly(let count) = unrolls {
+          // If we haven't unrolled the loop sufficiently often, ignore this exit of the loop
+          if count > 0 {
+            return nil
+          }
+        }
+      }
+    }
+    
     assert(state.position.instructionIndex == 0)
     assert(program.directPredecessors[state.position.basicBlock]!.contains(predecessor))
     
     // Compute the instruction position of the new inference state
-    var remainingLoopIterations = state.remainingLoopRepetitions
     let predecessorBlockPosition = InstructionPosition(
       basicBlock: predecessor,
       instructionIndex: program.basicBlocks[predecessor]!.instructions.count - 1
     )
-    
-    // Check if we are at a loop for which we have have an upper bound on the number of iterations
-    let loopSpec = LoopingBranch(conditionBlock: predecessorBlockPosition.basicBlock, bodyBlock: state.position.basicBlock)
-    if let remainingIterations = state.remainingLoopRepetitions[loopSpec] {
-      if remainingIterations == 0 {
-        return nil
-      } else {
-        remainingLoopIterations[loopSpec] = remainingIterations - 1
-      }
-    }
     
     // Perform WP-inference for the branch or jump instruction
     let instruction = program.instruction(at: predecessorBlockPosition)
@@ -119,8 +154,19 @@ public class WPInferenceEngine {
       // The jump jumps unconditionally, so there is no need to modify the state's term
       return state
         .withPosition(predecessorBlockPosition)
-        .withRemainingLoopIterations(remainingLoopIterations)
     case let instruction as BranchInstruction:
+      var remainingLoopUnrolls = state.remainingLoopUnrolls
+      
+      // Check if we are at a loop for which we have have an upper bound on the number of iterations
+      let loopBodySpec = LoopingBranch(conditionBlock: predecessorBlockPosition.basicBlock, bodyBlock: state.position.basicBlock)
+      if let loopUnrolling = remainingLoopUnrolls[loopBodySpec] {
+        if !loopUnrolling.shouldUnrollBodyBranch {
+          return nil
+        }
+        remainingLoopUnrolls[loopBodySpec] = loopUnrolling.decreasingCount()
+      }
+      
+      // Determine the branch that was taken
       let takenBranch: Bool
       if state.position.basicBlock == instruction.targetTrue {
         takenBranch = true
@@ -128,9 +174,11 @@ public class WPInferenceEngine {
         assert(state.position.basicBlock == instruction.targetFalse)
         takenBranch = false
       }
+      
+      // Compute the new state
       return state
         .withPosition(predecessorBlockPosition)
-        .withRemainingLoopIterations(remainingLoopIterations)
+        .withRemainingLoopUnrolls(remainingLoopUnrolls)
         .updatingTerms({ .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * $0 })
     default:
       fatalError("Block that jumps to a different block should have terminated with a jump or branch instruction")
@@ -174,8 +222,8 @@ public class WPInferenceEngine {
     }
   }
   
-  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopRepetitionBounds: [LoopingBranch: Int]) -> Double {
-    let inferredTerm = infer(term: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopRepetitionBounds: loopRepetitionBounds)
+  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: [LoopingBranch: LoopUnrolling]) -> Double {
+    let inferredTerm = infer(term: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls)
     switch inferredTerm {
     case .integer(let value):
       return Double(value)
@@ -188,7 +236,7 @@ public class WPInferenceEngine {
   
   /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
   /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
-  public func infer(term: WPTerm, loopRepetitionBounds: [LoopingBranch: Int] = [:]) -> WPTerm {
+  public func infer(term: WPTerm, loopUnrolls: [LoopingBranch: LoopUnrolling] = [:]) -> WPTerm {
     #if DEBUG
     // Check that we have a loop repetition bound for every loop in the program
     for loop in program.loops {
@@ -196,7 +244,7 @@ public class WPInferenceEngine {
       var foundLoopRepetitionBound = false
       for (block1, block2) in zip(loop, loop.dropFirst() + [loop.first!]) {
         // Iterate through all successors in the loop
-        if loopRepetitionBounds[LoopingBranch(conditionBlock: block1, bodyBlock: block2)] != nil {
+        if loopUnrolls[LoopingBranch(conditionBlock: block1, bodyBlock: block2)] != nil {
           foundLoopRepetitionBound = true
           break
         }
@@ -215,7 +263,7 @@ public class WPInferenceEngine {
       term: term,
       runsWithSatisifiedObserves: .integer(1),
       runsNotCutOffByLoopIterationBounds: .integer(1),
-      remainingLoopRepetitions: loopRepetitionBounds
+      remainingLoopUnrolls: loopUnrolls
     )
     var inferenceStatesWorklist = [initialState]
     
