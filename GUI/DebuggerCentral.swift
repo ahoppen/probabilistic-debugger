@@ -75,6 +75,8 @@ class DebuggerCentral {
   @Published public private(set) var debuggerLocation: SourceCodeLocation? = nil
   @Published public private(set) var samples: [SourceCodeSample] = []
   @Published public private(set) var variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
+  @Published public private(set) var reachabilityProbability: Double = 0
+  @Published public private(set) var approximationError: Double = 0
   public private(set) var survivingSampleIds = PassthroughSubject<Set<Int>, Never>()
   
   public private(set) var irAndDebugInfo = PassthroughSubject<Failable<(program: IRProgram, debugInfo: DebugInfo)>, Never>()
@@ -129,11 +131,14 @@ class DebuggerCentral {
     self.debuggerLocation = self.debugger?.sourceLocation
     self.samples = self.debugger?.samples ?? []
     self.variableValuesRefinedUsingWP = nil
+    self.reachabilityProbability = Double(samples.count) / Double(self.initialSamples)
     if let debugger = self.debugger {
       // Copy the debugger instance to avoid race conditions with the debugger modifying its sate
       let copiedDebugger = Debugger(debugger)
       DispatchQueue.global(qos: .userInitiated).async {
         self.variableValuesRefinedUsingWP = copiedDebugger.variableValuesRefinedUsingWP
+        self.reachabilityProbability = copiedDebugger.reachingProbability
+        self.approximationError = copiedDebugger.approximationError
       }
     }
   }

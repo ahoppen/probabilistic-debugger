@@ -123,27 +123,14 @@ public class WPInferenceEngine {
   }
   
   public func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition) -> Double {
-    let inferredTerm = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition)
-    switch inferredTerm {
-    case .integer(let value):
-      return Double(value)
-    case .double(let value):
-      return value
-    case let simplifiedTerm:
-      fatalError("""
-        WP evaluation term was not fully simplified
-        Term:
-        \(simplifiedTerm)
-
-        Original:
-        \(inferredTerm)
-        """)
-    }
+    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition)
+    let probabilityTerm = (inferred.value / inferred.runsWithSatisifiedObserves * inferred.runsNotCutOffByLoopIterationBounds)
+    return probabilityTerm.doubleValue
   }
   
   /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
   /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
-  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition) -> WPTerm {
+  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition) -> (value: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm) {
     #if DEBUG
     // Check that we have a loop repetition bound for every loop in the program
     for loop in program.loops {
@@ -227,9 +214,9 @@ public class WPInferenceEngine {
       }
     }
     
-    let value = WPTerm.add(terms: finishedInferenceStates.map(\.term))
-    let runsWithSatisifiedObserves = WPTerm.add(terms: finishedInferenceStates.map(\.runsWithSatisifiedObserves))
-    let runsNotCutOffByLoopIterationBounds = WPTerm.add(terms: finishedInferenceStates.map(\.runsNotCutOffByLoopIterationBounds))
-    return (value / runsWithSatisifiedObserves * runsNotCutOffByLoopIterationBounds).simplified
+    let value = WPTerm.add(terms: finishedInferenceStates.map(\.term)).simplified
+    let runsWithSatisifiedObserves = WPTerm.add(terms: finishedInferenceStates.map(\.runsWithSatisifiedObserves)).simplified
+    let runsNotCutOffByLoopIterationBounds = WPTerm.add(terms: finishedInferenceStates.map(\.runsNotCutOffByLoopIterationBounds)).simplified
+    return (value, runsWithSatisifiedObserves, runsNotCutOffByLoopIterationBounds)
   }
 }

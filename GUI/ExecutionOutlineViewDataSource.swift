@@ -12,6 +12,7 @@ import IR
 import IRExecution
 import SimpleLanguageIRGen
 import Combine
+import WPInference
 
 enum ExecutionOutlineRow {
   case entry(name: String? = nil, entry: ExecutionOutlineEntry)
@@ -48,24 +49,29 @@ fileprivate extension String {
   }
 }
 
+
+fileprivate extension IRExecutionState {
+  func reachingProbability(in program: IRProgram) -> Double {
+      let inferenceEngine = WPInferenceEngine(program: program)
+    let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: self.loopUnrolls, inferenceStopPosition: self.position)
+    return (inferred.value / inferred.runsNotCutOffByLoopIterationBounds).doubleValue
+  }
+}
+
+
+struct ExecutionOutlineViewData {
+  let outline: ExecutionOutline
+  let survivingSampleIds: Set<Int>
+  let program: IRProgram?
+  let debugInfo: DebugInfo?
+}
+
 class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutlineViewDataSource {
   weak var outlineView: NSOutlineView!
   let debuggerCentral: DebuggerCentral!
   var cancellables: [AnyCancellable] = []
   let selectionChangeCallback: (IRExecutionState) -> Void
-  var currentOutline: ExecutionOutline = [] {
-    didSet {
-      dispatchPrecondition(condition: .onQueue(.main))
-      outlineView.reloadData()
-    }
-  }
-  var survivingSampleIds: Set<Int> = [] {
-    didSet {
-      dispatchPrecondition(condition: .onQueue(.main))
-      outlineView.reloadData()
-    }
-  }
-  var currentDebugInfo: DebugInfo? {
+  var data: ExecutionOutlineViewData = ExecutionOutlineViewData(outline: [], survivingSampleIds: [], program: nil, debugInfo: nil) {
     didSet {
       dispatchPrecondition(condition: .onQueue(.main))
       outlineView.reloadData()
@@ -79,14 +85,13 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
     
     super.init()
     
-    cancellables += debuggerCentral.executionOutline.sink { [unowned self] (outline) in
-      self.currentOutline = outline.success ?? []
-    }
-    cancellables += debuggerCentral.irAndDebugInfo.sink { [unowned self] (irAndDebugInfo) in
-      self.currentDebugInfo = irAndDebugInfo.success?.debugInfo
-    }
-    cancellables += debuggerCentral.survivingSampleIds.sink { [unowned self] (survivingSampleIds) in
-      self.survivingSampleIds = survivingSampleIds
+    cancellables += Publishers.CombineLatest3(debuggerCentral.executionOutline, debuggerCentral.survivingSampleIds, debuggerCentral.irAndDebugInfo).sink { [unowned self] (outline, survivingSampleIds, irAndDebugInfo) in
+      self.data = ExecutionOutlineViewData(
+        outline: outline.success ?? [],
+        survivingSampleIds: survivingSampleIds,
+        program: irAndDebugInfo.success?.program,
+        debugInfo: irAndDebugInfo.success?.debugInfo
+      )
     }
   }
   
@@ -98,7 +103,7 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
   func executionOutlineView(numberOfChildrenOfItem item: ExecutionOutlineRow?) -> Int {
     switch item {
     case nil:
-      return currentOutline.entries.count
+      return data.outline.entries.count
     case .entry(name: _, entry: let entry):
       switch entry {
       case .instruction(state: _):
@@ -124,7 +129,7 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
     switch item {
     case nil:
       // Return top level entries
-      return currentOutline.entries.map({ ExecutionOutlineRow.entry(entry: $0) })[index]
+      return data.outline.entries.map({ ExecutionOutlineRow.entry(entry: $0) })[index]
     case .entry(name: _, entry: .instruction):
       fatalError("Does not have any children")
     case .entry(name: _, entry: .end):
@@ -193,7 +198,7 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
         textField.font = NSFontManager().convert(textField.font!, toHaveTrait: .italicFontMask)
         return textField
       }
-      if let debugInfo = currentDebugInfo {
+      if let debugInfo = data.debugInfo {
         let instructionPosition = entry.state.position
         let sourceRange = debugInfo.info[instructionPosition]!.sourceCodeRange
         let sourceLine = debuggerCentral.sourceCode[sourceRange]
@@ -211,8 +216,9 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
   }
   
   func executionOutlineSamplesCellText(item: ExecutionOutlineRow) -> String {
-    if let samples = item.state?.samples.count {
-      let percentage = (Double(samples) / Double(debuggerCentral.initialSamples) * 100).rounded(decimalPlaces: 2)
+    if let state = item.state, let program = data.program {
+      let reachingProbability = state.reachingProbability(in: program)
+      let percentage = (reachingProbability * 100).rounded(decimalPlaces: 2)
       return "\(percentage)%"
     } else {
       return ""
@@ -221,7 +227,7 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
   
   func executionOutlineSurvivalCellText(item: ExecutionOutlineRow) -> String {
     if let samples = item.state?.samples, samples.count > 0 {
-      let survivingSamples = samples.filter({ survivingSampleIds.contains($0.id) })
+      let survivingSamples = samples.filter({ data.survivingSampleIds.contains($0.id) })
       let percentage = (Double(survivingSamples.count) / Double(samples.count) * 100).rounded(decimalPlaces: 2)
       return "\(percentage)%"
     } else {

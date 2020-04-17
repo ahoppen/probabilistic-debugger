@@ -23,6 +23,7 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
   @IBOutlet var executionOutlineView: NSOutlineView!
   @IBOutlet var samplesTextField: NSTextField!
   @IBOutlet var survivingTextField: NSTextField!
+  @IBOutlet var approximationErrorTextField: NSTextField!
   
   @Published
   @objc var survivingSamplesOnlyInVariablesView: Bool = false
@@ -68,10 +69,25 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
       self.textView.textStorage?.setAttributedString($0)
     })
     
-    cancellables += debuggerCentral.$samples.map({ [unowned self] (samples) -> String in
-      let percentage = (Double(samples.count) / Double(self.debuggerCentral.initialSamples) * 100).rounded(decimalPlaces: 2)
+    cancellables += debuggerCentral.$reachabilityProbability.map({ (reachabilityProbability) -> String in
+      let percentage = (reachabilityProbability * 100).rounded(decimalPlaces: 2)
       return "Samples: \(percentage)%"
-    }).assign(to: \.stringValue, on: samplesTextField)
+    }).receive(on: DispatchQueue.main).assign(to: \.stringValue, on: samplesTextField)
+    cancellables += debuggerCentral.$approximationError.map({ (approximationError) -> String in
+      let errorString: String
+      if approximationError == 0 {
+        errorString = "0%"
+      } else if approximationError > 0.001 {
+        errorString = "\((approximationError * 100).rounded(decimalPlaces: 1))%"
+      } else {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .scientific
+        formatter.positiveFormat = "0.#E0"
+        formatter.exponentSymbol = "^"
+        errorString = formatter.string(for: approximationError)!
+      }
+      return "Error: \(errorString)"
+    }).receive(on: DispatchQueue.main).assign(to: \.stringValue, on: approximationErrorTextField)
     cancellables += Publishers.CombineLatest(debuggerCentral.$samples, debuggerCentral.survivingSampleIds).map({ (samples, survivingSampleIds) -> String in
       let percentage: Double
       if samples.count > 0 {

@@ -230,6 +230,26 @@ internal extension WPTerm {
   }
 }
 
+public extension WPTerm {
+  var doubleValue: Double {
+    switch self.simplified {
+    case .integer(let value):
+      return Double(value)
+    case .double(let value):
+      return value
+    case let simplifiedTerm:
+      fatalError("""
+        WP evaluation term was not fully simplified
+        Term:
+        \(simplifiedTerm)
+
+        Original:
+        \(self)
+        """)
+    }
+  }
+}
+
 public func +(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
   return .add(terms: [lhs, rhs])
 }

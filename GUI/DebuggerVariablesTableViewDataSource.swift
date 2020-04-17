@@ -22,6 +22,17 @@ fileprivate extension Array where Element: Hashable {
   }
 }
 
+fileprivate extension IRValue {
+  var doubleValue: Double {
+    switch self {
+    case .integer(let value):
+      return Double(value)
+    case .bool(let value):
+      return value ? 1 : 0
+    }
+  }
+}
+
 fileprivate struct DataSourceData {
   let displayedSamples: [SourceCodeSample]
   let variableValuesRefinedUsingWP: [String: [IRValue: Double]]?
@@ -97,14 +108,16 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       textView.font = NSFontManager().convert(textView.font!, toHaveTrait: .boldFontMask)
       return textView
     case "average":
-      let average = data.displayedSamples.map({ (sample) -> Double in
-        switch sample.values[variableName]! {
-        case .integer(let value):
-          return Double(value)
-        case .bool(let value):
-          return value ? 1 : 0
-        }
-      }).reduce(0, { $0 + $1}) / Double(data.displayedSamples.count)
+      let average: Double
+      if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
+        average = variableValuesRefinedUsingWP[variableName]!.map({ value, probability in
+          return value.doubleValue * probability
+        }).reduce(0, { $0 + $1 })
+      } else {
+        average = data.displayedSamples.map({ (sample) -> Double in
+          return sample.values[variableName]!.doubleValue
+        }).reduce(0, { $0 + $1}) / Double(data.displayedSamples.count)
+      }
       let textView = NSTextField(labelWithString: "\(average.rounded(decimalPlaces: 4))")
       return textView
     case "value":

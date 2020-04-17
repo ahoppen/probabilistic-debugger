@@ -33,8 +33,9 @@ public class Debugger {
   public private(set) var stateStack: [IRExecutionState?] {
     didSet {
       assert(!stateStack.isEmpty)
-      // Reset the cache of variable values refined using WP since we now have different samples
+      // Reset the caches for values computed using WP
       _variableValuesRefinedUsingWP = nil
+      _reachingProababilities = nil
     }
   }
   
@@ -104,6 +105,37 @@ public class Debugger {
     return sourceCodeSamples
   }
   
+  private var _reachingProababilities: (value: Double, runsWithSatisfiedObserves: Double, runsNotCutOffByLoopIterationBounds: Double)? = nil
+  private var reachingProbabilities: (value: Double, runsWithSatisfiedObserves: Double, runsNotCutOffByLoopIterationBounds: Double) {
+    if _reachingProababilities == nil {
+      guard let currentState = currentState else {
+        return (0, 0, 0)
+      }
+      let inferenceEngine = WPInferenceEngine(program: program)
+      let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position)
+      _reachingProababilities = (
+        inferred.value.doubleValue,
+        inferred.runsWithSatisifiedObserves.doubleValue,
+        inferred.runsNotCutOffByLoopIterationBounds.doubleValue
+      )
+    }
+    return _reachingProababilities!
+  }
+  
+  /// The probability with which this state is reached when program execution is started at the beginning.
+  public var reachingProbability: Double {
+    return reachingProbabilities.value / reachingProbabilities.runsNotCutOffByLoopIterationBounds
+  }
+  
+  /// The error that might have been introduced by limiting the maximum number of loop iterations.
+  public var approximationError: Double {
+    return 1 - reachingProbabilities.runsNotCutOffByLoopIterationBounds
+  }
+  
+  private var runsNotCutOffByLoopIterationBounds: Double {
+    return reachingProbabilities.runsNotCutOffByLoopIterationBounds
+  }
+  
   private var _variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
   public var variableValuesRefinedUsingWP: [String: [IRValue: Double]] {
     if _variableValuesRefinedUsingWP == nil {
@@ -111,9 +143,6 @@ public class Debugger {
         return [:]
       }
       let inferenceEngine = WPInferenceEngine(program: program)
-      
-      // Determine the fraction of runs that can end up in the current state. We need to divide 
-      let normalizationFactor = inferenceEngine.inferProbability(of: .integer(1), loopUnrolls: currentState.loopUnrolls, to: currentState.position)
       
       var variableValues: [String: [IRValue: Double]] = [:]
       guard let instructionInfo = debugInfo.info[currentState.position] else {
@@ -123,7 +152,7 @@ public class Debugger {
         var variableDistribution: [IRValue: Double] = [:]
         let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
         for value in possibleValues {
-          variableDistribution[value] = inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: currentState.loopUnrolls, to: currentState.position) / normalizationFactor
+          variableDistribution[value] = inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: currentState.loopUnrolls, to: currentState.position) / runsNotCutOffByLoopIterationBounds
         }
         variableValues[sourceVariable] = variableDistribution
       }
