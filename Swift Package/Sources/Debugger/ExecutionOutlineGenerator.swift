@@ -2,6 +2,21 @@ import IR
 import IRExecution
 import Utils
 
+fileprivate extension IRProgram {
+  func firstInstructionWithDebugInfo(after position: InstructionPosition, debugInfo: DebugInfo) -> InstructionPosition {
+    var position = position
+    while debugInfo.info[position] == nil {
+      if self.basicBlocks[position.basicBlock]!.instructions.count - 1 > position.instructionIndex {
+        position = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
+      } else if let jumpInstruction = self.instruction(at: position)! as? JumpInstruction {
+        position = InstructionPosition(basicBlock: jumpInstruction.target, instructionIndex: 0)
+      } else {
+        fatalError("After every instruction position without debug info there should be a unique successor instruction with debug info. At latest the branch instruction that breaks the straight execution line should have debug info.")
+      }
+    }
+    return position
+  }
+}
 /// Generate an `ExecutionOutline` for a given IR program with debug info.
 public class ExecutionOutlineGenerator {
   private var program: IRProgram {
@@ -106,11 +121,19 @@ public class ExecutionOutlineGenerator {
       let stateNotSatisfyingCondition = currentState.filterSamples(condition: {
         return branchInstruction.condition.evaluated(in: $0).boolValue! == false
       })
-            
-      if let lastExitState = exitStates.last {
-        exitStates.append(IRExecutionState.merged(states: [lastExitState, stateNotSatisfyingCondition])!)
+
+      let newExitState: IRExecutionState
+      if let evalutedToNextInstructionWithDebugInfo = try executor.runUntilPosition(state: stateNotSatisfyingCondition, stopPositions: Set(debugInfo.info.keys)) {
+        newExitState = evalutedToNextInstructionWithDebugInfo
       } else {
-        exitStates.append(stateNotSatisfyingCondition)
+        let falseBlockPosition = InstructionPosition(basicBlock: branchInstruction.targetFalse, instructionIndex: 0)
+        let position = program.firstInstructionWithDebugInfo(after: falseBlockPosition, debugInfo: debugInfo)
+        newExitState = IRExecutionState(position: position, emptySamples: 0)
+      }
+      if let lastExitState = exitStates.last {
+        exitStates.append(IRExecutionState.merged(states: [lastExitState, newExitState])!)
+      } else {
+        exitStates.append(newExitState)
       }
       
       // If there are no samples violating the condition, we can simply ignore this part
