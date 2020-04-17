@@ -531,4 +531,54 @@ class WPInferenceEngineTests: XCTestCase {
       _ = inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls)
     }
   }
+  
+  func testIfInsideLoop() {
+    let var1 = IRVariable(name: "1", type: .bool)
+    let var2 = IRVariable(name: "2", type: .bool)
+    let var3 = IRVariable(name: "3", type: .bool)
+    
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    let bb5Name = BasicBlockName("bb5")
+    let bb6Name = BasicBlockName("bb6")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .bool(true)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      PhiInstruction(assignee: var3, choices: [bb1Name: var1, bb6Name: var2]),
+      BranchInstruction(condition: .variable(var3), targetTrue: bb3Name, targetFalse: bb4Name)
+    ])
+    
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      BranchInstruction(condition: .variable(var3), targetTrue: bb5Name, targetFalse: bb6Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      ReturnInstruction()
+    ])
+    
+    let bb5 = BasicBlock(name: bb5Name, instructions: [
+      JumpInstruction(target: bb6Name)
+    ])
+    
+    let bb6 = BasicBlock(name: bb6Name, instructions: [
+      AssignInstruction(assignee: var2, value: .bool(false)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4, bb5, bb6])
+    let inferenceEngine = WPInferenceEngine(program: program)
+    
+    let prob = inferenceEngine.inferProbability(of: var3, beingEqualTo: .bool(true), loopUnrolls: [
+      LoopingBranch(conditionBlock: bb2Name, bodyBlock: bb3Name): .exactly(1)
+    ], to: InstructionPosition(basicBlock: bb3Name, instructionIndex: 0))
+    
+    XCTAssertEqual(prob, 1)
+  }
 }

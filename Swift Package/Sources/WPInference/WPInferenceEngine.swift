@@ -70,7 +70,7 @@ public class WPInferenceEngine {
     for (key, unrolls) in state.remainingLoopUnrolls {
       // Check if we have a loop specification for a loop with this exit block
       // Then check if we are leaving the exit block towards the non-body block
-      if key.conditionBlock == state.position.basicBlock && key.bodyBlock != predecessor {
+      if key.conditionBlock == state.position.basicBlock && program.properPredominators[state.position.basicBlock]!.contains(predecessor) {
         // If we have found such a loop, check if we need to unroll it an exact number of times.
         if case .exactly(let count) = unrolls {
           // If we haven't unrolled the loop sufficiently often, ignore this exit of the loop
@@ -262,7 +262,7 @@ public class WPInferenceEngine {
         case let unknownInstruction:
           fatalError("Unknown instruction: \(type(of: unknownInstruction))")
         }
-        if newStateToInfer.term.isZero {
+        if newStateToInfer.term.isZero && newStateToInfer.runsNotCutOffByLoopIterationBounds.isZero && newStateToInfer.runsWithSatisifiedObserves.isZero {
           // This state is not contributing anything. There is no point in pursuing it.
         } else if newStateToInfer.position == programStartState {
           finishedInferenceStates.append(newStateToInfer)
