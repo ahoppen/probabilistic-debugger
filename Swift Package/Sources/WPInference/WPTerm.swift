@@ -164,11 +164,11 @@ internal extension WPTerm {
         }
       }
       var finalTerms = otherComponents
-      if integerComponent != 0 {
+      if integerComponent != 0 && doubleComponent == 0 {
         finalTerms.append(.integer(integerComponent))
       }
       if doubleComponent != 0 {
-        finalTerms.append(.double(doubleComponent))
+        finalTerms.append(.double(doubleComponent + Double(integerComponent)))
       }
       if finalTerms.count == 0 {
         return .integer(0)
