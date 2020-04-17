@@ -32,16 +32,16 @@ enum IRAnalysis {
     return predecessors
   }
   
-  private static func paths(from: BasicBlockName, to: BasicBlockName, recursionStopPoints: Set<BasicBlockName> = [], directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
+  private static func paths(from: BasicBlockName, to: BasicBlockName, recursionStopPoints: Set<BasicBlockName> = [], directSuccessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
     if recursionStopPoints.contains(from) {
       return []
     }
-    if directPredecessors[from]!.contains(to) {
+    if directSuccessors[from]!.contains(to) {
       return [[from]]
     } else {
       var paths: Set<[BasicBlockName]> = []
-      for predecessor in directPredecessors[from]! {
-        for path in IRAnalysis.paths(from: predecessor, to: to, recursionStopPoints: recursionStopPoints.union([from]), directPredecessors: directPredecessors) {
+      for predecessor in directSuccessors[from]! {
+        for path in IRAnalysis.paths(from: predecessor, to: to, recursionStopPoints: recursionStopPoints.union([from]), directSuccessors: directSuccessors) {
           paths.insert([from] + path)
         }
       }
@@ -49,10 +49,10 @@ enum IRAnalysis {
     }
   }
   
-  static func loops(directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
+  static func loops(directSuccessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
     var loops: Set<[BasicBlockName]> = []
-    for block in directPredecessors.keys {
-      loops.formUnion(paths(from: block, to: block, directPredecessors: directPredecessors))
+    for block in directSuccessors.keys {
+      loops.formUnion(paths(from: block, to: block, directSuccessors: directSuccessors))
     }
     // Normalize the loops to unify loops like bb3 -> bb2 -> bb3 and bb2 -> bb3 -> bb2
     let normalizedLoops = loops.map({ (loop: [BasicBlockName]) -> [BasicBlockName] in

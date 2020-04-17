@@ -28,20 +28,20 @@ public class IRProgram: Equatable, CustomStringConvertible {
   public static func == (lhs: IRProgram, rhs: IRProgram) -> Bool {
     return lhs.basicBlocks == rhs.basicBlocks && lhs.startBlock == rhs.startBlock
   }
-  
-}
-
-// MARK: - Analysis results
-
-extension IRProgram {
+ 
+  // MARK: - Analysis results
   // These could be cached if computation is a performance bottleneck
-  
+
+  private var _directPredecessors: [BasicBlockName: Set<BasicBlockName>]? = nil
   public var directPredecessors: [BasicBlockName: Set<BasicBlockName>] {
-    return IRAnalysis.directPredecessors(basicBlocks: basicBlocks.values)
+    if _directPredecessors == nil {
+      _directPredecessors = IRAnalysis.directPredecessors(basicBlocks: basicBlocks.values)
+    }
+    return _directPredecessors!
   }
   
   public var loops: Set<[BasicBlockName]> {
-    return IRAnalysis.loops(directPredecessors: directPredecessors)
+    return IRAnalysis.loops(directSuccessors: directSuccessors)
   }
   
   public var directSuccessors: [BasicBlockName: Set<BasicBlockName>] {
