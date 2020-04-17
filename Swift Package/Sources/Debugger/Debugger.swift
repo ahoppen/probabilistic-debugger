@@ -33,6 +33,8 @@ public class Debugger {
   public private(set) var stateStack: [IRExecutionState?] {
     didSet {
       assert(!stateStack.isEmpty)
+      // Reset the cache of variable values refined using WP since we now have different samples
+      _variableValuesRefinedUsingWP = nil
     }
   }
   
@@ -62,12 +64,18 @@ public class Debugger {
   public init(program: IRProgram, debugInfo: DebugInfo, sampleCount: Int) {
     self.executor = IRExecutor(program: program)
     self.debugInfo = debugInfo
-    self.stateStack = [IRExecutionState(initialStateIn: program, sampleCount: sampleCount)]
+    self.stateStack = [IRExecutionState(initialStateIn: program, sampleCount: sampleCount, loops: debugInfo.loops)]
     
     if debugInfo.info[self.currentState!.position] == nil {
       // Step to the first instruction with debug info
       try! runToNextInstructionWithDebugInfo(currentState: self.currentState!)
     }
+  }
+  
+  public init(_ other: Debugger) {
+    self.executor = other.executor
+    self.debugInfo = other.debugInfo
+    self.stateStack = other.stateStack
   }
   
   // MARK: - Retrieving current state
@@ -96,23 +104,36 @@ public class Debugger {
     return sourceCodeSamples
   }
   
-  public func sourceLocation(of executionState: IRExecutionState) -> SourceCodeLocation? {
-    return debugInfo.info[executionState.position]?.sourceCodeLocation
+  private var _variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
+  public var variableValuesRefinedUsingWP: [String: [IRValue: Double]] {
+    if _variableValuesRefinedUsingWP == nil {
+      guard let currentState = currentState else {
+        return [:]
+      }
+      let inferenceEngine = WPInferenceEngine(program: program)
+      
+      // Determine the fraction of runs that can end up in the current state. We need to divide 
+      let normalizationFactor = inferenceEngine.inferProbability(of: .integer(1), loopUnrolls: currentState.loopUnrolls, to: currentState.position)
+      
+      var variableValues: [String: [IRValue: Double]] = [:]
+      guard let instructionInfo = debugInfo.info[currentState.position] else {
+        fatalError("Could not find debug info for the current statement")
+      }
+      for (sourceVariable, irVariable) in instructionInfo.variables {
+        var variableDistribution: [IRValue: Double] = [:]
+        let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
+        for value in possibleValues {
+          variableDistribution[value] = inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: currentState.loopUnrolls, to: currentState.position) / normalizationFactor
+        }
+        variableValues[sourceVariable] = variableDistribution
+      }
+      _variableValuesRefinedUsingWP = variableValues
+    }
+    return _variableValuesRefinedUsingWP!
   }
   
-  // MARK: - Performing WP-inference to refine the probability of a variable value
-  
-  public func inferProbability(of variableName: String, value: IRValue, executionOutline: ExecutionOutline) throws -> Double {
-    guard let currentState = currentState else {
-      return 0
-    }
-    
-    let instructionInfo = debugInfo.info[currentState.position]!
-    guard let irVariable = instructionInfo.variables[variableName] else {
-      throw DebuggerError(message: "Could not find variable with name '\(variableName)'")
-    }
-    let inferenceEngine = WPInferenceEngine(program: program)
-    return inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: executionOutline.loopIterationBounds(for: program))
+  public func sourceLocation(of executionState: IRExecutionState) -> SourceCodeLocation? {
+    return debugInfo.info[executionState.position]?.sourceCodeLocation
   }
   
   // MARK: - Step through the program

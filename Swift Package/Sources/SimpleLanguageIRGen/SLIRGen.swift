@@ -61,6 +61,9 @@ public class SLIRGen: ASTVisitor {
   /// Debug info that is collected during IR generation
   private var debugInfo: [InstructionPosition: InstructionDebugInfo] = [:]
   
+  /// Keep track of the loops that we generate. These will end up in the DebugInfo.
+  private var loops: [IRLoop] = []
+  
   /// The basic blocks that are generated completely
   private var finishedBasicBlocks: [BasicBlock] = []
   
@@ -123,7 +126,7 @@ public class SLIRGen: ASTVisitor {
     }
     append(instruction: ReturnInstruction(), debugInfo: (.return, stmts.last!.range.upperBound..<stmts.last!.range.upperBound))
     finishedBasicBlocks.append(currentBasicBlock)
-    return (program: IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks), debugInfo: DebugInfo(debugInfo))
+    return (program: IRProgram(startBlock: BasicBlockName("bb1"), basicBlocks: finishedBasicBlocks), debugInfo: DebugInfo(debugInfo, loops: loops))
   }
   
   public static func generateIr(for sourceCode: String) throws -> (program: IRProgram, debugInfo: DebugInfo) {
@@ -314,6 +317,8 @@ public class SLIRGen: ASTVisitor {
     let conditionBlockName = unusedBasicBlockName()
     let bodyStartBlockName = unusedBasicBlockName()
     let joinBlockName = unusedBasicBlockName()
+    
+    loops.append(IRLoop(conditionBlock: conditionBlockName, bodyStartBlock: bodyStartBlockName))
     
     let variablesDeclaredBeforeCondition = declaredVariables
     

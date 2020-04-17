@@ -74,6 +74,7 @@ class DebuggerCentral {
   @Published public private(set) var sourceCode: String = ""
   @Published public private(set) var debuggerLocation: SourceCodeLocation? = nil
   @Published public private(set) var samples: [SourceCodeSample] = []
+  @Published public private(set) var variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
   public private(set) var survivingSampleIds = PassthroughSubject<Set<Int>, Never>()
   
   public private(set) var irAndDebugInfo = PassthroughSubject<Failable<(program: IRProgram, debugInfo: DebugInfo)>, Never>()
@@ -127,16 +128,18 @@ class DebuggerCentral {
   private func updatePublishedDebuggerVariables() {
     self.debuggerLocation = self.debugger?.sourceLocation
     self.samples = self.debugger?.samples ?? []
+    self.variableValuesRefinedUsingWP = nil
+    if let debugger = self.debugger {
+      // Copy the debugger instance to avoid race conditions with the debugger modifying its sate
+      let copiedDebugger = Debugger(debugger)
+      DispatchQueue.global(qos: .userInitiated).async {
+        self.variableValuesRefinedUsingWP = copiedDebugger.variableValuesRefinedUsingWP
+      }
+    }
   }
   
   public func jumpToExecutionState(_ executionState: IRExecutionState) {
     debugger?.jumpToState(executionState)
     updatePublishedDebuggerVariables()
-  }
-  
-  /// Infer the probability of the given variable at the end of the program using WP-inference.
-  /// The value might change if the debugger state changes. The caller is responsible for detecting such conditions and updating the UI accordingly.
-  public func inferProbability(of variableName: String, value: IRValue, executionOutline: ExecutionOutline) throws -> Double {
-    return try debugger?.inferProbability(of: variableName, value: value, executionOutline: executionOutline) ?? 0
   }
 }

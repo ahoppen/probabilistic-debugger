@@ -24,14 +24,14 @@ fileprivate extension Array where Element: Hashable {
 
 fileprivate struct DataSourceData {
   let displayedSamples: [SourceCodeSample]
-  let executionOutline: ExecutionOutline?
+  let variableValuesRefinedUsingWP: [String: [IRValue: Double]]?
   let refineProbabilitiesUsingWpInference: Bool
 }
 
 class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NSTableViewDelegate {
   let debugger: DebuggerCentral
   weak var tableView: NSTableView!
-  private var data = DataSourceData(displayedSamples: [], executionOutline: nil, refineProbabilitiesUsingWpInference: false) {
+  private var data = DataSourceData(displayedSamples: [], variableValuesRefinedUsingWP: nil, refineProbabilitiesUsingWpInference: false) {
     didSet {
       Dispatch.dispatchPrecondition(condition: .onQueue(.main))
       tableView.reloadData()
@@ -43,7 +43,7 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
     self.debugger = debugger
     self.tableView = tableView
     super.init()
-    cancellables += Publishers.CombineLatest4(debugger.$samples, debugger.executionOutline, debugger.survivingSampleIds, Publishers.CombineLatest(survivingSamplesOnly, refineProbabilitiesUsingWpInference)).sink { [unowned self] (samples, executionOutline, survivingSampleIds, options) in
+    cancellables += Publishers.CombineLatest4(debugger.$samples, debugger.$variableValuesRefinedUsingWP, debugger.survivingSampleIds, Publishers.CombineLatest(survivingSamplesOnly, refineProbabilitiesUsingWpInference)).sink { [unowned self] (samples, variableValuesRefinedUsingWP, survivingSampleIds, options) in
       let survivingSamplesOnly = options.0
       let refineProbabilitiesUsingWpInference = options.1
       
@@ -57,7 +57,7 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       DispatchQueue.main.async {
         self.data = DataSourceData(
           displayedSamples: displayedSamples,
-          executionOutline: executionOutline.success,
+          variableValuesRefinedUsingWP: variableValuesRefinedUsingWP,
           refineProbabilitiesUsingWpInference: refineProbabilitiesUsingWpInference
         )
       }
@@ -110,11 +110,11 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
     case "value":
       let histogram = data.displayedSamples.map({ $0.values[variableName]! }).histogram()
       let values = histogram.sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending }).map({ (value, numSamples) in
-        var probability = Double(numSamples) / Double(data.displayedSamples.count)
-        if data.refineProbabilitiesUsingWpInference, let executionOutline = data.executionOutline {
-          if let inferredProbability = try? debugger.inferProbability(of: variableName, value: value, executionOutline: executionOutline) {
-            probability = inferredProbability
-          }
+        let probability: Double
+        if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
+          probability = variableValuesRefinedUsingWP[variableName]?[value] ?? 0
+        } else {
+          probability = Double(numSamples) / Double(data.displayedSamples.count)
         }
         return "\(value): \((probability * 100).rounded(decimalPlaces: 2))%"
       }).joined(separator: ", ")

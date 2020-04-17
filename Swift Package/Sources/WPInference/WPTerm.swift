@@ -151,19 +151,21 @@ internal extension WPTerm {
       }
     case .add(terms: let terms):
       var integerComponent = 0
-      var doubleComponent = 0.0
+      var doubleComponents: [Double] = []
       var otherComponents: [WPTerm] = []
       for term in terms {
         switch term.simplified {
         case .integer(let value):
           integerComponent += value
         case .double(let value):
-          doubleComponent += value
+          doubleComponents.append(value)
         case let simplifiedTerm:
           otherComponents.append(simplifiedTerm)
         }
       }
       var finalTerms = otherComponents
+      // Sort the double components by size before adding them since this is numerically more stable
+      let doubleComponent = doubleComponents.sorted().reduce(0, { $0 + $1 })
       if integerComponent != 0 && doubleComponent == 0 {
         finalTerms.append(.integer(integerComponent))
       }

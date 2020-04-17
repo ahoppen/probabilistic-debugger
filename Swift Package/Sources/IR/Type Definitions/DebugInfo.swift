@@ -70,7 +70,11 @@ public struct DebugInfo {
   /// Mapping of the instructions corresponding to a statement in the source code to their debug info
   public let info: [InstructionPosition: InstructionDebugInfo]
   
-  public init(_ info: [InstructionPosition: InstructionDebugInfo]) {
+  /// The loops that exist in the program to which this debug info belongs.
+  public let loops: [IRLoop]
+  
+  public init(_ info: [InstructionPosition: InstructionDebugInfo], loops: [IRLoop]) {
     self.info = info
+    self.loops = loops
   }
 }

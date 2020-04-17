@@ -20,6 +20,9 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(sample.values, [
       "x": .integer(42)
     ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(42): 1
+    ])
   }
   
   func testRunDeterministicComputationAndGetVariableValues() {
@@ -39,6 +42,12 @@ class DebuggerTests: XCTestCase {
       "x": .integer(41),
       "y": .integer(52),
     ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(41): 1
+    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["y"], [
+      .integer(52): 1
+    ])
   }
   
   func testRunProbabilisticProgram() {
@@ -55,6 +64,10 @@ class DebuggerTests: XCTestCase {
     }
     
     XCTAssertEqual(xValues.average, 1.5, accuracy: 0.2)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 0.5,
+      .integer(2): 0.5,
+    ])
   }
   
   func testRunProbabilisticProgramWithBranch() {
@@ -76,6 +89,14 @@ class DebuggerTests: XCTestCase {
     }
     
     XCTAssertEqual(yValues.average, 15, accuracy: 1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 0.5,
+      .integer(2): 0.5,
+    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["y"], [
+      .integer(10): 0.5,
+      .integer(20): 0.5,
+    ])
   }
   
   func testRunProgramWithVariableShadowing() {
@@ -98,6 +119,12 @@ class DebuggerTests: XCTestCase {
       "x": .integer(1),
       "x#2": .integer(2),
     ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 1,
+    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x#2"], [
+      .integer(2): 1,
+    ])
   }
   
   func testRunProgramWithoutViableRun() {
@@ -112,6 +139,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 1)
     XCTAssertNoThrow(try debugger.runUntilEnd())
     XCTAssertEqual(debugger.samples.count, 0)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP, [:])
   }
   
   func testSteppingThroughStraightLineProgram() {
@@ -130,18 +158,32 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first!.values, [
       "x": .integer(42),
     ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(42): 1,
+    ])
+    
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 1))
     XCTAssertEqual(debugger.samples.count, 1)
     XCTAssertEqual(debugger.samples.first!.values, [
       "x": .integer(41),
     ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(41): 1,
+    ])
+    
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 15))
     XCTAssertEqual(debugger.samples.count, 1)
     XCTAssertEqual(debugger.samples.first!.values, [
       "x": .integer(41),
       "y": .integer(52)
+    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(41): 1,
+    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["y"], [
+      .integer(52): 1,
     ])
     
     XCTAssertThrowsError(try debugger.stepOver())
@@ -162,16 +204,26 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 0.3,
+      .integer(2): 0.7,
+    ])
     
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 3))
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 1,
+    ])
     
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 1,
+    ])
   }
   
   func testStepIntoFalseBranch() {
@@ -189,6 +241,10 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 0.3,
+      .integer(2): 0.7,
+    ])
 
     XCTAssertNoThrow(try debugger.stepInto(branch: false))
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
@@ -211,11 +267,19 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 0.3,
+      .integer(2): 0.7,
+    ])
 
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2.3, accuracy: 0.2)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 0.7,
+      .integer(3): 0.3,
+    ])
   }
   
   func testStepThroughLoopBranch() {
@@ -234,6 +298,9 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(2)
     ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 1,
+    ])
     
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 3))
@@ -241,19 +308,28 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(2)
     ])
-    
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 1,
+    ])
+
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 1)
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(1)
     ])
-    
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 1,
+    ])
+
     XCTAssertNoThrow(try debugger.stepInto(branch: false))
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 1)
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(1)
+    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 1,
     ])
   }
   
@@ -272,11 +348,20 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 4.5, accuracy: 0.2)
-
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(3): 0.25,
+      .integer(4): 0.25,
+      .integer(5): 0.25,
+      .integer(6): 0.25,
+    ])
+    
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 1,
+    ])
   }
   
   func testSaveAndRestoreState() {
@@ -294,6 +379,8 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(1)]!, 0.3)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(2)]!, 0.7)
     
     debugger.saveState()
     
@@ -301,17 +388,27 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 3))
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 1,
+    ])
     
     XCTAssertNoThrow(try debugger.restoreState())
 
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(1): 0.3,
+      .integer(2): 0.7,
+    ])
 
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
+        XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 1,
+    ])
   }
   
   func testConditionValueStoredInBooleanVariable() {
@@ -330,6 +427,9 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 5, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 1,
+    ])
   }
   
   func testCowbodyDuelWithOnlyIf() {
@@ -363,6 +463,11 @@ class DebuggerTests: XCTestCase {
 
     XCTAssertNoThrow(try debugger.runUntilEnd())
     XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1.5, accuracy: 0.1)
+    
+    // Assert using accuracy since there are some numerical instabilities in the calculation of the WP.
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(1)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(2)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(3)], nil)
   }
   
   func testCowbodyDuelWithOnlyIfElse() {
@@ -387,6 +492,10 @@ class DebuggerTests: XCTestCase {
 
     XCTAssertNoThrow(try debugger.runUntilEnd())
     XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1.5, accuracy: 0.1)
+    
+    // Assert using accuracy since there are some numerical instabilities in the calculation of the WP.
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(1)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(2)]!, 0.5, accuracy: 0.001)
   }
   
   func testStepOverBranchIfPostdominatorHasNoDebugInfo() {

@@ -1,4 +1,5 @@
 import IR
+import IRExecution
 
 internal struct WPInferenceState {
   /// WPInferenceState is a copy on write container for performance reasons. `Storage` stores the actual data of the struct.
@@ -7,14 +8,14 @@ internal struct WPInferenceState {
     var term: WPTerm
     var runsWithSatisifiedObserves: WPTerm
     var runsNotCutOffByLoopIterationBounds: WPTerm
-    var remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]
+    var remainingLoopUnrolls: LoopUnrolls
     
     init(
       position: InstructionPosition,
       term: WPTerm,
       runsWithSatisifiedObserves: WPTerm,
       runsNotCutOffByLoopIterationBounds: WPTerm,
-      remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]
+      remainingLoopUnrolls: LoopUnrolls
     ) {
       self.position = position
       self.term = term
@@ -94,9 +95,10 @@ internal struct WPInferenceState {
     }
   }
   
-  /// To allow WP-inference of loops without finding fixpoints for finding loop invariants, we unroll the loops to
-  /// This dictionary keeps track of how many iterations we have left in each loop before aborting WP-inference.
-  var remainingLoopUnrolls: [LoopingBranch: LoopUnrolling] {
+  /// To allow WP-inference of loops without finding fixpoints for finding loop invariants, we unroll the loops up to a fixed number of iterations.
+  /// The number of loop iterations to unrolled is usually estimated by doing a forward execution pass using sampling and determining the maximum number of iterations performed during the execution.
+  /// During WP-inference, we take the `LoopUnrolls` taken during forward execution and count them backwards until we have unrolled the loop sufficiently often so we can exit it towards its predominator state.
+  var remainingLoopUnrolls: LoopUnrolls {
     get {
       return storage.remainingLoopUnrolls
     }
@@ -110,7 +112,7 @@ internal struct WPInferenceState {
   
   // MARK: - Initialization
   
-  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]) {
+  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: LoopUnrolls) {
     self.storage = Storage(
       position: position,
       term: term,
@@ -154,7 +156,7 @@ internal struct WPInferenceState {
     return modifiedState
   }
   
-  func withRemainingLoopUnrolls(_ remainingLoopUnrolls: [LoopingBranch: LoopUnrolling]) -> WPInferenceState {
+  func withRemainingLoopUnrolls(_ remainingLoopUnrolls: LoopUnrolls) -> WPInferenceState {
     var modifiedState = self
     modifiedState.remainingLoopUnrolls = remainingLoopUnrolls
     return modifiedState

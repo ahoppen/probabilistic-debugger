@@ -32,7 +32,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -73,7 +73,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -128,7 +128,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -181,7 +181,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -243,7 +243,8 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+      let loop = IRLoop(conditionBlock: bb1Name, bodyStartBlock: bb2Name)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1, loops: [loop])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -251,7 +252,8 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       let onlySample = finalState.samples.only
       
       XCTAssertEqual(onlySample.values[var1], .integer(1))
-      }())
+      XCTAssertEqual(finalState.loopUnrolls[loop], [1])
+    }())
   }
   
   func testProbabilisticSingleBlockExecution() {
@@ -271,7 +273,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -330,7 +332,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return
@@ -366,7 +368,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
     
     XCTAssertNoThrow(try {
       let executor = IRExecutor(program: irProgram)
-      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000)
+      let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 10000, loops: [])
       guard let finalState = try executor.runUntilEnd(state: initialState) else {
         XCTFail("No final state returned")
         return

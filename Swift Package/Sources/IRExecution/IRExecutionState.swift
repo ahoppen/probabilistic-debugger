@@ -5,6 +5,10 @@ public struct IRExecutionState {
   /// If no instruction exists at this program position in the IR, then the program has terminated.
   public let position: InstructionPosition
   
+  /// During execution, keep track of how many times each loop has been traversed (unrolled).
+  /// This information is required to refine the proababilities later using WP-inference.
+  public let loopUnrolls: LoopUnrolls
+  
   /// The samples that describe the probability distribution of the variables at the given execution state.
   public let samples: [IRSample]
   
@@ -12,18 +16,19 @@ public struct IRExecutionState {
     return samples.count > 0
   }
   
-  public init(initialStateIn program: IRProgram, sampleCount: Int) {
-    self.init(position: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0), emptySamples: sampleCount)
+  public init(initialStateIn program: IRProgram, sampleCount: Int, loops: [IRLoop]) {
+    self.init(position: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0), emptySamples: sampleCount, loops: loops)
   }
   
-  public init(position: InstructionPosition, emptySamples sampleCount: Int) {
+  public init(position: InstructionPosition, emptySamples sampleCount: Int, loops: [IRLoop]) {
     let samples = (0..<sampleCount).map({ IRSample(id: $0, values: [:])})
-    self.init(position: position, samples: samples)
+    self.init(position: position, samples: samples, loopUnrolls: LoopUnrolls(noIterationsForLoops: loops))
   }
   
-  private init(position: InstructionPosition, samples: [IRSample]) {
+  public init(position: InstructionPosition, samples: [IRSample], loopUnrolls: LoopUnrolls) {
     self.position = position
     self.samples = samples
+    self.loopUnrolls = loopUnrolls
   }
   
   /// Create a new `IRExecutionState` with the combined samples of the given states.
@@ -35,12 +40,17 @@ public struct IRExecutionState {
     }
     assert(states.map(\.position).allEqual)
     let combinedSamples = states.flatMap({ $0.samples })
-    return IRExecutionState(position: position, samples: combinedSamples)
+    return IRExecutionState(position: position, samples: combinedSamples, loopUnrolls: LoopUnrolls.merged(states.map(\.loopUnrolls)))
   }
   
   /// Return an  execution state at the same position that only contains the samples that satisfy the given `condition`.
   public func filterSamples(condition: (IRSample) -> Bool) -> IRExecutionState {
-    return IRExecutionState(position: position, samples: samples.filter(condition))
+    return IRExecutionState(position: position, samples: samples.filter(condition), loopUnrolls: loopUnrolls)
+  }
+  
+  public func settingLoopUnrolls(loop: IRLoop, unrolls: LoopUnrollEntry) -> IRExecutionState {
+    let newLoopUnrolls = self.loopUnrolls.settingLoopUnrolls(for: loop, unrolls: unrolls)
+    return IRExecutionState(position: position, samples: samples, loopUnrolls: newLoopUnrolls)
   }
   
   /// Execute the next instruction of this execution state and return any execution states resulting form it.
@@ -56,7 +66,7 @@ public struct IRExecutionState {
       // Modify samples and advance program position by 1
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
-      return [IRExecutionState(position: newPosition, samples: newSamples)]
+      return [IRExecutionState(position: newPosition, samples: newSamples, loopUnrolls: loopUnrolls)]
     case is ObserveInstruction:
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       // If there are no samples left, there is no point in pursuing this execution path
@@ -64,11 +74,11 @@ public struct IRExecutionState {
         return []
       } else {
         let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
-        return [IRExecutionState(position: newPosition, samples: newSamples)]
+        return [IRExecutionState(position: newPosition, samples: newSamples, loopUnrolls: loopUnrolls)]
       }
     case let instruction as JumpInstruction:
       // Simply jump to the new position and execute its phi instructions. No need to modify samples
-      return [self.jumpTo(block: instruction.target, in: program, samples: samples, previousBlock: position.basicBlock)]
+      return [self.jumpTo(block: instruction.target, in: program, samples: samples, previousBlock: position.basicBlock, loopUnrolls: loopUnrolls)]
     case let instruction as BranchInstruction:
       // Split samples into those that satisfy the condition and those that don't. Then jump to the new block and execute phi instructions
       let trueSamples = samples.filter({ instruction.condition.evaluated(in: $0).boolValue == true })
@@ -76,12 +86,16 @@ public struct IRExecutionState {
       
       var newStates: [IRExecutionState] = []
       if trueSamples.count > 0 {
-        let trueState = self.jumpTo(block: instruction.targetTrue, in: program, samples: trueSamples, previousBlock: position.basicBlock)
+        // Tell loopUnrolls to record a jump into a loop's body block even though this branch might belong to an if-else statement.
+        // recordingJumpToBodyBlock will ignore the recording request if it does not know about the loop we specified.
+        let loop = IRLoop(conditionBlock: position.basicBlock, bodyStartBlock: instruction.targetTrue)
+        let trueStateLoopUnrolls = loopUnrolls.recordingJumpToBodyBlock(for: loop)
+        let trueState = self.jumpTo(block: instruction.targetTrue, in: program, samples: trueSamples, previousBlock: position.basicBlock, loopUnrolls: trueStateLoopUnrolls)
         newStates.append(trueState)
       }
       
       if falseSamples.count > 0 {
-        let falseState = self.jumpTo(block: instruction.targetFalse, in: program, samples: falseSamples, previousBlock: position.basicBlock)
+        let falseState = self.jumpTo(block: instruction.targetFalse, in: program, samples: falseSamples, previousBlock: position.basicBlock, loopUnrolls: loopUnrolls)
         newStates.append(falseState)
       }
       
@@ -96,7 +110,7 @@ public struct IRExecutionState {
   }
   
   /// Move the program position to the start of the given `block` and execute any `phi` instructions at its start
-  private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [IRSample], previousBlock: BasicBlockName) -> IRExecutionState {
+  private func jumpTo(block: BasicBlockName, in program: IRProgram, samples: [IRSample], previousBlock: BasicBlockName, loopUnrolls: LoopUnrolls) -> IRExecutionState {
     var samples = samples
     var position = InstructionPosition(basicBlock: block, instructionIndex: 0)
     while let phiInstruction = program.instruction(at: position) as? PhiInstruction {
@@ -105,6 +119,6 @@ public struct IRExecutionState {
       })
       position = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
     }
-    return IRExecutionState(position: position, samples: samples)
+    return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls)
   }
 }

@@ -33,7 +33,7 @@ public class ExecutionOutlineGenerator {
   // MARK: - Public outline generations
 
   public func generateOutline(sampleCount: Int) throws -> ExecutionOutline {
-    let initialState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount)
+    let initialState = IRExecutionState(initialStateIn: program, sampleCount: sampleCount, loops: debugInfo.loops)
     return try generateOutline(startingAt: initialState, finalPosition: program.returnPosition, includeFinalState: true).outline
   }
   
@@ -102,15 +102,17 @@ public class ExecutionOutlineGenerator {
     
     // The instruction at which the control flow of entering the loop and leaving the loop joins (i.e. the instruction that corresponds to the next statement after the while statement)
     let joinPosition = firstNonPhiPostdominatorInstruction(of: branchingState.position)
+    let joinPositionWithDebugInfo = program.firstInstructionWithDebugInfo(after: joinPosition, debugInfo: debugInfo)
     
     // The states with which we have left the loop
-    var finishedStates = [IRExecutionState]()
     // The outlines generated for the different loop iterations
     var iterationOutlines = [ExecutionOutline]()
     // The state from which we currently generate either iterationOutlines of finishedStates
     var currentState = branchingState
     
     var exitStates: [IRExecutionState] = []
+    
+    let loop = IRLoop(conditionBlock: branchingState.position.basicBlock, bodyStartBlock: branchInstruction.targetTrue)
     
     while true {
       assert(currentState.position == branchingState.position)
@@ -123,26 +125,18 @@ public class ExecutionOutlineGenerator {
       })
 
       let newExitState: IRExecutionState
-      if let evalutedToNextInstructionWithDebugInfo = try executor.runUntilPosition(state: stateNotSatisfyingCondition, stopPositions: Set(debugInfo.info.keys)) {
+      if let evalutedToNextInstructionWithDebugInfo = try executor.runUntilPosition(state: stateNotSatisfyingCondition, stopPositions: [joinPositionWithDebugInfo]) {
         newExitState = evalutedToNextInstructionWithDebugInfo
       } else {
-        let falseBlockPosition = InstructionPosition(basicBlock: branchInstruction.targetFalse, instructionIndex: 0)
-        let position = program.firstInstructionWithDebugInfo(after: falseBlockPosition, debugInfo: debugInfo)
-        newExitState = IRExecutionState(position: position, emptySamples: 0)
+        newExitState = IRExecutionState(position: joinPositionWithDebugInfo, samples: [], loopUnrolls: stateNotSatisfyingCondition.loopUnrolls)
       }
+      let mergedExitState: IRExecutionState
       if let lastExitState = exitStates.last {
-        exitStates.append(IRExecutionState.merged(states: [lastExitState, newExitState])!)
+        mergedExitState = IRExecutionState.merged(states: [lastExitState, newExitState])!
       } else {
-        exitStates.append(newExitState)
+        mergedExitState = newExitState
       }
-      
-      // If there are no samples violating the condition, we can simply ignore this part
-      if stateNotSatisfyingCondition.hasSamples {
-        // The false branch of the looping instruction directly jumps to the postdominator instruction without any intermediate instructions with debug info, so we don't need to create an outline for this part of the run.
-        if let loopExitState = try executor.runUntilPosition(state: stateNotSatisfyingCondition, stopPositions: [joinPosition]) {
-          finishedStates.append(loopExitState)
-        }
-      }
+      exitStates.append(mergedExitState.settingLoopUnrolls(loop: loop, unrolls: LoopUnrollEntry(0...mergedExitState.loopUnrolls[loop]!.max)))
       
       // Generate the outline of the loop iteration
       
@@ -172,7 +166,12 @@ public class ExecutionOutlineGenerator {
     }
     
     let outlineEntry = ExecutionOutlineEntry.loop(state: branchingState, iterations: iterationOutlines, exitStates: exitStates)
-    let finalState = IRExecutionState.merged(states: finishedStates)
+    let finalState: IRExecutionState?
+    if let lastExitState = exitStates.last, lastExitState.hasSamples {
+      finalState = lastExitState
+    } else {
+      finalState = nil
+    }
     return (outlineEntry, finalState)
   }
 

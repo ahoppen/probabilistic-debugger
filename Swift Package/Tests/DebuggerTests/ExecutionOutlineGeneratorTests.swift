@@ -93,14 +93,16 @@ fileprivate extension IRExecutionState {
   init(sourceLine: Int, sampleCount: Int, debugInfo: DebugInfo) {
     self.init(
       position: debugInfo.instructionPosition(forLine: sourceLine),
-      emptySamples: sampleCount
+      emptySamples: sampleCount,
+      loops: []
     )
   }
   
   init(returnPositionIn irProgram: IRProgram, sampleCount: Int) {
     self.init(
       position: irProgram.returnPosition,
-      emptySamples: sampleCount
+      emptySamples: sampleCount,
+      loops: []
     )
   }
 }

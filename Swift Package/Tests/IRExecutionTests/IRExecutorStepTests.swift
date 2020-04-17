@@ -24,7 +24,7 @@ class IRExecutorStepTests: XCTestCase {
     //   return
 
     let executor = IRExecutor(program: irProgram)
-    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1)
+    let initialState = IRExecutionState(initialStateIn: irProgram, sampleCount: 1, loops: [])
     let returnPosition = InstructionPosition(basicBlock: bb0Name, instructionIndex: 2)
     
     XCTAssertNoThrow(try {

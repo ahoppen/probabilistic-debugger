@@ -162,36 +162,3 @@ fileprivate extension Dictionary {
     })
   }
 }
-
-extension ExecutionOutline {
-  func loopIterationBounds(for program: IRProgram) -> [LoopingBranch: LoopUnrolling] {
-    var bounds: [LoopingBranch: LoopUnrolling] = [:]
-    for entry in self.entries {
-      bounds.mergeAssumingUniqueKeys(entry.loopIterationBounds(for: program))
-    }
-    return bounds
-  }
-}
-
-extension ExecutionOutlineEntry {
-  func loopIterationBounds(for program: IRProgram) -> [LoopingBranch: LoopUnrolling] {
-    switch self {
-    case .instruction:
-      return [:]
-    case .end:
-      return [:]
-    case .branch(state: _, true: let trueBranch, false: let falseBranch):
-      var bounds = trueBranch?.loopIterationBounds(for: program) ?? [:]
-      bounds.mergeAssumingUniqueKeys(falseBranch?.loopIterationBounds(for: program) ?? [:])
-      return bounds
-    case .loop(state: let state, iterations: let iterations, exitStates: _):
-      var bounds: [LoopingBranch: LoopUnrolling] = [:]
-      for iteration in iterations {
-        bounds.mergeAssumingUniqueKeys(iteration.loopIterationBounds(for: program))
-      }
-      let branchInstruction = program.instruction(at: state.position) as! BranchInstruction
-      bounds[LoopingBranch(conditionBlock: state.position.basicBlock, bodyBlock: branchInstruction.targetTrue)] = .normal(iterations.count)
-      return bounds
-    }
-  }
-}
