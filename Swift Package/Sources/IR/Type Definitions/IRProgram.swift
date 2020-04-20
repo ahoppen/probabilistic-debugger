@@ -48,8 +48,12 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return IRAnalysis.directSuccessors(basicBlocks: basicBlocks.values)
   }
   
+  private var _predominators: [BasicBlockName: Set<BasicBlockName>]? = nil
   public var predominators: [BasicBlockName: Set<BasicBlockName>] {
-    return IRAnalysis.predominators(directPredecessors: directPredecessors, startBlock: startBlock)
+    if _predominators == nil {
+      _predominators = IRAnalysis.predominators(directPredecessors: directPredecessors, startBlock: startBlock)
+    }
+    return _predominators!
   }
   
   public var postdominators: [BasicBlockName: Set<BasicBlockName>] {
