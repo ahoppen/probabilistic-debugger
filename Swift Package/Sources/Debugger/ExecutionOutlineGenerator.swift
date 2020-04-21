@@ -128,7 +128,8 @@ public class ExecutionOutlineGenerator {
       if let evalutedToNextInstructionWithDebugInfo = try executor.runUntilPosition(state: stateNotSatisfyingCondition, stopPositions: [joinPositionWithDebugInfo]) {
         newExitState = evalutedToNextInstructionWithDebugInfo
       } else {
-        newExitState = IRExecutionState(position: joinPositionWithDebugInfo, samples: [], loopUnrolls: stateNotSatisfyingCondition.loopUnrolls)
+        let branchingChoices = stateNotSatisfyingCondition.branchingChoices + [.choice(source: stateNotSatisfyingCondition.position.basicBlock, target: branchInstruction.targetFalse)]
+        newExitState = IRExecutionState(position: joinPositionWithDebugInfo, samples: [], loopUnrolls: stateNotSatisfyingCondition.loopUnrolls, branchingChoices: branchingChoices)
       }
       let mergedExitState: IRExecutionState
       if let lastExitState = exitStates.last {

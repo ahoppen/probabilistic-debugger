@@ -204,8 +204,44 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       }
       """
 
-    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    // We assert things based on the IR basic block, so check that the IR looks like we expect it to
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .bool)
+    let var3 = IRVariable(name: "3", type: .int)
+    let var4 = IRVariable(name: "4", type: .int)
+    let var5 = IRVariable(name: "5", type: .int)
     
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(3)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      PhiInstruction(assignee: var5, choices: [bb1Name: var1, bb3Name: var4]),
+      CompareInstruction(comparison: .lessThan, assignee: var2, lhs: .integer(1), rhs: .variable(var5)),
+      BranchInstruction(condition: .variable(var2), targetTrue: bb3Name, targetFalse: bb4Name)
+    ])
+    
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      SubtractInstruction(assignee: var3, lhs: .variable(var5), rhs: .integer(1)),
+      AssignInstruction(assignee: var4, value: .variable(var3)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      ReturnInstruction()
+    ])
+    
+    let expectedIR = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    // If the IR is not like we expect it, this is a bug in our test and the test needs to be updated
+    assert(ir.program == expectedIR)
     
     let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
     XCTAssertNoThrow(try {
@@ -229,6 +265,19 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         ]),
         .end(state: IRExecutionState(returnPositionIn: ir.program, sampleCount: 1))
       ])
+      guard case .loop(let state, let iterations, let exitStates) = outline.entries[1] else {
+        XCTFail()
+        return
+      }
+      XCTAssertEqual(state.branchingChoices, [])
+      XCTAssertEqual(iterations[0].entries[0].state.branchingChoices, [.choice(source: bb2Name, target: bb3Name)])
+      XCTAssertEqual(iterations[1].entries[0].state.branchingChoices, [
+        .choice(source: bb2Name, target: bb3Name),
+        .choice(source: bb2Name, target: bb3Name)
+      ])
+      XCTAssertEqual(exitStates[0].branchingChoices, [.choice(source: bb2Name, target: bb4Name)])
+      XCTAssertEqual(exitStates[1].branchingChoices, [.both(source: bb2Name)])
+      XCTAssertEqual(outline.entries[2].state.branchingChoices, [.both(source: bb2Name)])
     }())
   }
 

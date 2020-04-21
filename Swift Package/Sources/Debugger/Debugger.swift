@@ -112,7 +112,7 @@ public class Debugger {
         return (0, 0, 0)
       }
       let inferenceEngine = WPInferenceEngine(program: program)
-      let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position)
+      let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingChoices: currentState.branchingChoices)
       _reachingProababilities = (
         inferred.value.doubleValue,
         inferred.runsWithSatisifiedObserves.doubleValue,
@@ -152,7 +152,7 @@ public class Debugger {
         var variableDistribution: [IRValue: Double] = [:]
         let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
         for value in possibleValues {
-          variableDistribution[value] = inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: currentState.loopUnrolls, to: currentState.position) / runsNotCutOffByLoopIterationBounds
+          variableDistribution[value] = inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: currentState.loopUnrolls, to: currentState.position, branchingChoices: currentState.branchingChoices) / runsNotCutOffByLoopIterationBounds
         }
         variableValues[sourceVariable] = variableDistribution
       }

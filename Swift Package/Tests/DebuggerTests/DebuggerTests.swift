@@ -250,6 +250,9 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(Double(debugger.samples.count), 7_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
+      .integer(2): 1,
+    ])
   }
   
   func testStepOverBranch() {
@@ -516,5 +519,98 @@ class DebuggerTests: XCTestCase {
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
     XCTAssertNoThrow(try debugger.stepOver())
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 7, column: 1))
+  }
+  
+  func testWPRefinementIfDifferentIfBranchesWereTakenInDifferentLoopIterations() {
+    let sourceCode = """
+      int x = discrete({1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25})
+      while 1 < x {
+        if x == 4 {
+          x = 2
+        } else {
+          x = x - 1
+        }
+      }
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
+
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(1): 0.25,
+      .integer(2): 0.25,
+      .integer(3): 0.25,
+      .integer(4): 0.25,
+    ])
+    // Step into the loop
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(2): 1.0 / 3,
+      .integer(3): 1.0 / 3,
+      .integer(4): 1.0 / 3,
+    ])
+    // Step into the if branch
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(4): 1,
+    ])
+    // Step out of the if branch
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(2): 1,
+    ])
+    // Step into the loop
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(2): 1,
+    ])
+    // Step over the if-else block
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(1): 1,
+    ])
+  }
+  
+  func testWPRefinementAfterRunUntilEndIfABranchWasTakenInsideALoop() {
+    let sourceCode = """
+      int x = discrete({1: 0.25, 2: 0.25, 3: 0.25, 4: 0.25})
+      while 1 < x {
+        if x == 4 {
+          x = 2
+        } else {
+          x = x - 1
+        }
+      }
+      """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
+
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(1): 0.25,
+      .integer(2): 0.25,
+      .integer(3): 0.25,
+      .integer(4): 0.25,
+    ])
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(2): 1.0 / 3,
+      .integer(3): 1.0 / 3,
+      .integer(4): 1.0 / 3,
+    ])
+    XCTAssertNoThrow(try debugger.stepInto(branch: true))
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(4): 1,
+    ])
+    XCTAssertNoThrow(try debugger.stepOver())
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(2): 1,
+    ])
+    XCTAssertNoThrow(try debugger.runUntilEnd())
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
+      .integer(1): 1,
+    ])
   }
 }

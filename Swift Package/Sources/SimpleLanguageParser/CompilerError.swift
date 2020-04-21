@@ -2,7 +2,7 @@ import Foundation
 import SimpleLanguageAST
 
 /// An error that occurred while parsing the source file
-public class CompilerError: LocalizedError {
+public class CompilerError: LocalizedError, CustomStringConvertible {
   /// The range at which the error occurred. If only a position is known, this is a range of the form `pos..<pos`
   public let range: SourceRange
   
@@ -21,5 +21,9 @@ public class CompilerError: LocalizedError {
   
   public var errorDescription: String? {
     return "\(range.lowerBound): \(message)"
+  }
+  
+  public var description: String {
+    return errorDescription!
   }
 }

@@ -52,8 +52,8 @@ fileprivate extension String {
 
 fileprivate extension IRExecutionState {
   func reachingProbability(in program: IRProgram) -> Double {
-      let inferenceEngine = WPInferenceEngine(program: program)
-    let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: self.loopUnrolls, inferenceStopPosition: self.position)
+    let inferenceEngine = WPInferenceEngine(program: program)
+    let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: self.loopUnrolls, inferenceStopPosition: self.position, branchingChoices: self.branchingChoices)
     return (inferred.value / inferred.runsNotCutOffByLoopIterationBounds).doubleValue
   }
 }

@@ -9,19 +9,22 @@ internal struct WPInferenceState {
     var runsWithSatisifiedObserves: WPTerm
     var runsNotCutOffByLoopIterationBounds: WPTerm
     var remainingLoopUnrolls: LoopUnrolls
+    var remainingBranchingChoices: [BranchingChoice]
     
     init(
       position: InstructionPosition,
       term: WPTerm,
       runsWithSatisifiedObserves: WPTerm,
       runsNotCutOffByLoopIterationBounds: WPTerm,
-      remainingLoopUnrolls: LoopUnrolls
+      remainingLoopUnrolls: LoopUnrolls,
+      remainingBranchingChoices: [BranchingChoice]
     ) {
       self.position = position
       self.term = term
       self.runsWithSatisifiedObserves = runsWithSatisifiedObserves
       self.runsNotCutOffByLoopIterationBounds = runsNotCutOffByLoopIterationBounds
       self.remainingLoopUnrolls = remainingLoopUnrolls
+      self.remainingBranchingChoices = remainingBranchingChoices
     }
     
     init(_ other: Storage) {
@@ -30,6 +33,7 @@ internal struct WPInferenceState {
       self.runsWithSatisifiedObserves = other.runsWithSatisifiedObserves
       self.runsNotCutOffByLoopIterationBounds = other.runsNotCutOffByLoopIterationBounds
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
+      self.remainingBranchingChoices = other.remainingBranchingChoices
     }
   }
   
@@ -110,15 +114,29 @@ internal struct WPInferenceState {
     }
   }
   
+  /// The deliberate branching choices that have not been taken care of yet. All of these must be taken care of before WP-inference reaches the top of the program.
+  var remainingBranchingChoices: [BranchingChoice] {
+    get {
+      return storage.remainingBranchingChoices
+    }
+    set {
+      if !isKnownUniquelyReferenced(&storage) {
+        storage = Storage(storage)
+      }
+      storage.remainingBranchingChoices = newValue
+    }
+  }
+  
   // MARK: - Initialization
   
-  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: LoopUnrolls) {
+  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: LoopUnrolls, remainingBranchingChoices: [BranchingChoice]) {
     self.storage = Storage(
       position: position,
       term: term,
       runsWithSatisifiedObserves: runsWithSatisifiedObserves,
       runsNotCutOffByLoopIterationBounds: runsNotCutOffByLoopIterationBounds,
-      remainingLoopUnrolls: remainingLoopUnrolls
+      remainingLoopUnrolls: remainingLoopUnrolls,
+      remainingBranchingChoices: remainingBranchingChoices
     )
   }
   
@@ -133,7 +151,9 @@ internal struct WPInferenceState {
   mutating func updateTerms(keepingRunsNotCutOffByLoopIterationBounds: Bool = false, _ update: (WPTerm) -> WPTerm) {
     self.term = update(term).simplified
     self.runsWithSatisifiedObserves = update(runsWithSatisifiedObserves).simplified
-    self.runsNotCutOffByLoopIterationBounds =  keepingRunsNotCutOffByLoopIterationBounds ? runsNotCutOffByLoopIterationBounds : update(runsNotCutOffByLoopIterationBounds).simplified
+    if !keepingRunsNotCutOffByLoopIterationBounds {
+      self.runsNotCutOffByLoopIterationBounds = update(runsNotCutOffByLoopIterationBounds).simplified
+    }
   }
   
   // MARK: - Non-mutating update funtions

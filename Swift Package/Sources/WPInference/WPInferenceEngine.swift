@@ -21,6 +21,21 @@ public class WPInferenceEngine {
   
   /// Given a state that is pointed to the first instruction in a basic block and a predecessor block of this state, move the instruction position to the predecessor block and perform WP-inference for the branch or jump instruction in the predecessor block.
   private func inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> WPInferenceState? {
+    var state = state
+    switch state.remainingBranchingChoices.last {
+    case .choice(source: predecessor, target: let target) where target != state.position.basicBlock:
+      // If we jumped into a different branch, we consider the other branch as having violated an observe instruction.
+      // Thus we can set its runsWithSatisifiedObserves and term to 0.
+      state.term = .integer(0)
+      state.runsWithSatisifiedObserves = .integer(0)
+      state.remainingBranchingChoices.removeLast()
+    case .choice(source: predecessor, target: state.position.basicBlock),
+         .both(source: predecessor):
+      // We should take this branch. Consider the branching choice taken care of.
+      state.remainingBranchingChoices.removeLast()
+    default:
+      break
+    }
     if let remainingLoopUnrolls = state.remainingLoopUnrolls[conditionBlock: state.position.basicBlock],
       program.properPredominators[state.position.basicBlock]!.contains(predecessor) {
       // We want to leave a loop to the top. Check if the loop has been unrolled a sufficient number of times
@@ -118,19 +133,19 @@ public class WPInferenceEngine {
   /// Infer the probability that `variable` has the value `value` after executing the program to `inferenceStopPosition`.
   /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
   /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
-  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition) -> Double {
-    return inferProbability(of: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls, to: inferenceStopPosition)
+  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingChoices: [BranchingChoice]) -> Double {
+    return inferProbability(of: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls, to: inferenceStopPosition, branchingChoices: branchingChoices)
   }
   
-  public func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition) -> Double {
-    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition)
+  public func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingChoices: [BranchingChoice]) -> Double {
+    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingChoices: branchingChoices)
     let probabilityTerm = (inferred.value / inferred.runsWithSatisifiedObserves * inferred.runsNotCutOffByLoopIterationBounds)
     return probabilityTerm.doubleValue
   }
   
   /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
   /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
-  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition) -> (value: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm) {
+  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingChoices: [BranchingChoice]) -> (value: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm) {
     #if DEBUG
     // Check that we have a loop repetition bound for every loop in the program
     for loop in program.loops {
@@ -155,7 +170,8 @@ public class WPInferenceEngine {
       term: term,
       runsWithSatisifiedObserves: .integer(1),
       runsNotCutOffByLoopIterationBounds: .integer(1),
-      remainingLoopUnrolls: loopUnrolls
+      remainingLoopUnrolls: loopUnrolls,
+      remainingBranchingChoices: branchingChoices
     )
     var inferenceStatesWorklist = [initialState]
     
@@ -214,6 +230,7 @@ public class WPInferenceEngine {
       }
     }
     
+    assert(finishedInferenceStates.allSatisfy({ $0.remainingBranchingChoices.isEmpty }))
     let value = WPTerm.add(terms: finishedInferenceStates.map(\.term)).simplified
     let runsWithSatisifiedObserves = WPTerm.add(terms: finishedInferenceStates.map(\.runsWithSatisifiedObserves)).simplified
     let runsNotCutOffByLoopIterationBounds = WPTerm.add(terms: finishedInferenceStates.map(\.runsNotCutOffByLoopIterationBounds)).simplified
