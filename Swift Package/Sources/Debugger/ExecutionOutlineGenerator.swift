@@ -90,7 +90,8 @@ public class ExecutionOutlineGenerator {
     let outline = ExecutionOutlineEntry.branch(state: branchingState, true: trueBranchOutline, false: falseBranchOutline)
     
     // Merge the join states of the two branches
-    let finalState = IRExecutionState.merged(states: [trueBranchJoinState, falseBranchJoinState].compactMap({ $0 }))
+    let finalState = IRExecutionState.merged(states: [trueBranchJoinState, falseBranchJoinState].compactMap({ $0 }))?
+      .settingBranchingHistories(branchingState.branchingHistories.map({ $0.addingBranchingChoice(.any(predominatedBy: branchingState.position.basicBlock)) }))
     
     return (outline, finalState)
   }
