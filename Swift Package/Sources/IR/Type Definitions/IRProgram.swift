@@ -48,12 +48,20 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return _transitivePredecessors!
   }
   
+  private var _loops: Set<[BasicBlockName]>? = nil
   public var loops: Set<[BasicBlockName]> {
-    return IRAnalysis.loops(directSuccessors: directSuccessors)
+    if _loops == nil {
+      _loops = IRAnalysis.loops(directSuccessors: directSuccessors)
+    }
+    return _loops!
   }
   
+  private var _directSuccessors: [BasicBlockName: Set<BasicBlockName>]? = nil
   public var directSuccessors: [BasicBlockName: Set<BasicBlockName>] {
-    return IRAnalysis.directSuccessors(basicBlocks: basicBlocks.values)
+    if _directSuccessors == nil {
+      _directSuccessors = IRAnalysis.directSuccessors(basicBlocks: basicBlocks.values)
+    }
+    return _directSuccessors!
   }
   
   private var _predominators: [BasicBlockName: Set<BasicBlockName>]? = nil
@@ -64,20 +72,36 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return _predominators!
   }
   
+  private var _postdominators: [BasicBlockName: Set<BasicBlockName>]? = nil
   public var postdominators: [BasicBlockName: Set<BasicBlockName>] {
-    return IRAnalysis.postdominators(directSuccessors: directSuccessors, startBlock: startBlock)
+    if _postdominators == nil {
+      _postdominators = IRAnalysis.postdominators(directSuccessors: directSuccessors, startBlock: startBlock)
+    }
+    return _postdominators!
   }
   
+  private var _properPredominators: [BasicBlockName: Set<BasicBlockName>]? = nil
   public var properPredominators: [BasicBlockName: Set<BasicBlockName>] {
-    return IRAnalysis.properDominators(dominators: predominators)
+    if _properPredominators == nil {
+      _properPredominators = IRAnalysis.properDominators(dominators: predominators)
+    }
+    return _properPredominators!
   }
   
+  private var _properPostdominators: [BasicBlockName: Set<BasicBlockName>]? = nil
   public var properPostdominators: [BasicBlockName: Set<BasicBlockName>] {
-    return IRAnalysis.properDominators(dominators: postdominators)
+    if _properPostdominators == nil {
+      _properPostdominators = IRAnalysis.properDominators(dominators: postdominators)
+    }
+    return _properPostdominators!
   }
   
+  private var _immediatePostdominator: [BasicBlockName: BasicBlockName?]?
   public var immediatePostdominator: [BasicBlockName: BasicBlockName?] {
-    return IRAnalysis.immediateDominator(properDominators: properPostdominators)
+    if _immediatePostdominator == nil {
+      _immediatePostdominator = IRAnalysis.immediateDominator(properDominators: properPostdominators)
+    }
+    return _immediatePostdominator!
   }
 }
 
