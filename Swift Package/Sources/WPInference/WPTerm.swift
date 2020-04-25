@@ -189,6 +189,10 @@ internal extension WPTerm {
         return .integer(lhsValue - rhsValue)
       case (.double(let lhsValue), .double(let rhsValue)):
         return .double(lhsValue - rhsValue)
+      case (.integer(let lhsValue), .double(let rhsValue)):
+        return .double(Double(lhsValue) - rhsValue)
+      case (.double(let lhsValue), .integer(let rhsValue)):
+        return .double(lhsValue - Double(rhsValue))
       case (let lhsValue, let rhsValue):
         return .sub(lhs: lhsValue, rhs: rhsValue)
       }
