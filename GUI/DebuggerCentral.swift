@@ -12,12 +12,7 @@ import Debugger
 import IR
 import IRExecution
 import SimpleLanguageIRGen
-
-extension Array {
-  static func +=(_ lhs: inout Array<Element>, _ rhs: Element) {
-    lhs = lhs + [rhs]
-  }
-}
+import Utils
 
 struct EmptyValueError: Error {}
 

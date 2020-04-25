@@ -13,6 +13,7 @@ import ObjectiveC
 import IR
 import IRExecution
 import WPInference
+import Utils
 
 private var InspectButtonVariableNameAsssociatedObjectHandle: UInt8 = 0
 

@@ -86,7 +86,8 @@ let package = Package(
       name: "WPInference",
       dependencies: [
         "IR",
-        "IRExecution"
+        "IRExecution",
+        "Utils"
       ]
     ),
 

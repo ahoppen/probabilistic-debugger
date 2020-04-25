@@ -13,6 +13,7 @@ import IRExecution
 import SimpleLanguageIRGen
 import Combine
 import WPInference
+import Utils
 
 enum ExecutionOutlineRow {
   case entry(name: String? = nil, entry: ExecutionOutlineEntry)

@@ -12,6 +12,7 @@ import IR
 import IRExecution
 import SimpleLanguageIRGen
 import Combine
+import Utils
 
 
 class DebuggerViewController: NSViewController, NSTextViewDelegate {
