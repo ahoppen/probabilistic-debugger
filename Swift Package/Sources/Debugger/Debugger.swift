@@ -172,7 +172,7 @@ public class Debugger {
     let currentState = try currentStateOrThrow()
     self.currentState = try executor.runUntilEnd(state: currentState)
     // HACK!!!!!!!!!!!!!!!!!!
-    self.currentState = self.currentState?.settingBranchingHistories([[.any]])
+    self.currentState = self.currentState?.settingBranchingHistories([[.any(predominatedBy: program.startBlock)]])
   }
   
   /// Continue execution of the program to the next statement with debug info that is reachable by all execution branches.

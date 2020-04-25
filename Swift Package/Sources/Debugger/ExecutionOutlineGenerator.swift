@@ -138,7 +138,7 @@ public class ExecutionOutlineGenerator {
       } else {
         mergedExitState = newExitState
       }
-      mergedExitState = mergedExitState.settingBranchingHistories(branchingState.branchingHistories.map({ $0.addingBranchingChoice(.any) }))
+      mergedExitState = mergedExitState.settingBranchingHistories(branchingState.branchingHistories.map({ $0.addingBranchingChoice(.any(predominatedBy: branchingState.position.basicBlock)) }))
       mergedExitState = mergedExitState.settingLoopUnrolls(loop: loop, unrolls: LoopUnrollEntry(0...mergedExitState.loopUnrolls[loop]!.max))
       exitStates.append(mergedExitState)
       

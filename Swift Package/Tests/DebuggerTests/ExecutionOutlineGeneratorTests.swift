@@ -275,9 +275,9 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         .choice(source: bb2Name, target: bb3Name),
         .choice(source: bb2Name, target: bb3Name)
       ]])
-      XCTAssertEqual(exitStates[0].branchingHistories, [[.any]])
-      XCTAssertEqual(exitStates[1].branchingHistories, [[.any]])
-      XCTAssertEqual(outline.entries[2].state.branchingHistories, [[.any]])
+      XCTAssertEqual(exitStates[0].branchingHistories, [[.any(predominatedBy: bb2Name)]])
+      XCTAssertEqual(exitStates[1].branchingHistories, [[.any(predominatedBy: bb2Name)]])
+      XCTAssertEqual(outline.entries[2].state.branchingHistories, [[.any(predominatedBy: bb2Name)]])
     }())
   }
 
@@ -548,15 +548,17 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         return
       }
       
-      XCTAssertEqual(exitStates[0].branchingHistories, [[.any]])
-      XCTAssertEqual(exitStates[1].branchingHistories, [[.any]])
-      XCTAssertEqual(exitStates[3].branchingHistories, [[.any]])
+      let bb2Name = BasicBlockName("bb2")
+      
+      XCTAssertEqual(exitStates[0].branchingHistories, [[.any(predominatedBy: bb2Name)]])
+      XCTAssertEqual(exitStates[1].branchingHistories, [[.any(predominatedBy: bb2Name)]])
+      XCTAssertEqual(exitStates[3].branchingHistories, [[.any(predominatedBy: bb2Name)]])
       
       guard case .end(let endState) = outline.entries[2] else {
         XCTFail()
         return
       }
-      XCTAssertEqual(endState.branchingHistories, [[.any]])
+      XCTAssertEqual(endState.branchingHistories, [[.any(predominatedBy: bb2Name)]])
     }())
   }
   

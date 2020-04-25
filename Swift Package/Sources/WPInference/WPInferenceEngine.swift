@@ -73,11 +73,21 @@ public class WPInferenceEngine {
       
       // Compute the branching histories that lead to the predecessor state.
       let newBranchingHistories = state.branchingHistories.compactMap({ (branchingHistory) -> BranchingHistory? in
-        if branchingHistory.lastChoice == .choice(source: predecessor, target: state.position.basicBlock) {
+        var branchingHistory = branchingHistory
+        // If we are leaving an any BranchingChoice to the top, shave it off the branching history to allow consuming a deliberate branch underneath it.
+        if case .any(predominatedBy: let predominator) = branchingHistory.lastChoice, !program.predominators[predecessor]!.contains(predominator) {
+          branchingHistory = branchingHistory.droppingLastChoice()
+        }
+        
+        switch branchingHistory.lastChoice {
+        case .choice(source: predecessor, target: state.position.basicBlock):
+          // We are taking a deliberate choice. Consider it taken care of by removing it off the list
           return branchingHistory.droppingLastChoice()
-        } else if branchingHistory.lastChoice == .any {
+        case .any(predominatedBy: let predominator) where program.predominators[predecessor]!.contains(predominator):
+          // We are taking an `any` branching choice. Keep it in the list since we might take it again.
+          // Note that predominators contains the block itself.
           return branchingHistory
-        } else {
+        default:
           return nil
         }
       })

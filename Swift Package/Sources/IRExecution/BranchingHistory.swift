@@ -5,9 +5,10 @@ import IR
   /// A deliberate branching choice. Execution was branched from `source` to `target` although another branch might also have been viable.
   case choice(source: BasicBlockName, target: BasicBlockName)
   
-  /// As many non-deliberate branching choices as necessary.
-  /// `any` can be extended arbitrarily often to all possible branching choices. It allows for a more-concicse list of branching histories if there were no deliberate branches.
-  case any
+  /// As many non-deliberate branching choices as necessary from blocks that are predominated by `predominatedBy`.
+  /// `any` can be extended arbitrarily often to all possible branching choices.
+  /// It allows for a more-concicse list of branching histories if there were no deliberate branches.
+  case any(predominatedBy: BasicBlockName)
   
   public init(source: BasicBlockName, target: BasicBlockName) {
     self = .choice(source: source, target: target)
@@ -17,8 +18,8 @@ import IR
     switch self {
     case .choice(source: let source, target: let target):
       return "\(source) -> \(target)"
-    case .any:
-      return "any"
+    case .any(predominatedBy: let predominatedBy):
+      return "any(predominatedBy: \(predominatedBy))"
     }
   }
 }
