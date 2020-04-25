@@ -1,66 +1,5 @@
 import IR
 
-/// During interactive IR execution in the debugger, the user might take deliberate branching choices by stepping into or stepping over a condition or loop which need to be recorded so that correct WP-inferrence can be performed.
-/// This struct represents such a branching choice. Either the user jumps into one specific branch (case `choice`) or decides to step over and take both branches simultaneously (case `both`).
-/// The cases where both branches are taken need to be recored in addition to the deliberate choices because a choice occur multiple times (e.g. a `if` inside a loop). To determine the correct iteration in which the deliberate branching choice was taken, we need to also record the times where the user issued a step over command.
-@frozen public enum BranchingChoice: Equatable, CustomStringConvertible {
-  case choice(source: BasicBlockName, target: BasicBlockName)
-  case both(source: BasicBlockName)
-  
-  public var source: BasicBlockName {
-    switch self {
-    case .choice(source: let source, target: _):
-      return source
-    case .both(source: let source):
-      return source
-    }
-  }
-  
-  public var description: String {
-    switch self {
-    case .choice(source: let source, target: let target):
-      return "\(source) -> \(target)"
-    case .both(source: let source):
-      return "\(source) -> both"
-    }
-  }
-}
-
-/// Merge two lists of branching choices.
-/// While the branching choices, match, keep the current branching choice.
-/// Once we reach a point where one list of branching choices takes a different deliberate branch than the other, the rest of the lists is discarded and the two deliberate branches are unified to a `both` `BranchingChoice`.
-/// This merging behaviour is correct since there is currently no way in the debugger to pursue two execution branches and merge them back together, keeping common choices that were done in the two separate execution branches.
-/// The only place where execution branches are merged together is, if the user steps out of a loop (thus discarding the deliberate branching choice) or when executing a step over, the true/false branch of the if-statement are merged together again (and the equivalent for a loop). In all of these cases, there is no deliberate branching choice left.
-fileprivate func mergeBranchingChoices(_ lhs: [BranchingChoice], _ rhs: [BranchingChoice]) -> [BranchingChoice] {
-  var mergedChoices: [BranchingChoice] = []
-  var unifiedByConvertingChoiceToBoth = false
-  for (lhsEntry, rhsEntry) in zip(lhs, rhs) {
-    if lhsEntry == rhsEntry {
-      mergedChoices.append(lhsEntry)
-    } else {
-      assert(lhsEntry.source == rhsEntry.source)
-      mergedChoices.append(.both(source: lhsEntry.source))
-      unifiedByConvertingChoiceToBoth = true
-      break
-    }
-  }
-  // If the two choices that we unified had different length, we must have merged them at some point by converting .choice to .both
-  assert(unifiedByConvertingChoiceToBoth || lhs.count == rhs.count)
-  return mergedChoices
-}
-
-/// Merge a set of `BranchingChoice` lists using the function defined above.
-fileprivate func mergeBranchingChoices(_ choicesList: [[BranchingChoice]]) -> [BranchingChoice] {
-  guard var mergedChoices = choicesList.first else {
-    // No choices to merge
-    return []
-  }
-  for choices in choicesList.dropFirst() {
-    mergedChoices = mergeBranchingChoices(mergedChoices, choices)
-  }
-  return mergedChoices
-}
-
 public struct IRExecutionState {
   /// The position of the next instruction to execute to advance the execution of this execution state.
   /// If no instruction exists at this program position in the IR, then the program has terminated.
@@ -74,7 +13,7 @@ public struct IRExecutionState {
   public let samples: [IRSample]
   
   /// The deliberate branching choices taken during execution of the IR in the order they occurred.
-  public let branchingChoices: [BranchingChoice]
+  public let branchingHistories: [BranchingHistory]
   
   public var hasSamples: Bool {
     return samples.count > 0
@@ -86,14 +25,14 @@ public struct IRExecutionState {
   
   public init(position: InstructionPosition, emptySamples sampleCount: Int, loops: [IRLoop]) {
     let samples = (0..<sampleCount).map({ IRSample(id: $0, values: [:])})
-    self.init(position: position, samples: samples, loopUnrolls: LoopUnrolls(noIterationsForLoops: loops), branchingChoices: [])
+    self.init(position: position, samples: samples, loopUnrolls: LoopUnrolls(noIterationsForLoops: loops), branchingHistories: [[]])
   }
   
-  public init(position: InstructionPosition, samples: [IRSample], loopUnrolls: LoopUnrolls, branchingChoices: [BranchingChoice]) {
+  public init(position: InstructionPosition, samples: [IRSample], loopUnrolls: LoopUnrolls, branchingHistories: [BranchingHistory]) {
     self.position = position
     self.samples = samples
     self.loopUnrolls = loopUnrolls
-    self.branchingChoices = branchingChoices
+    self.branchingHistories = branchingHistories
   }
   
   /// Create a new `IRExecutionState` with the combined samples of the given states.
@@ -108,22 +47,26 @@ public struct IRExecutionState {
     }
     assert(states.map(\.position).allEqual)
     let combinedSamples = states.flatMap({ $0.samples })
-    return IRExecutionState(position: position, samples: combinedSamples, loopUnrolls: LoopUnrolls.merged(states.map(\.loopUnrolls)), branchingChoices: mergeBranchingChoices(states.map(\.branchingChoices)))
+    return IRExecutionState(position: position, samples: combinedSamples, loopUnrolls: LoopUnrolls.merged(states.map(\.loopUnrolls)), branchingHistories: states.map(\.branchingHistories).flatMap({ $0 }))
   }
   
   /// Return an  execution state at the same position that only contains the samples that satisfy the given `condition`.
   public func filterSamples(condition: (IRSample) -> Bool) -> IRExecutionState {
-    return IRExecutionState(position: position, samples: samples.filter(condition), loopUnrolls: loopUnrolls, branchingChoices: branchingChoices)
+    return IRExecutionState(position: position, samples: samples.filter(condition), loopUnrolls: loopUnrolls, branchingHistories: branchingHistories)
   }
   
   /// Add a deliberate branching choice to this execution state.
   public func addingBranchingChoice(_ branchingChoice: BranchingChoice) -> IRExecutionState {
-    return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls, branchingChoices: branchingChoices + [branchingChoice])
+    return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls, branchingHistories: branchingHistories.map({ $0.addingBranchingChoice(branchingChoice) }))
+  }
+  
+  public func settingBranchingHistories(_ branchingHistories: [BranchingHistory]) -> IRExecutionState {
+    return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls, branchingHistories: branchingHistories)
   }
   
   public func settingLoopUnrolls(loop: IRLoop, unrolls: LoopUnrollEntry) -> IRExecutionState {
     let newLoopUnrolls = self.loopUnrolls.settingLoopUnrolls(for: loop, unrolls: unrolls)
-    return IRExecutionState(position: position, samples: samples, loopUnrolls: newLoopUnrolls, branchingChoices: branchingChoices)
+    return IRExecutionState(position: position, samples: samples, loopUnrolls: newLoopUnrolls, branchingHistories: branchingHistories)
   }
   
   /// Execute the next instruction of this execution state and return any execution states resulting form it.
@@ -139,7 +82,7 @@ public struct IRExecutionState {
       // Modify samples and advance program position by 1
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
-      return [IRExecutionState(position: newPosition, samples: newSamples, loopUnrolls: loopUnrolls, branchingChoices: branchingChoices)]
+      return [IRExecutionState(position: newPosition, samples: newSamples, loopUnrolls: loopUnrolls, branchingHistories: branchingHistories)]
     case is ObserveInstruction:
       let newSamples = samples.compactMap({ $0.executeNonControlFlowInstruction(instruction) })
       // If there are no samples left, there is no point in pursuing this execution path
@@ -147,7 +90,7 @@ public struct IRExecutionState {
         return []
       } else {
         let newPosition = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
-        return [IRExecutionState(position: newPosition, samples: newSamples, loopUnrolls: loopUnrolls, branchingChoices: branchingChoices)]
+        return [IRExecutionState(position: newPosition, samples: newSamples, loopUnrolls: loopUnrolls, branchingHistories: branchingHistories)]
       }
     case let instruction as JumpInstruction:
       // Simply jump to the new position and execute its phi instructions. No need to modify samples
@@ -194,6 +137,6 @@ public struct IRExecutionState {
       })
       position = InstructionPosition(basicBlock: position.basicBlock, instructionIndex: position.instructionIndex + 1)
     }
-    return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls, branchingChoices: branchingChoices)
+    return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls, branchingHistories: branchingHistories)
   }
 }

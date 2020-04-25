@@ -269,15 +269,15 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         XCTFail()
         return
       }
-      XCTAssertEqual(state.branchingChoices, [])
-      XCTAssertEqual(iterations[0].entries[0].state.branchingChoices, [.choice(source: bb2Name, target: bb3Name)])
-      XCTAssertEqual(iterations[1].entries[0].state.branchingChoices, [
+      XCTAssertEqual(state.branchingHistories, [[]])
+      XCTAssertEqual(iterations[0].entries[0].state.branchingHistories, [[.choice(source: bb2Name, target: bb3Name)]])
+      XCTAssertEqual(iterations[1].entries[0].state.branchingHistories, [[
         .choice(source: bb2Name, target: bb3Name),
         .choice(source: bb2Name, target: bb3Name)
-      ])
-      XCTAssertEqual(exitStates[0].branchingChoices, [.choice(source: bb2Name, target: bb4Name)])
-      XCTAssertEqual(exitStates[1].branchingChoices, [.both(source: bb2Name)])
-      XCTAssertEqual(outline.entries[2].state.branchingChoices, [.both(source: bb2Name)])
+      ]])
+      XCTAssertEqual(exitStates[0].branchingHistories, [[.any]])
+      XCTAssertEqual(exitStates[1].branchingHistories, [[.any]])
+      XCTAssertEqual(outline.entries[2].state.branchingHistories, [[.any]])
     }())
   }
 
@@ -525,6 +525,141 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
       debugger.jumpToState(state)
       XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1)
+      }())
+  }
+  
+  func testBranchingHistoryOfLoopExitStates() {
+    let sourceCode = """
+        int x = 0
+        while discrete({0: 0.5, 1: 0.5}) == 0 {
+          x = x + 1
+        }
+        """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 100
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      guard case .loop(_, _, let exitStates) = outline.entries[1] else {
+        XCTFail()
+        return
+      }
+      
+      XCTAssertEqual(exitStates[0].branchingHistories, [[.any]])
+      XCTAssertEqual(exitStates[1].branchingHistories, [[.any]])
+      XCTAssertEqual(exitStates[3].branchingHistories, [[.any]])
+      
+      guard case .end(let endState) = outline.entries[2] else {
+        XCTFail()
+        return
+      }
+      XCTAssertEqual(endState.branchingHistories, [[.any]])
+    }())
+  }
+  
+  func testApproximationErrorIsGreaterThanZeroIfLoopIsCutOffWithFewSamples() {
+    let sourceCode = """
+        int x = 0
+        while discrete({0: 0.5, 1: 0.5}) == 0 {
+          x = x + 1
+        }
+        """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 10
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      let returnState = outline.entries.last!.state
+      
+      let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
+      debugger.jumpToState(returnState)
+      XCTAssertGreaterThan(debugger.approximationError, 0)
+    }())
+  }
+  
+  func testApproximationErrorIsZeroInsideLoopIterationAndApproachesZeroInExitStates() {
+    let sourceCode = """
+        int x = 0
+        while discrete({0: 0.5, 1: 0.5}) == 0 {
+          x = x + 1
+        }
+        """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 20
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      guard case .loop(_, let iterations, let exitStates) = outline.entries[1] else {
+        XCTFail()
+        return
+      }
+      
+      let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
+      
+      let firstLoopIterationEntryState = iterations[0].entries.first!.state
+      debugger.jumpToState(firstLoopIterationEntryState)
+      XCTAssertEqual(debugger.approximationError, 0)
+      
+      let secondLoopIterationEntryState = iterations[1].entries.first!.state
+      debugger.jumpToState(secondLoopIterationEntryState)
+      XCTAssertEqual(debugger.approximationError, 0)
+      
+      debugger.jumpToState(exitStates[0])
+      XCTAssertEqual(debugger.approximationError, 0.5)
+      
+      debugger.jumpToState(exitStates[1])
+      XCTAssertEqual(debugger.approximationError, 0.25)
+    }())
+  }
+  
+  func testApproximationErrorIsZeroInsideLoopIterationWithCondition() {
+    let sourceCode = """
+        int x = 0
+        while discrete({0: 0.5, 1: 0.5}) == 0 {
+          if true {
+            x = x + 1
+          } else {
+            x = x + 1
+          }
+        }
+        """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 20
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      guard case .loop(_, let iterations, let exitStates) = outline.entries[1] else {
+        XCTFail()
+        return
+      }
+      
+      let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
+      
+      let firstLoopIterationEntryState = iterations[0].entries.first!.state
+      debugger.jumpToState(firstLoopIterationEntryState)
+      XCTAssertEqual(debugger.approximationError, 0)
+      
+      let secondLoopIterationEntryState = iterations[1].entries.first!.state
+      debugger.jumpToState(secondLoopIterationEntryState)
+      XCTAssertEqual(debugger.approximationError, 0)
+      
+      debugger.jumpToState(exitStates[0])
+      XCTAssertEqual(debugger.approximationError, 0.5)
+      
+      debugger.jumpToState(exitStates[1])
+      XCTAssertEqual(debugger.approximationError, 0.25)
     }())
   }
 }

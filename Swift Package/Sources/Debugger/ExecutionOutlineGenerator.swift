@@ -128,16 +128,19 @@ public class ExecutionOutlineGenerator {
       if let evalutedToNextInstructionWithDebugInfo = try executor.runUntilPosition(state: stateNotSatisfyingCondition, stopPositions: [joinPositionWithDebugInfo]) {
         newExitState = evalutedToNextInstructionWithDebugInfo
       } else {
-        let branchingChoices = stateNotSatisfyingCondition.branchingChoices + [.choice(source: stateNotSatisfyingCondition.position.basicBlock, target: branchInstruction.targetFalse)]
-        newExitState = IRExecutionState(position: joinPositionWithDebugInfo, samples: [], loopUnrolls: stateNotSatisfyingCondition.loopUnrolls, branchingChoices: branchingChoices)
+        let newBranchingChoice = BranchingChoice.choice(source: stateNotSatisfyingCondition.position.basicBlock, target: branchInstruction.targetFalse)
+        let newBranchingHistories = stateNotSatisfyingCondition.branchingHistories.map({ $0.addingBranchingChoice(newBranchingChoice)})
+        newExitState = IRExecutionState(position: joinPositionWithDebugInfo, samples: [], loopUnrolls: stateNotSatisfyingCondition.loopUnrolls, branchingHistories: newBranchingHistories)
       }
-      let mergedExitState: IRExecutionState
+      var mergedExitState: IRExecutionState
       if let lastExitState = exitStates.last {
         mergedExitState = IRExecutionState.merged(states: [lastExitState, newExitState])!
       } else {
         mergedExitState = newExitState
       }
-      exitStates.append(mergedExitState.settingLoopUnrolls(loop: loop, unrolls: LoopUnrollEntry(0...mergedExitState.loopUnrolls[loop]!.max)))
+      mergedExitState = mergedExitState.settingBranchingHistories(branchingState.branchingHistories.map({ $0.addingBranchingChoice(.any) }))
+      mergedExitState = mergedExitState.settingLoopUnrolls(loop: loop, unrolls: LoopUnrollEntry(0...mergedExitState.loopUnrolls[loop]!.max))
+      exitStates.append(mergedExitState)
       
       // Generate the outline of the loop iteration
       

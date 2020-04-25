@@ -9,7 +9,7 @@ internal struct WPInferenceState {
     var runsWithSatisifiedObserves: WPTerm
     var runsNotCutOffByLoopIterationBounds: WPTerm
     var remainingLoopUnrolls: LoopUnrolls
-    var remainingBranchingChoices: [BranchingChoice]
+    var branchingHistories: [BranchingHistory]
     
     init(
       position: InstructionPosition,
@@ -17,14 +17,14 @@ internal struct WPInferenceState {
       runsWithSatisifiedObserves: WPTerm,
       runsNotCutOffByLoopIterationBounds: WPTerm,
       remainingLoopUnrolls: LoopUnrolls,
-      remainingBranchingChoices: [BranchingChoice]
+      branchingHistories: [BranchingHistory]
     ) {
       self.position = position
       self.term = term
       self.runsWithSatisifiedObserves = runsWithSatisifiedObserves
       self.runsNotCutOffByLoopIterationBounds = runsNotCutOffByLoopIterationBounds
       self.remainingLoopUnrolls = remainingLoopUnrolls
-      self.remainingBranchingChoices = remainingBranchingChoices
+      self.branchingHistories = branchingHistories
     }
     
     init(_ other: Storage) {
@@ -33,7 +33,7 @@ internal struct WPInferenceState {
       self.runsWithSatisifiedObserves = other.runsWithSatisifiedObserves
       self.runsNotCutOffByLoopIterationBounds = other.runsNotCutOffByLoopIterationBounds
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
-      self.remainingBranchingChoices = other.remainingBranchingChoices
+      self.branchingHistories = other.branchingHistories
     }
   }
   
@@ -115,28 +115,28 @@ internal struct WPInferenceState {
   }
   
   /// The deliberate branching choices that have not been taken care of yet. All of these must be taken care of before WP-inference reaches the top of the program.
-  var remainingBranchingChoices: [BranchingChoice] {
+  var branchingHistories: [BranchingHistory] {
     get {
-      return storage.remainingBranchingChoices
+      return storage.branchingHistories
     }
     set {
       if !isKnownUniquelyReferenced(&storage) {
         storage = Storage(storage)
       }
-      storage.remainingBranchingChoices = newValue
+      storage.branchingHistories = newValue
     }
   }
   
   // MARK: - Initialization
   
-  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: LoopUnrolls, remainingBranchingChoices: [BranchingChoice]) {
+  init(position: InstructionPosition, term: WPTerm, runsWithSatisifiedObserves: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, remainingLoopUnrolls: LoopUnrolls, branchingHistories: [BranchingHistory]) {
     self.storage = Storage(
       position: position,
       term: term,
       runsWithSatisifiedObserves: runsWithSatisifiedObserves,
       runsNotCutOffByLoopIterationBounds: runsNotCutOffByLoopIterationBounds,
       remainingLoopUnrolls: remainingLoopUnrolls,
-      remainingBranchingChoices: remainingBranchingChoices
+      branchingHistories: branchingHistories
     )
   }
   
@@ -179,6 +179,12 @@ internal struct WPInferenceState {
   func withRemainingLoopUnrolls(_ remainingLoopUnrolls: LoopUnrolls) -> WPInferenceState {
     var modifiedState = self
     modifiedState.remainingLoopUnrolls = remainingLoopUnrolls
+    return modifiedState
+  }
+  
+  func withBranchingHistories(_ branchingHistories: [BranchingHistory]) -> WPInferenceState {
+    var modifiedState = self
+    modifiedState.branchingHistories = branchingHistories
     return modifiedState
   }
 }
