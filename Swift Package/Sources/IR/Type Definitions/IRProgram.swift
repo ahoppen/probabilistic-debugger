@@ -40,6 +40,14 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return _directPredecessors!
   }
   
+  private var _transitivePredecessors: [BasicBlockName: Set<BasicBlockName>]? = nil
+  public var transitivePredecessors: [BasicBlockName: Set<BasicBlockName>] {
+    if _transitivePredecessors == nil {
+      _transitivePredecessors = IRAnalysis.transitivePredecessors(directPredecessors: directPredecessors)
+    }
+    return _transitivePredecessors!
+  }
+  
   public var loops: Set<[BasicBlockName]> {
     return IRAnalysis.loops(directSuccessors: directSuccessors)
   }

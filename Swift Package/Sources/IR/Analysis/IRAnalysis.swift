@@ -32,6 +32,23 @@ enum IRAnalysis {
     return predecessors
   }
   
+  static func transitivePredecessors(directPredecessors: [BasicBlockName: Set<BasicBlockName>]) -> [BasicBlockName: Set<BasicBlockName>] {
+    var transitivePredecessors: [BasicBlockName: Set<BasicBlockName>] = [:]
+    for (block, directPredecessorsOfBlock) in directPredecessors {
+      var transitivePredecessorsOfBlock = directPredecessorsOfBlock
+      var worklist = Array(directPredecessorsOfBlock)
+      while let predecessor = worklist.popLast() {
+        for predecessorOfPredecessor in directPredecessors[predecessor]! {
+          if transitivePredecessorsOfBlock.insert(predecessorOfPredecessor).inserted {
+            worklist.append(predecessorOfPredecessor)
+          }
+        }
+      }
+      transitivePredecessors[block] = transitivePredecessorsOfBlock
+    }
+    return transitivePredecessors
+  }
+  
   private static func paths(from: BasicBlockName, to: BasicBlockName, recursionStopPoints: Set<BasicBlockName> = [], directSuccessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<[BasicBlockName]> {
     if recursionStopPoints.contains(from) {
       return []
