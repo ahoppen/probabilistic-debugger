@@ -316,7 +316,31 @@ public class WPInferenceEngine {
             finishedInferenceStates.append(newStateToInfer)
           }
         } else {
-          inferenceStatesWorklist.append(newStateToInfer)
+          // Check if we already have an inference state with the same characteristics.
+          // If we do, combine the terms of newStateToInfer with the existing entry.
+          let existingIndex = inferenceStatesWorklist.firstIndex(where: {
+            return $0.position == newStateToInfer.position &&
+              $0.remainingLoopUnrolls == newStateToInfer.remainingLoopUnrolls &&
+              $0.branchingHistories == newStateToInfer.branchingHistories
+          })
+          if let existingIndex = existingIndex {
+            let existingEntry = inferenceStatesWorklist[existingIndex]
+            assert(existingEntry.generateLostStatesForBlocks == newStateToInfer.generateLostStatesForBlocks, "generateLostStatesForBlocks should never change")
+            
+            inferenceStatesWorklist[existingIndex] = WPInferenceState(
+              position: existingEntry.position,
+              term: WPTerm.add(terms: [existingEntry.term, newStateToInfer.term]),
+              observeSatisfactionRate: WPTerm.add(terms: [existingEntry.observeSatisfactionRate, newStateToInfer.observeSatisfactionRate]),
+              focusRate: WPTerm.add(terms: [existingEntry.focusRate, newStateToInfer.focusRate]),
+              intentionalLossRate: WPTerm.add(terms: [existingEntry.intentionalLossRate, newStateToInfer.intentionalLossRate]),
+              generateLostStatesForBlocks: existingEntry.generateLostStatesForBlocks,
+              remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
+              branchingHistories: existingEntry.branchingHistories
+            )
+          } else {
+            inferenceStatesWorklist.append(newStateToInfer)
+            inferenceStatesWorklist.sort(by: { program.predominators[$0.position.basicBlock]!.contains($1.position.basicBlock) })
+          }
         }
       }
     }
