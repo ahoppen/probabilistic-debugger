@@ -4,12 +4,6 @@ import Foundation
 import SimpleLanguageIRGen
 import SimpleLanguageParser
 
-extension Array where Element: Hashable {
-    func histogram() -> [Element: Int] {
-        return self.reduce(into: [:]) { counts, elem in counts[elem, default: 0] += 1 }
-    }
-}
-
 extension URL: ExpressibleByArgument {
   public init?(argument: String) {
     self.init(fileURLWithPath: argument)

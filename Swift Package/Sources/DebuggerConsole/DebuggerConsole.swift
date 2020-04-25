@@ -2,6 +2,12 @@ import Debugger
 import IR
 import SimpleLanguageIRGen
 
+extension Array where Element: Hashable {
+    func histogram() -> [Element: Int] {
+        return self.reduce(into: [:]) { counts, elem in counts[elem, default: 0] += 1 }
+    }
+}
+
 class DebuggerConsole {
   /// The debugger that this console operates
   private let debugger: Debugger
