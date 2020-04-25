@@ -371,7 +371,34 @@ internal extension WPTerm {
       case (let lhsValue, let rhsValue):
         return ._sub(lhs: lhsValue, rhs: rhsValue)
       }
-    case ._mul(terms: let terms):
+    case ._mul(terms: var terms):
+      var singleAdditionListIndex: Int?
+      
+      // Flatten nested multiplications and check if the multiplication contains a single addition list
+      for index in (0..<terms.count).reversed() {
+        let term = terms[index]
+        if case ._mul(terms: let subTerms) = term {
+          terms.remove(at: index)
+          terms.append(contentsOf: subTerms)
+        }
+        if case ._additionList = term {
+          if singleAdditionListIndex == nil {
+            singleAdditionListIndex = index
+          } else {
+            singleAdditionListIndex = nil
+          }
+        }
+      }
+      
+      if let singleAdditionListIndex = singleAdditionListIndex {
+        guard case ._additionList(var additionList) = terms[singleAdditionListIndex] else {
+          fatalError()
+        }
+        terms.remove(at: singleAdditionListIndex)
+        additionList.multiply(with: terms)
+        return WPTerm._additionList(additionList)
+      }
+      
       var integerComponent = 1
       var doubleComponent = 1.0
       var otherComponents: [WPTerm] = []
@@ -381,17 +408,11 @@ internal extension WPTerm {
           integerComponent *= value
         case .double(let value):
           doubleComponent *= value
-        case ._mul(terms: let subTerms):
-          // Flatten nested multiplications
-          for subTerm in subTerms {
-            switch subTerm {
-            case .integer(let value):
-              integerComponent *= value
-            case .double(let value):
-              doubleComponent *= value
-            case let simplifiedTerm:
-              otherComponents.append(simplifiedTerm)
-            }
+        case ._boolToInt(let subTerm):
+          if otherComponents.contains(.boolToInt(.not(subTerm))) {
+            return .integer(0)
+          } else if !otherComponents.contains(term) {
+            otherComponents.append(term)
           }
         case let simplifiedTerm:
           otherComponents.append(simplifiedTerm)

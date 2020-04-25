@@ -83,6 +83,13 @@ public struct WPAdditionList: Hashable {
     return hasPerformedReplacement
   }
   
+  internal mutating func multiply(with multiplicationTerms: [WPTerm]) {
+    for index in 0..<entries.count {
+      entries[index].term = WPTerm.mul(terms: [entries[index].term] + multiplicationTerms)
+    }
+    simplify()
+  }
+  
   internal mutating func simplify() {
     normalize()
     mergeConditions()
