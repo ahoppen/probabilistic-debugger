@@ -40,7 +40,7 @@ public class Debugger {
   }
   
   /// The current state of the debugger. Can be `nil` if execution of the program has filtered out all samples.
-  private var currentState: IRExecutionState? {
+  public var currentState: IRExecutionState? {
     get {
       return stateStack.last!
     }
@@ -169,10 +169,50 @@ public class Debugger {
   
   /// Run the program until the end
   public func runUntilEnd() throws {
-    let currentState = try currentStateOrThrow()
-    self.currentState = try executor.runUntilEnd(state: currentState)
-    // HACK!!!!!!!!!!!!!!!!!!
-    self.currentState = self.currentState?.settingBranchingHistories([[.any(predominatedBy: program.startBlock)]])
+    var currentState = try self.currentStateOrThrow()
+    
+    // First advance execution to a position that predominates the return position and postdominates all positions where we have been before.
+    let instructionsThatPredominateReturnPosition = Set(debugInfo.info.keys.filter({
+      guard program.predominators[program.returnPosition.basicBlock]!.contains($0.basicBlock) else {
+        // Does not predominate the return positio
+        return false
+      }
+      if program.transitivePredecessors[currentState.position.basicBlock]!.contains($0.basicBlock) {
+        // Position is before the current position. We might have been here before.
+        return false
+      }
+      for choice in currentState.branchingHistories.map(\.choices).flatMap({ $0 }) {
+        // Check if the position is before any block in the branching history. If it is , we might have been here before.
+        switch choice {
+        case .choice(source: let source, target: let target):
+          if program.transitivePredecessors[source]!.contains($0.basicBlock) {
+            return false
+          }
+          if program.transitivePredecessors[target]!.contains($0.basicBlock) {
+            return false
+          }
+        case .any(predominatedBy: let predominator):
+          if program.transitivePredecessors[predominator]!.contains($0.basicBlock) {
+            return false
+          }
+        }
+      }
+      return true
+    }))
+    
+    // Now advance to that position.
+    if !instructionsThatPredominateReturnPosition.contains(currentState.position) {
+      self.currentState = try executor.runUntilPosition(state: currentState, stopPositions: instructionsThatPredominateReturnPosition)
+      currentState = try self.currentStateOrThrow()
+    }
+    
+    // We have now reached a position from which we can completely execute the program and abbreviate the branching history using a .any(predominatedBy)
+    let finalBranchingHistories = currentState.branchingHistories.map({ $0.addingBranchingChoice(.any(predominatedBy: currentState.position.basicBlock))})
+    
+    if currentState.position != program.returnPosition {
+      self.currentState = try executor.runUntilEnd(state: try currentStateOrThrow())
+      self.currentState = self.currentState?.settingBranchingHistories(finalBranchingHistories)
+    }
   }
   
   /// Continue execution of the program to the next statement with debug info that is reachable by all execution branches.
@@ -187,9 +227,12 @@ public class Debugger {
         fatalError("A branch instruction must have an immediate postdominator since it does not terminate the program")
       }
       let firstNonPhiInstructionInBlock = program.basicBlocks[postdominatorBlock]!.instructions.firstIndex(where: { !($0 is PhiInstruction) })!
+      // We can simplify the branching history if we are stepping over a if/else or loop
+      let finalBranchingHistory = currentState.branchingHistories.map({ $0.addingBranchingChoice(.any(predominatedBy: currentState.position.basicBlock))})
       self.currentState = try executor.runUntilPosition(state: currentState, stopPositions: [
         InstructionPosition(basicBlock: postdominatorBlock, instructionIndex: firstNonPhiInstructionInBlock)]
       )
+      self.currentState = self.currentState?.settingBranchingHistories(finalBranchingHistory)
       if debugInfo.info[self.currentState!.position] == nil {
         // Step to the first instruction with debug info
         try runToNextInstructionWithDebugInfo(currentState: self.currentState!)
