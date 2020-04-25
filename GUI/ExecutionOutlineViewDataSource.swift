@@ -168,6 +168,9 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
     case "samples":
       let label = executionOutlineSamplesCellText(item: row)
       return NSTextField(labelWithString: label)
+    case "error":
+      let label = executionOutlineErrorCellText(item: row)
+      return NSTextField(labelWithString: label)
     case "survival":
       let label = executionOutlineSurvivalCellText(item: row)
       return NSTextField(labelWithString: label)
@@ -215,6 +218,14 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
     } else {
       return ""
     }
+  }
+  
+  func executionOutlineErrorCellText(item: ExecutionOutlineRow) -> String {
+    guard let state = item.state, let program = data.program else {
+      return ""
+    }
+    let approximationError = state.approximationError(in: program)
+    return "\((approximationError * 100).rounded(decimalPlaces: 2))%"
   }
   
   func executionOutlineSurvivalCellText(item: ExecutionOutlineRow) -> String {

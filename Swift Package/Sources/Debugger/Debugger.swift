@@ -105,18 +105,18 @@ public class Debugger {
     return sourceCodeSamples
   }
   
-  private var _reachingProababilities: (value: Double, runsWithSatisfiedObserves: Double, runsNotCutOffByLoopIterationBounds: Double)? = nil
-  private var reachingProbabilities: (value: Double, runsWithSatisfiedObserves: Double, runsNotCutOffByLoopIterationBounds: Double) {
+  private var _reachingProababilities: (runsNotCutOffByLoopIterationBounds: Double, observeSatisfactionRate: Double, intentionalFocusRate: Double)? = nil
+  private var reachingProbabilities: (runsNotCutOffByLoopIterationBounds: Double, observeSatisfactionRate: Double, intentionalFocusRate: Double) {
     if _reachingProababilities == nil {
       guard let currentState = currentState else {
         return (0, 0, 0)
       }
       let inferenceEngine = WPInferenceEngine(program: program)
-      let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
+      let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
       _reachingProababilities = (
-        inferred.value.doubleValue,
-        inferred.observeSatisfactionRate.doubleValue,
-        inferred.runsNotCutOffByLoopIterationBounds.doubleValue
+        runsNotCutOffByLoopIterationBounds: inferred.runsNotCutOffByLoopIterationBounds.doubleValue,
+        observeSatisfactionRate: inferred.observeSatisfactionRate.doubleValue,
+        intentionalFocusRate: inferred.intentionalFocusRate.doubleValue
       )
     }
     return _reachingProababilities!
@@ -124,7 +124,7 @@ public class Debugger {
   
   /// The probability with which this state is reached when program execution is started at the beginning.
   public var reachingProbability: Double {
-    return reachingProbabilities.value / reachingProbabilities.runsNotCutOffByLoopIterationBounds
+    return reachingProbabilities.observeSatisfactionRate * reachingProbabilities.intentionalFocusRate
   }
   
   /// The error that might have been introduced by limiting the maximum number of loop iterations.
