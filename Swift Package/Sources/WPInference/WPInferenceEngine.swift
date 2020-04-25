@@ -307,7 +307,7 @@ public class WPInferenceEngine {
         case let unknownInstruction:
           fatalError("Unknown instruction: \(type(of: unknownInstruction))")
         }
-        if newStateToInfer.term.isZero && newStateToInfer.focusRate.isZero {
+        if newStateToInfer.focusRate.isZero {
           // This state is not contributing anything. There is no point in pursuing it.
         } else if newStateToInfer.position == programStartState {
           // At least one branching history of the state must have been completely taken care of.
