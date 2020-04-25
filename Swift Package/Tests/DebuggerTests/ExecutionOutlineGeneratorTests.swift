@@ -3,6 +3,7 @@ import IR
 import IRExecution
 import SimpleLanguageIRGen
 import TestUtils
+import WPInference
 
 import XCTest
 
@@ -666,6 +667,42 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       
       debugger.jumpToState(exitStates[1])
       XCTAssertEqual(debugger.approximationError, 0.25)
+    }())
+  }
+  
+  func testCowboyDuel() {
+    let sourceCode = """
+        int initialCowboy = discrete({1: 0.5, 2: 0.5})
+        int turn = initialCowboy
+        bool alive = true
+        while alive {
+          if discrete({0: 0.5, 1: 0.5}) == 0 {
+            if turn == 1 {
+              turn = 2
+            } else {
+              turn = 1
+            }
+          } else {
+            alive = false
+          }
+        }
+        observe(turn == 2)
+        """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 10_000
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      print(outline)
+      guard case .loop(_, let iterations, _) = outline.entries[3] else {
+        XCTFail()
+        return
+      }
+      let iterationEntryState = iterations[2].entries.first!.state
+      XCTAssertEqual(iterationEntryState.reachingProbability(in: ir.program), 1)
     }())
   }
 }
