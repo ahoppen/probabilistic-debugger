@@ -115,7 +115,7 @@ public class Debugger {
       let inferred = inferenceEngine.infer(term: .integer(1), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
       _reachingProababilities = (
         inferred.value.doubleValue,
-        inferred.runsWithSatisifiedObserves.doubleValue,
+        inferred.observeSatisfactionRate.doubleValue,
         inferred.runsNotCutOffByLoopIterationBounds.doubleValue
       )
     }
@@ -171,6 +171,8 @@ public class Debugger {
   public func runUntilEnd() throws {
     let currentState = try currentStateOrThrow()
     self.currentState = try executor.runUntilEnd(state: currentState)
+    // HACK!!!!!!!!!!!!!!!!!!
+    self.currentState = self.currentState?.settingBranchingHistories([[.any]])
   }
   
   /// Continue execution of the program to the next statement with debug info that is reachable by all execution branches.

@@ -28,7 +28,7 @@ import IR
 public struct BranchingHistory: Equatable, ExpressibleByArrayLiteral {
   public typealias ArrayLiteralElement = BranchingChoice
   
-  let choices: [BranchingChoice]
+  public let choices: [BranchingChoice]
   
   /// Whether there are any deliberate branches in the branching history.
   public var isEmpty: Bool {
@@ -46,7 +46,7 @@ public struct BranchingHistory: Equatable, ExpressibleByArrayLiteral {
     return choices.last
   }
   
-  init(choices: [BranchingChoice]) {
+  public init(choices: [BranchingChoice]) {
     self.choices = choices
   }
   

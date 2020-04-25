@@ -596,7 +596,7 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
     let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
     
     XCTAssertNoThrow(try {
-      let sampleCount = 20
+      let sampleCount = 40
       let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
       guard case .loop(_, let iterations, let exitStates) = outline.entries[1] else {
         XCTFail()
@@ -605,12 +605,13 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       
       let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: sampleCount)
       
-      let firstLoopIterationEntryState = iterations[0].entries.first!.state
-      debugger.jumpToState(firstLoopIterationEntryState)
+      debugger.jumpToState(iterations[0].entries.first!.state)
       XCTAssertEqual(debugger.approximationError, 0)
       
-      let secondLoopIterationEntryState = iterations[1].entries.first!.state
-      debugger.jumpToState(secondLoopIterationEntryState)
+      debugger.jumpToState(iterations[1].entries.first!.state)
+      XCTAssertEqual(debugger.approximationError, 0)
+      
+      debugger.jumpToState(iterations[2].entries.first!.state)
       XCTAssertEqual(debugger.approximationError, 0)
       
       debugger.jumpToState(exitStates[0])
@@ -618,6 +619,9 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       
       debugger.jumpToState(exitStates[1])
       XCTAssertEqual(debugger.approximationError, 0.25)
+      
+      debugger.jumpToState(exitStates[2])
+      XCTAssertEqual(debugger.approximationError, 0.125)
     }())
   }
   

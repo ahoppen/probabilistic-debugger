@@ -557,9 +557,7 @@ class DebuggerTests: XCTestCase {
     ])
     // Step out of the if branch
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
-      .integer(2): 1,
-    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(2)]!, 1, accuracy: 0.00001) // Numerical instabilities
     // Step into the loop
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
     XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
@@ -605,9 +603,7 @@ class DebuggerTests: XCTestCase {
       .integer(4): 1,
     ])
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
-      .integer(2): 1,
-    ])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(2)]!, 1, accuracy: 0.00001) // Numerical instabilities
     XCTAssertNoThrow(try debugger.runUntilEnd())
     XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(1): 1,
