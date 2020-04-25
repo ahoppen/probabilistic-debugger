@@ -322,6 +322,16 @@ public class WPInferenceEngine {
     
     assert(finishedInferenceStates.allSatisfy({ $0.branchingHistories.contains(where: { $0.isEmpty }) }))
     
+    if finishedInferenceStates.isEmpty {
+      // There was no successful inference run of the program. Manually put together the "zero" inference results.
+      return (
+        value: .integer(0),
+        runsNotCutOffByLoopIterationBounds: .integer(0),
+        observeSatisfactionRate: .integer(1),
+        intentionalFocusRate: .integer(1)
+      )
+    }
+    
     let focusRateSum = WPTerm.add(terms: finishedInferenceStates.map(\.focusRate)).simplified
     let intentionalLossRate = (WPTerm.add(terms: finishedInferenceStates.map({ $0.intentionalLossRate * $0.focusRate })) / focusRateSum).simplified
     let intentionalFocusRate = (.integer(1) - intentionalLossRate).simplified
