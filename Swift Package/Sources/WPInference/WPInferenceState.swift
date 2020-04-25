@@ -191,16 +191,16 @@ internal struct WPInferenceState {
   
   mutating func updateTerms(term: Bool, observeSatisfactionRate: Bool, focusRate: Bool, intentionalLossRate: Bool, update: (WPTerm) -> WPTerm) {
     if term {
-      self.term = update(self.term).simplified
+      self.term = update(self.term)
     }
     if observeSatisfactionRate {
-      self.observeSatisfactionRate = update(self.observeSatisfactionRate).simplified
+      self.observeSatisfactionRate = update(self.observeSatisfactionRate)
     }
     if focusRate {
-      self.focusRate = update(self.focusRate).simplified
+      self.focusRate = update(self.focusRate)
     }
     if intentionalLossRate {
-      self.intentionalLossRate = update(self.intentionalLossRate).simplified
+      self.intentionalLossRate = update(self.intentionalLossRate)
     }
   }
   

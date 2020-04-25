@@ -15,25 +15,54 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
   case bool(Bool)
   
   /// Convert a boolean value to an integer by mapping `false` to `0` and `true` to `1`.
-  case boolToInt(WPTerm)
+  case _boolToInt(WPTerm)
   
   /// Compare the two given terms. Returns a boolean value. The two terms must be of the same type to be considered equal
-  case equal(lhs: WPTerm, rhs: WPTerm)
+  case _equal(lhs: WPTerm, rhs: WPTerm)
   
   /// Compare if `lhs` is strictly less than `rhs` (`lhs < rhs`)
-  case lessThan(lhs: WPTerm, rhs: WPTerm)
+  case _lessThan(lhs: WPTerm, rhs: WPTerm)
   
   /// Add all the given `terms`. An empty sum has the value `0`.
-  case add(terms: [WPTerm])
+  case _add(terms: [WPTerm])
   
   /// Subtract `rhs` from `lhs`
-  case sub(lhs: WPTerm, rhs: WPTerm)
+  case _sub(lhs: WPTerm, rhs: WPTerm)
   
   /// Multiply `lhs` with `rhs`
-  case mul(lhs: WPTerm, rhs: WPTerm)
+  case _mul(lhs: WPTerm, rhs: WPTerm)
   
   /// Divide `lhs` by `rhs`
-  case div(lhs: WPTerm, rhs: WPTerm)
+  case _div(lhs: WPTerm, rhs: WPTerm)
+  
+  public static func boolToInt(_ wrapped: WPTerm) -> WPTerm {
+    return _boolToInt(wrapped).simplified(recursively: false)
+  }
+  
+  public static func equal(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+    return _equal(lhs: lhs, rhs: rhs).simplified(recursively: false)
+  }
+  
+  public static func lessThan(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+    return _lessThan(lhs: lhs, rhs: rhs).simplified(recursively: false)
+  }
+  
+  public static func add(terms: [WPTerm]) -> WPTerm {
+    return _add(terms: terms).simplified(recursively: false)
+  }
+  
+  public static func sub(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+    return _sub(lhs: lhs, rhs: rhs).simplified(recursively: false)
+  }
+  
+  public static func mul(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+    return _mul(lhs: lhs, rhs: rhs).simplified(recursively: false)
+  }
+  
+  public static func div(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+    return _div(lhs: lhs, rhs: rhs).simplified(recursively: false)
+  }
+  
   
   public var description: String {
     switch self {
@@ -45,19 +74,19 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
       return value.description
     case .bool(let value):
       return value.description
-    case .boolToInt(let term):
+    case ._boolToInt(let term):
       return "[\(term)]"
-    case .equal(lhs: let lhs, rhs: let rhs):
+    case ._equal(lhs: let lhs, rhs: let rhs):
       return "(\(lhs.description) = \(rhs.description))"
-    case .lessThan(lhs: let lhs, rhs: let rhs):
+    case ._lessThan(lhs: let lhs, rhs: let rhs):
       return "(\(lhs.description) < \(rhs.description))"
-    case .add(terms: let terms):
+    case ._add(terms: let terms):
       return terms.map({ $0.description }).joined(separator: " + ")
-    case .sub(lhs: let lhs, rhs: let rhs):
+    case ._sub(lhs: let lhs, rhs: let rhs):
       return "\(lhs.description) - \(rhs.description)"
-    case .mul(lhs: let lhs, rhs: let rhs):
+    case ._mul(lhs: let lhs, rhs: let rhs):
       return "(\(lhs.description)) * (\(rhs.description))"
-    case .div(lhs: let lhs, rhs: let rhs):
+    case ._div(lhs: let lhs, rhs: let rhs):
       return "(\(lhs.description)) / (\(rhs.description))"
     }
   }
@@ -65,33 +94,78 @@ public indirect enum WPTerm: Equatable, CustomStringConvertible {
 
 public extension WPTerm {
   func replacing(variable: IRVariable, with term: WPTerm) -> WPTerm {
+    return replacingImpl(variable: variable, with: term) ?? self
+  }
+  
+  private func replacingImpl(variable: IRVariable, with term: WPTerm) -> WPTerm? {
     switch self {
     case .variable(let myVariable):
       if myVariable == variable {
         return term
       } else {
-        return self
+        return nil
       }
     case .integer:
-      return self
+      return nil
     case .double:
-      return self
+      return nil
     case .bool:
-      return self
-    case .boolToInt(let wrappedBool):
-      return .boolToInt(wrappedBool.replacing(variable: variable, with: term))
-    case .equal(lhs: let lhs, rhs: let rhs):
-      return .equal(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
-    case .lessThan(lhs: let lhs, rhs: let rhs):
-      return .lessThan(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
-    case .add(terms: let terms):
-      return .add(terms: terms.map({ $0.replacing(variable: variable, with: term) }))
-    case .sub(lhs: let lhs, rhs: let rhs):
-      return .sub(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
-    case .mul(lhs: let lhs, rhs: let rhs):
-      return .mul(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
-    case .div(lhs: let lhs, rhs: let rhs):
-      return .div(lhs: lhs.replacing(variable: variable, with: term), rhs: rhs.replacing(variable: variable, with: term))
+      return nil
+    case ._boolToInt(let wrappedBool):
+      if let replaced = wrappedBool.replacingImpl(variable: variable, with: term) {
+        return WPTerm._boolToInt(replaced).simplified(recursively: false)
+      }
+      return nil
+    case ._equal(lhs: let lhs, rhs: let rhs):
+      let lhsReplaced = lhs.replacingImpl(variable: variable, with: term)
+      let rhsReplaced = rhs.replacingImpl(variable: variable, with: term)
+      if lhsReplaced == nil && rhsReplaced == nil {
+        return nil
+      }
+      return WPTerm._equal(lhs: lhsReplaced ?? lhs, rhs: rhsReplaced ?? rhs).simplified(recursively: false)
+    case ._lessThan(lhs: let lhs, rhs: let rhs):
+      let lhsReplaced = lhs.replacingImpl(variable: variable, with: term)
+      let rhsReplaced = rhs.replacingImpl(variable: variable, with: term)
+      if lhsReplaced == nil && rhsReplaced == nil {
+        return nil
+      }
+      return WPTerm._lessThan(lhs: lhsReplaced ?? lhs, rhs: rhsReplaced ?? rhs).simplified(recursively: false)
+    case ._add(terms: let terms):
+      var hasPerformedReplacement = false
+      let replacedTerms = terms.map({ (summand) -> WPTerm in
+        if let replaced = summand.replacingImpl(variable: variable, with: term) {
+          hasPerformedReplacement = true
+          return replaced
+        } else {
+          return summand
+        }
+      })
+      if hasPerformedReplacement {
+        return WPTerm._add(terms: replacedTerms).simplified(recursively: false)
+      } else {
+        return self
+      }
+    case ._sub(lhs: let lhs, rhs: let rhs):
+      let lhsReplaced = lhs.replacingImpl(variable: variable, with: term)
+      let rhsReplaced = rhs.replacingImpl(variable: variable, with: term)
+      if lhsReplaced == nil && rhsReplaced == nil {
+        return nil
+      }
+      return WPTerm._sub(lhs: lhsReplaced ?? lhs, rhs: rhsReplaced ?? rhs).simplified(recursively: false)
+    case ._mul(lhs: let lhs, rhs: let rhs):
+      let lhsReplaced = lhs.replacingImpl(variable: variable, with: term)
+      let rhsReplaced = rhs.replacingImpl(variable: variable, with: term)
+      if lhsReplaced == nil && rhsReplaced == nil {
+        return nil
+      }
+      return WPTerm._mul(lhs: lhsReplaced ?? lhs, rhs: rhsReplaced ?? rhs).simplified(recursively: false)
+    case ._div(lhs: let lhs, rhs: let rhs):
+      let lhsReplaced = lhs.replacingImpl(variable: variable, with: term)
+      let rhsReplaced = rhs.replacingImpl(variable: variable, with: term)
+      if lhsReplaced == nil && rhsReplaced == nil {
+        return nil
+      }
+      return WPTerm._div(lhs: lhsReplaced ?? lhs, rhs: rhsReplaced ?? rhs).simplified(recursively: false)
     }
   }
 }
@@ -110,7 +184,15 @@ internal extension WPTerm {
 }
 
 internal extension WPTerm {
-  var simplified: WPTerm {
+  private func selfOrSimplified(simplified: Bool) -> WPTerm {
+    if simplified {
+      return self.simplified(recursively: true)
+    } else {
+      return self
+    }
+  }
+  
+  func simplified(recursively: Bool) -> WPTerm {
     switch self {
     case .variable:
       return self
@@ -120,17 +202,17 @@ internal extension WPTerm {
       return self
     case .bool:
       return self
-    case .boolToInt(let term):
-      switch term.simplified {
+    case ._boolToInt(let term):
+      switch term.selfOrSimplified(simplified: recursively) {
       case .bool(false):
         return .integer(0)
       case .bool(true):
         return .integer(1)
       case let simplifiedTerm:
-        return .boolToInt(simplifiedTerm)
+        return ._boolToInt(simplifiedTerm)
       }
-    case .equal(lhs: let lhs, rhs: let rhs):
-      switch (lhs.simplified, rhs.simplified) {
+    case ._equal(lhs: let lhs, rhs: let rhs):
+      switch (lhs.selfOrSimplified(simplified: recursively), rhs.selfOrSimplified(simplified: recursively)) {
       case (.integer(let lhsValue), .integer(let rhsValue)):
         return .bool(lhsValue == rhsValue)
       case (.double(let lhsValue), .double(let rhsValue)):
@@ -138,23 +220,23 @@ internal extension WPTerm {
       case (.bool(let lhsValue), .bool(let rhsValue)):
         return .bool(lhsValue == rhsValue)
       case (let lhsValue, let rhsValue):
-        return .equal(lhs: lhsValue, rhs: rhsValue)
+        return ._equal(lhs: lhsValue, rhs: rhsValue)
       }
-    case .lessThan(lhs: let lhs, rhs: let rhs):
-      switch (lhs.simplified, rhs.simplified) {
+    case ._lessThan(lhs: let lhs, rhs: let rhs):
+      switch (lhs.selfOrSimplified(simplified: recursively), rhs.selfOrSimplified(simplified: recursively)) {
       case (.integer(let lhsValue), .integer(let rhsValue)):
         return .bool(lhsValue < rhsValue)
       case (.double(let lhsValue), .double(let rhsValue)):
         return .bool(lhsValue < rhsValue)
       case (let lhsValue, let rhsValue):
-        return .lessThan(lhs: lhsValue, rhs: rhsValue)
+        return ._lessThan(lhs: lhsValue, rhs: rhsValue)
       }
-    case .add(terms: let terms):
+    case ._add(terms: let terms):
       var integerComponent = 0
       var doubleComponents: [Double] = []
       var otherComponents: [WPTerm] = []
       for term in terms {
-        switch term.simplified {
+        switch term.selfOrSimplified(simplified: recursively) {
         case .integer(let value):
           integerComponent += value
         case .double(let value):
@@ -177,10 +259,10 @@ internal extension WPTerm {
       } else if finalTerms.count == 1 {
         return finalTerms.first!
       } else {
-        return .add(terms: finalTerms)
+        return ._add(terms: finalTerms)
       }
-    case .sub(lhs: let lhs, rhs: let rhs):
-      switch (lhs.simplified, rhs.simplified) {
+    case ._sub(lhs: let lhs, rhs: let rhs):
+      switch (lhs.selfOrSimplified(simplified: recursively), rhs.selfOrSimplified(simplified: recursively)) {
       case (let lhs, .integer(0)):
         return lhs
       case (let lhs, .double(0)):
@@ -194,10 +276,10 @@ internal extension WPTerm {
       case (.double(let lhsValue), .integer(let rhsValue)):
         return .double(lhsValue - Double(rhsValue))
       case (let lhsValue, let rhsValue):
-        return .sub(lhs: lhsValue, rhs: rhsValue)
+        return ._sub(lhs: lhsValue, rhs: rhsValue)
       }
-    case .mul(lhs: let lhs, rhs: let rhs):
-      switch (lhs.simplified, rhs.simplified) {
+    case ._mul(lhs: let lhs, rhs: let rhs):
+      switch (lhs.selfOrSimplified(simplified: recursively), rhs.selfOrSimplified(simplified: recursively)) {
       case (.integer(let lhsValue), .integer(let rhsValue)):
         return .integer(lhsValue * rhsValue)
       case (.double(let lhsValue), .double(let rhsValue)):
@@ -211,10 +293,10 @@ internal extension WPTerm {
       case (.double(0), _), (_, .double(0)):
         return .double(0)
       case (let lhsValue, let rhsValue):
-        return .mul(lhs: lhsValue, rhs: rhsValue)
+        return ._mul(lhs: lhsValue, rhs: rhsValue)
       }
-    case .div(lhs: let lhs, rhs: let rhs):
-      switch (lhs.simplified, rhs.simplified) {
+    case ._div(lhs: let lhs, rhs: let rhs):
+      switch (lhs.selfOrSimplified(simplified: recursively), rhs.selfOrSimplified(simplified: recursively)) {
       case (.integer(let lhsValue), .integer(let rhsValue)):
         return .double(Double(lhsValue) / Double(rhsValue))
       case (.double(let lhsValue), .double(let rhsValue)):
@@ -228,7 +310,7 @@ internal extension WPTerm {
       case (.double(0), _):
         return .double(0)
       case (let lhsValue, let rhsValue):
-        return .div(lhs: lhsValue, rhs: rhsValue)
+        return ._div(lhs: lhsValue, rhs: rhsValue)
       }
     }
   }
@@ -236,7 +318,7 @@ internal extension WPTerm {
 
 public extension WPTerm {
   var doubleValue: Double {
-    switch self.simplified {
+    switch self {
     case .integer(let value):
       return Double(value)
     case .double(let value):
@@ -255,17 +337,17 @@ public extension WPTerm {
 }
 
 public func +(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
-  return .add(terms: [lhs, rhs])
+  return WPTerm.add(terms: [lhs, rhs])
 }
 
 public func -(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
-  return .sub(lhs: lhs, rhs: rhs)
+  return WPTerm.sub(lhs: lhs, rhs: rhs)
 }
 
 public func *(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
-  return .mul(lhs: lhs, rhs: rhs)
+  return WPTerm.mul(lhs: lhs, rhs: rhs)
 }
 
 public func /(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
-  return .div(lhs: lhs, rhs: rhs)
+  return WPTerm.div(lhs: lhs, rhs: rhs)
 }
