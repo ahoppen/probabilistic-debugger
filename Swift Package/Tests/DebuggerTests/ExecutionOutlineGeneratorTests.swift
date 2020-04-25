@@ -702,7 +702,7 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         return
       }
       let iterationEntryState = iterations[2].entries.first!.state
-      XCTAssertEqual(iterationEntryState.reachingProbability(in: ir.program), 1)
+      XCTAssertEqual(iterationEntryState.reachingProbability(in: ir.program), 0.25)
     }())
   }
 }

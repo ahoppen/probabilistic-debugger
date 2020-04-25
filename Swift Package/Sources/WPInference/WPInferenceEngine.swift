@@ -339,7 +339,7 @@ public class WPInferenceEngine {
             )
           } else {
             inferenceStatesWorklist.append(newStateToInfer)
-            inferenceStatesWorklist.sort(by: { program.predominators[$0.position.basicBlock]!.contains($1.position.basicBlock) })
+            inferenceStatesWorklist.sort(by: { !program.predominators[$0.position.basicBlock]!.contains($1.position.basicBlock) })
           }
         }
       }

@@ -169,7 +169,9 @@ public struct WPAdditionList: Hashable {
       case ._boolToInt(let condition):
         // Hoist conditions into the condition part of the AdditionListEntry
         entries.remove(at: index)
-        self.increaseFactor(of: .integer(1), conditions: entry.conditions.union([condition]), by: entry.factor)
+        if !entry.conditions.contains(.not(condition)) {
+          self.increaseFactor(of: .integer(1), conditions: entry.conditions.union([condition]), by: entry.factor)
+        }
       case ._mul(terms: var factors):
         // Extract any constants and conditions from a multiplication
         var wasSimplified = false
