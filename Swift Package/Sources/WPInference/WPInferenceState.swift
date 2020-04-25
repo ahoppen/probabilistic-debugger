@@ -76,7 +76,8 @@ internal struct WPInferenceState {
     }
   }
   
-  /// Relative to the runs this state is focused on, the rate of runs that satisfy all `observe` instructions encountered so far.
+  /// The rate of all potential runs for which all observe instructions have been satisified.
+  /// Dividing this by the `focusRate` gives the proportion of runs that satisfied all observes relative to the runs that this inference state is focused on.
   var observeSatisfactionRate: WPTerm {
     get {
       return storage.observeSatisfactionRate
@@ -105,8 +106,8 @@ internal struct WPInferenceState {
     }
   }
   
-  /// Relative to the focus rate, the proportion of runs that were deliberately lost due to intentional branching choices.
-  /// In practice, this is either `0` or `1`.
+  /// The proportion of all possible runs that were intentionally lost due du deliberate branching choices.
+  /// In practice, this is either equal to `focusRate` or `0`.
   var intentionalLossRate: WPTerm {
     get {
       return storage.intentionalLossRate

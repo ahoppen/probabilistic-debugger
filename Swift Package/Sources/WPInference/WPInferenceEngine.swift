@@ -125,7 +125,7 @@ public class WPInferenceEngine {
             term: .integer(0),
             observeSatisfactionRate: .integer(0),
             focusRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * state.focusRate,
-            intentionalLossRate: .integer(1),
+            intentionalLossRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
             branchingHistories: newBranchingHistories
@@ -138,7 +138,7 @@ public class WPInferenceEngine {
           .withPosition(predecessorBlockPosition)
           .withRemainingLoopUnrolls(remainingLoopUnrolls)
           .withBranchingHistories(newBranchingHistories)
-          .updatingTerms(term: true, observeSatisfactionRate: false, focusRate: true, intentionalLossRate: false) {
+          .updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
             return .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * $0
           }
         if state.generateLostStatesForBlocks.contains(predecessor) {
@@ -147,7 +147,7 @@ public class WPInferenceEngine {
             term: .integer(0),
             observeSatisfactionRate: .integer(0),
             focusRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(!takenBranch))) * state.focusRate,
-            intentionalLossRate: .integer(1),
+            intentionalLossRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(!takenBranch))) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
             branchingHistories: newBranchingHistories
@@ -334,7 +334,7 @@ public class WPInferenceEngine {
     }
     
     let focusRateSum = WPTerm.add(terms: finishedInferenceStates.map(\.focusRate)).simplified
-    let intentionalLossRate = (WPTerm.add(terms: finishedInferenceStates.map({ $0.intentionalLossRate * $0.focusRate })) / focusRateSum).simplified
+    let intentionalLossRate = (WPTerm.add(terms: finishedInferenceStates.map({ $0.intentionalLossRate })) / focusRateSum).simplified
     let intentionalFocusRate = (.integer(1) - intentionalLossRate).simplified
     
     assert(0 <= focusRateSum.doubleValue && focusRateSum.doubleValue <= 1)
@@ -344,7 +344,7 @@ public class WPInferenceEngine {
     return (
       value: WPTerm.add(terms: finishedInferenceStates.map(\.term)).simplified,
       runsNotCutOffByLoopIterationBounds: focusRateSum.simplified,
-      observeSatisfactionRate: (WPTerm.add(terms: finishedInferenceStates.map({ $0.observeSatisfactionRate * $0.focusRate })) / focusRateSum / intentionalFocusRate).simplified,
+      observeSatisfactionRate: (WPTerm.add(terms: finishedInferenceStates.map({ $0.observeSatisfactionRate })) / focusRateSum / intentionalFocusRate).simplified,
       intentionalFocusRate: intentionalFocusRate
     )
   }
