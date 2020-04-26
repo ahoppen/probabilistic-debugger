@@ -3,7 +3,7 @@ import IR
 /// Keeps track of how many times a loop has been unrolled (which is equivalent to the number of times the loop has been traversed during forward execution) in a given program.
 /// For deterministic program, each loop is unrolled a fixed number of times.
 /// For probabilistic programs, the number of loop unrolls is not clearly defined and a loop can be simultaneously unrolled e.g. 1, 2 and 3 times because there are execution branches that iterate the loop exactly this number of times
-public struct LoopUnrolls: Equatable, CustomStringConvertible {
+public struct LoopUnrolls: Hashable, CustomStringConvertible {
   private let context: [IRLoop: LoopUnrollEntry]
   
   /// The loops for which the number of unrolls is known
@@ -89,7 +89,7 @@ public struct LoopUnrolls: Equatable, CustomStringConvertible {
 }
 
 /// For a given loop, keeps track of how many times the loop has been unrolled
-public struct LoopUnrollEntry: Equatable, CustomStringConvertible, ExpressibleByArrayLiteral {
+public struct LoopUnrollEntry: Hashable, CustomStringConvertible, ExpressibleByArrayLiteral {
   public typealias ArrayLiteralElement = Int
   
   private let unrolls: Set<Int>

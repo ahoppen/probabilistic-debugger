@@ -15,6 +15,7 @@ extension WPTerm {
 
 public class WPInferenceEngine {
   private let program: IRProgram
+  private var inferenceCache: [WPInferenceState: WPInferenceState?] = [:]
   
   public init(program: IRProgram) {
     self.program = program
@@ -196,65 +197,9 @@ public class WPInferenceEngine {
     }
   }
   
-  /// Infer the probability that `variable` has the value `value` after executing the program to `inferenceStopPosition`.
-  /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
-  /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
-  public func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
-    return inferProbability(of: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls, to: inferenceStopPosition, branchingHistories: branchingHistories)
-  }
-  
-  public func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
-    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingHistories: branchingHistories)
-    let probabilityTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
-    return probabilityTerm.doubleValue
-  }
-  
-  /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
-  /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
-  /// The function returns the following values:
-  ///  - `value`: The result of inferring `term` without any normalization factors applied
-  ///  - `runsNotCutOffByLoopIterationBounds`: The proportion of runs that were not cut off because of loop iteration bounds
-  ///  - `observeSatisfactionRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of runs that satisified all `observe` instructions
-  ///  - `intentionalFocusRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of all possible runs on which the inferrence was focused via the branching history.
-  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> (value: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, observeSatisfactionRate: WPTerm, intentionalFocusRate: WPTerm) {
-    #if DEBUG
-    // Check that we have a loop repetition bound for every loop in the program
-    for loop in program.loops {
-      assert(!loop.isEmpty)
-      var foundLoopRepetitionBound = false
-      for (block1, block2) in zip(loop, loop.dropFirst() + [loop.first!]) {
-        // Iterate through all successors in the loop
-        if loopUnrolls.loops.contains(where: { $0.conditionBlock == block1 && $0.bodyStartBlock == block2 }) {
-          foundLoopRepetitionBound = true
-          break
-        }
-      }
-      assert(foundLoopRepetitionBound, "No loop repetition bound specified for loop \(loop)")
-    }
-    #endif
-    
-    // Generate lost states for all blocks that predominate the block until which inferrence is performed but which are not postdominated by the inferenceStopPosition
-    var generateLostStatesForBlocks: Set<BasicBlockName> = []
-    for block in program.transitivePredecessors[inferenceStopPosition.basicBlock]! {
-      if !program.postdominators[block]!.contains(inferenceStopPosition.basicBlock),
-        !program.predominators[block]!.contains(inferenceStopPosition.basicBlock) {
-        generateLostStatesForBlocks.insert(block)
-      }
-    }
-    
+  private func performInference(for initialState: WPInferenceState) -> WPInferenceState? {
     let programStartState = InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0)
     
-    // WPInferenceStates that have not yet reached the start of the program and for which further inference needs to be performed
-    let initialState = WPInferenceState(
-      position: inferenceStopPosition,
-      term: term,
-      observeSatisfactionRate: .integer(1),
-      focusRate: .integer(1),
-      intentionalLossRate: .integer(0),
-      generateLostStatesForBlocks: generateLostStatesForBlocks,
-      remainingLoopUnrolls: loopUnrolls,
-      branchingHistories: branchingHistories
-    )
     var inferenceStatesWorklist = [initialState]
     
     // WPInferenceStates that have reached the start of the program. The sum of these state's terms determines the final result
@@ -346,8 +291,81 @@ public class WPInferenceEngine {
     }
     
     assert(finishedInferenceStates.allSatisfy({ $0.branchingHistories.contains(where: { $0.isEmpty }) }))
+    assert(finishedInferenceStates.map(\.position).allEqual)
+    assert(finishedInferenceStates.map(\.generateLostStatesForBlocks).allEqual)
     
-    if finishedInferenceStates.isEmpty {
+    guard let firstFinishedState = finishedInferenceStates.first else {
+      return nil
+    }
+    
+    return WPInferenceState(
+      position: firstFinishedState.position,
+      term: WPTerm.add(terms: finishedInferenceStates.map(\.term)),
+      observeSatisfactionRate: WPTerm.add(terms: finishedInferenceStates.map(\.observeSatisfactionRate)),
+      focusRate: WPTerm.add(terms: finishedInferenceStates.map(\.focusRate)),
+      intentionalLossRate: WPTerm.add(terms: finishedInferenceStates.map(\.intentionalLossRate)),
+      generateLostStatesForBlocks: firstFinishedState.generateLostStatesForBlocks,
+      remainingLoopUnrolls: LoopUnrolls([:]),
+      branchingHistories: []
+    )
+  }
+  
+  /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
+  /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
+  /// The function returns the following values:
+  ///  - `value`: The result of inferring `term` without any normalization factors applied
+  ///  - `runsNotCutOffByLoopIterationBounds`: The proportion of runs that were not cut off because of loop iteration bounds
+  ///  - `observeSatisfactionRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of runs that satisified all `observe` instructions
+  ///  - `intentionalFocusRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of all possible runs on which the inferrence was focused via the branching history.
+  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> (value: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, observeSatisfactionRate: WPTerm, intentionalFocusRate: WPTerm) {
+    
+    #if DEBUG
+    // Check that we have a loop repetition bound for every loop in the program
+    for loop in program.loops {
+      assert(!loop.isEmpty)
+      var foundLoopRepetitionBound = false
+      for (block1, block2) in zip(loop, loop.dropFirst() + [loop.first!]) {
+        // Iterate through all successors in the loop
+        if loopUnrolls.loops.contains(where: { $0.conditionBlock == block1 && $0.bodyStartBlock == block2 }) {
+          foundLoopRepetitionBound = true
+          break
+        }
+      }
+      assert(foundLoopRepetitionBound, "No loop repetition bound specified for loop \(loop)")
+    }
+    #endif
+    
+    // Generate lost states for all blocks that predominate the block until which inferrence is performed but which are not postdominated by the inferenceStopPosition
+    var generateLostStatesForBlocks: Set<BasicBlockName> = []
+    for block in program.transitivePredecessors[inferenceStopPosition.basicBlock]! {
+      if !program.postdominators[block]!.contains(inferenceStopPosition.basicBlock),
+        !program.predominators[block]!.contains(inferenceStopPosition.basicBlock) {
+        generateLostStatesForBlocks.insert(block)
+      }
+    }
+    
+    // WPInferenceStates that have not yet reached the start of the program and for which further inference needs to be performed
+    let initialState = WPInferenceState(
+      position: inferenceStopPosition,
+      term: term,
+      observeSatisfactionRate: .integer(1),
+      focusRate: .integer(1),
+      intentionalLossRate: .integer(0),
+      generateLostStatesForBlocks: generateLostStatesForBlocks,
+      remainingLoopUnrolls: loopUnrolls,
+      branchingHistories: branchingHistories
+    )
+    
+    let inferredStateOrNil: WPInferenceState?
+    
+    if let cachedReuslt = inferenceCache[initialState] {
+      inferredStateOrNil = cachedReuslt
+    } else {
+      inferredStateOrNil = self.performInference(for: initialState)
+      inferenceCache[initialState] = inferredStateOrNil
+    }
+    
+    guard let inferredState = inferredStateOrNil else {
       // There was no successful inference run of the program. Manually put together the "zero" inference results.
       return (
         value: .integer(0),
@@ -357,8 +375,8 @@ public class WPInferenceEngine {
       )
     }
     
-    let focusRateSum = WPTerm.add(terms: finishedInferenceStates.map(\.focusRate))
-    let intentionalLossRate = (WPTerm.add(terms: finishedInferenceStates.map({ $0.intentionalLossRate })) / focusRateSum)
+    let focusRateSum = inferredState.focusRate
+    let intentionalLossRate = inferredState.intentionalLossRate / focusRateSum
     let intentionalFocusRate = (.integer(1) - intentionalLossRate)
     
     assert(0 <= focusRateSum.doubleValue && focusRateSum.doubleValue <= 1)
@@ -366,15 +384,28 @@ public class WPInferenceEngine {
     assert(0 <= intentionalFocusRate.doubleValue && intentionalFocusRate.doubleValue <= 1)
     
     return (
-      value: WPTerm.add(terms: finishedInferenceStates.map(\.term)),
+      value: inferredState.term,
       runsNotCutOffByLoopIterationBounds: focusRateSum,
-      observeSatisfactionRate: (WPTerm.add(terms: finishedInferenceStates.map({ $0.observeSatisfactionRate })) / focusRateSum / intentionalFocusRate),
+      observeSatisfactionRate: (inferredState.observeSatisfactionRate / focusRateSum / intentionalFocusRate),
       intentionalFocusRate: intentionalFocusRate
     )
   }
 }
 
 public extension WPInferenceEngine {
+  /// Infer the probability that `variable` has the value `value` after executing the program to `inferenceStopPosition`.
+  /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
+  /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
+  func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
+    return inferProbability(of: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls, to: inferenceStopPosition, branchingHistories: branchingHistories)
+  }
+  
+  func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
+    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingHistories: branchingHistories)
+    let probabilityTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
+    return probabilityTerm.doubleValue
+  }
+  
   func reachingProbability(of state: IRExecutionState) -> Double {
     let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistories: state.branchingHistories)
     return (inferred.observeSatisfactionRate * inferred.intentionalFocusRate).doubleValue

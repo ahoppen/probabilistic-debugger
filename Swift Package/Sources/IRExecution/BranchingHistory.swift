@@ -1,7 +1,7 @@
 import IR
 
 /// An entry in the branching history of IR execution.
-@frozen public enum BranchingChoice: Equatable, CustomStringConvertible {
+@frozen public enum BranchingChoice: Hashable, CustomStringConvertible {
   /// A deliberate branching choice. Execution was branched from `source` to `target` although another branch might also have been viable.
   case choice(source: BasicBlockName, target: BasicBlockName)
   
@@ -26,7 +26,7 @@ import IR
 
 /// A branching history describes a path through which execution has reached a specific program point, either through explicit choices or through `any` choices where both execution branches may be taken.
 /// Multiple branching histories together can describe multiple potential paths to reach the same point.
-public struct BranchingHistory: Equatable, ExpressibleByArrayLiteral {
+public struct BranchingHistory: Hashable, ExpressibleByArrayLiteral {
   public typealias ArrayLiteralElement = BranchingChoice
   
   public let choices: [BranchingChoice]

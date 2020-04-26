@@ -1,9 +1,9 @@
 import IR
 import IRExecution
 
-internal struct WPInferenceState {
+internal struct WPInferenceState: Hashable {
   /// WPInferenceState is a copy on write container for performance reasons. `Storage` stores the actual data of the struct.
-  private class Storage {
+  private class Storage: Hashable {
     var position: InstructionPosition
     var term: WPTerm
     var observeSatisfactionRate: WPTerm
@@ -42,6 +42,28 @@ internal struct WPInferenceState {
       self.generateLostStatesForBlocks = other.generateLostStatesForBlocks
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
       self.branchingHistories = other.branchingHistories
+    }
+    
+    func hash(into hasher: inout Hasher) {
+      position.hash(into: &hasher)
+      term.hash(into: &hasher)
+      observeSatisfactionRate.hash(into: &hasher)
+      focusRate.hash(into: &hasher)
+      intentionalLossRate.hash(into: &hasher)
+      generateLostStatesForBlocks.hash(into: &hasher)
+      remainingLoopUnrolls.hash(into: &hasher)
+      branchingHistories.hash(into: &hasher)
+    }
+    
+    static func ==(lhs: WPInferenceState.Storage, rhs: WPInferenceState.Storage) -> Bool {
+      return lhs.position == rhs.position &&
+        lhs.term == rhs.term &&
+        lhs.observeSatisfactionRate == rhs.observeSatisfactionRate &&
+        lhs.focusRate == rhs.focusRate &&
+        lhs.intentionalLossRate == rhs.intentionalLossRate &&
+        lhs.generateLostStatesForBlocks == rhs.generateLostStatesForBlocks &&
+        lhs.remainingLoopUnrolls == rhs.remainingLoopUnrolls &&
+        lhs.branchingHistories == rhs.branchingHistories
     }
   }
   
