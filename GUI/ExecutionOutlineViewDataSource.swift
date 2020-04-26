@@ -54,8 +54,8 @@ fileprivate extension String {
 struct ExecutionOutlineViewData {
   let outline: ExecutionOutline
   let survivingSampleIds: Set<Int>
-  let program: IRProgram?
   let debugInfo: DebugInfo?
+  let inferenceEngine: WPInferenceEngine?
 }
 
 class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutlineViewDataSource {
@@ -63,7 +63,7 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
   let debuggerCentral: DebuggerCentral!
   var cancellables: [AnyCancellable] = []
   let selectionChangeCallback: (IRExecutionState) -> Void
-  var data: ExecutionOutlineViewData = ExecutionOutlineViewData(outline: [], survivingSampleIds: [], program: nil, debugInfo: nil) {
+  var data: ExecutionOutlineViewData = ExecutionOutlineViewData(outline: [], survivingSampleIds: [], debugInfo: nil, inferenceEngine: nil) {
     didSet {
       dispatchPrecondition(condition: .onQueue(.main))
       outlineView.reloadData()
@@ -77,12 +77,12 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
     
     super.init()
     
-    cancellables += Publishers.CombineLatest3(debuggerCentral.executionOutline, debuggerCentral.survivingSampleIds, debuggerCentral.irAndDebugInfo).sink { [unowned self] (outline, survivingSampleIds, irAndDebugInfo) in
+    cancellables += Publishers.CombineLatest4(debuggerCentral.executionOutline, debuggerCentral.survivingSampleIds, debuggerCentral.irAndDebugInfo, debuggerCentral.$inferenceEngine).sink { [unowned self] (outline, survivingSampleIds, irAndDebugInfo, inferenceEngine) in
       self.data = ExecutionOutlineViewData(
         outline: outline.success ?? [],
         survivingSampleIds: survivingSampleIds,
-        program: irAndDebugInfo.success?.program,
-        debugInfo: irAndDebugInfo.success?.debugInfo
+        debugInfo: irAndDebugInfo.success?.debugInfo,
+        inferenceEngine: inferenceEngine
       )
     }
   }
@@ -211,20 +211,19 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
   }
   
   func executionOutlineSamplesCellText(item: ExecutionOutlineRow) -> String {
-    if let state = item.state, let program = data.program {
-      let reachingProbability = state.reachingProbability(in: program)
-      let percentage = (reachingProbability * 100).rounded(decimalPlaces: 2)
-      return "\(percentage)%"
-    } else {
+    guard let state = item.state, let inferenceEngine = data.inferenceEngine else {
       return ""
     }
+    let reachingProbability = inferenceEngine.reachingProbability(of: state)
+    let percentage = (reachingProbability * 100).rounded(decimalPlaces: 2)
+    return "\(percentage)%"
   }
   
   func executionOutlineErrorCellText(item: ExecutionOutlineRow) -> String {
-    guard let state = item.state, let program = data.program else {
+    guard let state = item.state, let inferenceEngine = data.inferenceEngine else {
       return ""
     }
-    let approximationError = state.approximationError(in: program)
+    let approximationError = inferenceEngine.approximationError(of: state)
     return "\((approximationError * 100).rounded(decimalPlaces: 2))%"
   }
   

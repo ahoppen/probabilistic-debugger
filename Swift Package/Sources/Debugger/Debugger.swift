@@ -20,6 +20,8 @@ public class Debugger {
   /// The executor that actually executes the IR
   private let executor: IRExecutor
   
+  public let inferenceEngine: WPInferenceEngine
+  
   private var program: IRProgram {
     return executor.program
   }
@@ -64,6 +66,7 @@ public class Debugger {
   
   public init(program: IRProgram, debugInfo: DebugInfo, sampleCount: Int) {
     self.executor = IRExecutor(program: program)
+    self.inferenceEngine = WPInferenceEngine(program: program)
     self.debugInfo = debugInfo
     self.stateStack = [IRExecutionState(initialStateIn: program, sampleCount: sampleCount, loops: debugInfo.loops)]
     
@@ -77,6 +80,7 @@ public class Debugger {
     self.executor = other.executor
     self.debugInfo = other.debugInfo
     self.stateStack = other.stateStack
+    self.inferenceEngine = other.inferenceEngine
   }
   
   // MARK: - Retrieving current state
@@ -111,7 +115,6 @@ public class Debugger {
       guard let currentState = currentState else {
         return (0, 0, 0)
       }
-      let inferenceEngine = WPInferenceEngine(program: program)
       let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
       _reachingProababilities = (
         runsNotCutOffByLoopIterationBounds: inferred.runsNotCutOffByLoopIterationBounds.doubleValue,
@@ -142,7 +145,6 @@ public class Debugger {
       guard let currentState = currentState else {
         return [:]
       }
-      let inferenceEngine = WPInferenceEngine(program: program)
       
       var variableValues: [String: [IRValue: Double]] = [:]
       guard let instructionInfo = debugInfo.info[currentState.position] else {

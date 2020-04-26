@@ -373,3 +373,15 @@ public class WPInferenceEngine {
     )
   }
 }
+
+public extension WPInferenceEngine {
+  func reachingProbability(of state: IRExecutionState) -> Double {
+    let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistories: state.branchingHistories)
+    return (inferred.observeSatisfactionRate * inferred.intentionalFocusRate).doubleValue
+  }
+  
+  func approximationError(of state: IRExecutionState) -> Double {
+    let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistories: state.branchingHistories)
+    return 1 - inferred.runsNotCutOffByLoopIterationBounds.doubleValue
+  }
+}

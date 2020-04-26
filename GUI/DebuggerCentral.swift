@@ -13,6 +13,7 @@ import IR
 import IRExecution
 import SimpleLanguageIRGen
 import Utils
+import WPInference
 
 struct EmptyValueError: Error {}
 
@@ -72,6 +73,7 @@ class DebuggerCentral {
   @Published public private(set) var variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
   @Published public private(set) var reachabilityProbability: Double = 0
   @Published public private(set) var approximationError: Double = 0
+  @Published public private(set) var inferenceEngine: WPInferenceEngine?
   public private(set) var survivingSampleIds = PassthroughSubject<Set<Int>, Never>()
   
   public private(set) var irAndDebugInfo = PassthroughSubject<Failable<(program: IRProgram, debugInfo: DebugInfo)>, Never>()
@@ -92,10 +94,12 @@ class DebuggerCentral {
       switch irOrError {
       case .success(let ir):
         self.debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: self.initialSamples)
+        self.inferenceEngine = self.debugger?.inferenceEngine
         self.updatePublishedDebuggerVariables()
       case .error(let error):
         print(error.localizedDescription)
         self.debugger = nil
+        self.inferenceEngine = nil
         self.updatePublishedDebuggerVariables()
       }
     }

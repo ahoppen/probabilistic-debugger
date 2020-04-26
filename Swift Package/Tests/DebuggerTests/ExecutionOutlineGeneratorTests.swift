@@ -702,7 +702,8 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
         return
       }
       let iterationEntryState = iterations[2].entries.first!.state
-      XCTAssertEqual(iterationEntryState.reachingProbability(in: ir.program), 0.25)
+      let inferenceEngine = WPInferenceEngine(program: ir.program)
+      XCTAssertEqual(inferenceEngine.reachingProbability(of: iterationEntryState), 0.25)
     }())
   }
 }
