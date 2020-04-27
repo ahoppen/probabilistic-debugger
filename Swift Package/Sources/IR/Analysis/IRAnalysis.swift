@@ -171,4 +171,19 @@ enum IRAnalysis {
     }
     return immediateDominators
   }
+  
+  static func loopInducingBlocks(properPredominators: [BasicBlockName: Set<BasicBlockName>], transitivePredecessors: [BasicBlockName: Set<BasicBlockName>]) -> Set<BasicBlockName> {
+    let loopIncudingBlocks = properPredominators.keys.filter({ (block) -> Bool in
+      if !transitivePredecessors[block]!.contains(block) {
+        return false
+      }
+      for predominator in properPredominators[block]! {
+        if transitivePredecessors[predominator]!.contains(block) {
+          return false
+        }
+      }
+      return true
+    })
+    return Set(loopIncudingBlocks)
+  }
 }

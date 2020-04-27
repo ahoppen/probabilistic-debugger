@@ -15,10 +15,21 @@ extension WPTerm {
 
 public class WPInferenceEngine {
   private let program: IRProgram
+  
+  /// Cached inference results. Maps an inference state to the resulting inference state when performing WP-inference to the top of the program.
+  /// The result is `nil` if there is no feasible inference run from the queried state to the top.
   private var inferenceCache: [WPInferenceState: WPInferenceState?] = [:]
+  
+  /// Instructions that are likely to be repeatedly visited and for which inference results should be cached.
+  /// At the moment such locations are the condition blocks of loops
+  private let cachableIntermediateProgramPositions: Set<InstructionPosition>
   
   public init(program: IRProgram) {
     self.program = program
+    self.cachableIntermediateProgramPositions = Set(program.loopInducingBlocks.map({ block in
+      let firstNonPhiInstructionInBlock = program.basicBlocks[block]!.instructions.firstIndex(where: { !($0 is PhiInstruction) })!
+      return InstructionPosition(basicBlock: block, instructionIndex: firstNonPhiInstructionInBlock)
+    }))
   }
   
   /// Given a state that is pointed to the first instruction in a basic block and a predecessor block of this state, move the instruction position to the predecessor block and perform WP-inference for the branch or jump instruction in the predecessor block.
@@ -197,7 +208,107 @@ public class WPInferenceEngine {
     }
   }
   
-  private func performInference(for initialState: WPInferenceState) -> WPInferenceState? {
+  /// Try loading the result of infering the given state all the way to the top of the program from the cache.
+  /// If no entry exists in the cache yet, compute the inference result and store it in the cache.
+  /// It is assumed that the `state`s terms aren't very complex and that thus hashValue calculation is not a performance bottleneck
+  /// The `state` is the result from
+  private func loadInferenceResultFromCacheOrPopulateCache(_ state: WPInferenceState) -> WPInferenceState? {
+    // Try normalizing the state so that e.g. queries for 0.5 * [%1 = 1] and 0.25 * [%1 = 1] will be able to use the same cache entry.
+    // For this, if the query is a multipliation, normalize the contant factor to 1.
+    // If the query is an addition list, normalize is so the maximum factor is 1.
+    var normalizedState = state
+    var normalizationFactor: Double = 1
+    switch state.focusRate {
+    case ._mul(terms: let factors):
+      let constants = factors.compactMap({ (factor: WPTerm) -> Double? in
+        switch factor {
+        case .integer(let value):
+          return Double(value)
+        case .double(let value):
+          return value
+        default:
+          return nil
+        }
+      })
+      if constants.count == 1 {
+        normalizationFactor = constants.first!
+      }
+    case ._additionList(let additionList):
+      if let maxFactor = additionList.entries.map(\.factor).max() {
+        assert(maxFactor != 0)
+        normalizationFactor = maxFactor
+      }
+    default:
+      break
+    }
+    
+    if normalizationFactor != 1 {
+      normalizedState.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, update: {
+        .double(1 / normalizationFactor) * $0
+      })
+    }
+    
+    let result: WPInferenceState?
+    if let cachedReuslt = inferenceCache[normalizedState] {
+      result = cachedReuslt
+    } else {
+      result = self.performInference(for: normalizedState, disableCacheLookupOnInitialState: true)
+      inferenceCache[normalizedState] = result
+    }
+    
+    if normalizationFactor != 1 {
+      return result?.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, update: {
+        return .double(normalizationFactor) * $0
+      })
+    } else {
+      return result
+    }
+  }
+  
+  /// Perform a single inference step
+  private func performInferenceStep(_ stateToInfer: WPInferenceState) -> WPInferenceState {
+    let position = stateToInfer.position
+    let newStateToInfer: WPInferenceState
+    let instruction = program.instruction(at: position)!
+    switch instruction {
+    case let instruction as AssignInstruction:
+      newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.value))
+    case let instruction as AddInstruction:
+      newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.lhs) + WPTerm(instruction.rhs))
+    case let instruction as SubtractInstruction:
+      newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.lhs) - WPTerm(instruction.rhs))
+    case let instruction as CompareInstruction:
+      switch instruction.comparison {
+      case .equal:
+        newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: .equal(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+      case .lessThan:
+        newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: .lessThan(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+      }
+    case let instruction as DiscreteDistributionInstruction:
+      newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) { (term) in
+        let terms = instruction.distribution.map({ (value, probability) in
+          return .double(probability) * term.replacing(variable: instruction.assignee, with: .integer(value))
+        })
+        return .add(terms: terms)
+      }
+    case let instruction as ObserveInstruction:
+      newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: false, intentionalLossRate: false) {
+        return .boolToInt(WPTerm(instruction.observation)) * $0
+      }
+    case is JumpInstruction, is BranchInstruction:
+      // Already handled by branchesToInfer. Nothing to do anymore.
+      newStateToInfer = stateToInfer
+    case is ReturnInstruction:
+      fatalError("WP inference is initialised at the ReturnInstruction which means the ReturnInstruction has already been inferred")
+    case is PhiInstruction:
+      fatalError("Should always be jumped over by branchesToInfer")
+    case let unknownInstruction:
+      fatalError("Unknown instruction: \(type(of: unknownInstruction))")
+    }
+    return newStateToInfer
+  }
+  
+  private func performInference(for initialState: WPInferenceState, disableCacheLookupOnInitialState: Bool = false) -> WPInferenceState? {
     let programStartState = InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0)
     
     var inferenceStatesWorklist = [initialState]
@@ -205,88 +316,68 @@ public class WPInferenceEngine {
     // WPInferenceStates that have reached the start of the program. The sum of these state's terms determines the final result
     var finishedInferenceStates: [WPInferenceState] = []
     
+    func addStateToWorklistOrFinishedStates(_ newStateToInfer: WPInferenceState?) {
+      guard let newStateToInfer = newStateToInfer else {
+        return
+      }
+      if newStateToInfer.focusRate.isZero {
+        // This state is not contributing anything. There is no point in pursuing it.
+      } else if newStateToInfer.position == programStartState {
+        // At least one branching history of the state must have been completely taken care of.
+        // Otherwise there are branches that we haven't considered which means we have reached the top of the program on a branching path that hasn't been specified in branching histories.
+        if newStateToInfer.branchingHistories.contains(where: { $0.isEmpty }) {
+          finishedInferenceStates.append(newStateToInfer)
+        }
+      } else {
+        // Check if we already have an inference state with the same characteristics.
+        // If we do, combine the terms of newStateToInfer with the existing entry.
+        let existingIndex = inferenceStatesWorklist.firstIndex(where: {
+          return $0.position == newStateToInfer.position &&
+            $0.remainingLoopUnrolls == newStateToInfer.remainingLoopUnrolls &&
+            $0.branchingHistories == newStateToInfer.branchingHistories
+        })
+        if let existingIndex = existingIndex {
+          let existingEntry = inferenceStatesWorklist[existingIndex]
+          assert(existingEntry.generateLostStatesForBlocks == newStateToInfer.generateLostStatesForBlocks, "generateLostStatesForBlocks should never change")
+          
+          inferenceStatesWorklist[existingIndex] = WPInferenceState(
+            position: existingEntry.position,
+            term: WPTerm.add(terms: [existingEntry.term, newStateToInfer.term]),
+            observeSatisfactionRate: WPTerm.add(terms: [existingEntry.observeSatisfactionRate, newStateToInfer.observeSatisfactionRate]),
+            focusRate: WPTerm.add(terms: [existingEntry.focusRate, newStateToInfer.focusRate]),
+            intentionalLossRate: WPTerm.add(terms: [existingEntry.intentionalLossRate, newStateToInfer.intentionalLossRate]),
+            generateLostStatesForBlocks: existingEntry.generateLostStatesForBlocks,
+            remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
+            branchingHistories: existingEntry.branchingHistories
+          )
+        } else {
+          inferenceStatesWorklist.append(newStateToInfer)
+          inferenceStatesWorklist.sort(by: { !program.predominators[$0.position.basicBlock]!.contains($1.position.basicBlock) })
+        }
+      }
+    }
+    
     if initialState.position == programStartState {
       inferenceStatesWorklist = []
       finishedInferenceStates = [initialState]
     }
+    var useCache = !disableCacheLookupOnInitialState
     
     while let worklistEntry = inferenceStatesWorklist.popLast() {
       // Pop one entry of the worklist and perform WP-inference for it
       
+      if useCache, cachableIntermediateProgramPositions.contains(worklistEntry.position) {
+        addStateToWorklistOrFinishedStates(loadInferenceResultFromCacheOrPopulateCache(worklistEntry))
+        continue
+      }
+      useCache = true
+      
       for stateToInfer in self.branchesToInfer(before: worklistEntry) {
-        let position = stateToInfer.position
-        let newStateToInfer: WPInferenceState
-        let instruction = program.instruction(at: position)!
-        switch instruction {
-        case let instruction as AssignInstruction:
-          newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.value))
-        case let instruction as AddInstruction:
-          newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.lhs) + WPTerm(instruction.rhs))
-        case let instruction as SubtractInstruction:
-          newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.lhs) - WPTerm(instruction.rhs))
-        case let instruction as CompareInstruction:
-          switch instruction.comparison {
-          case .equal:
-            newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: .equal(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
-          case .lessThan:
-            newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: .lessThan(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
-          }
-        case let instruction as DiscreteDistributionInstruction:
-          newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) { (term) in
-            let terms = instruction.distribution.map({ (value, probability) in
-              return .double(probability) * term.replacing(variable: instruction.assignee, with: .integer(value))
-            })
-            return .add(terms: terms)
-          }
-        case let instruction as ObserveInstruction:
-          newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: false, intentionalLossRate: false) {
-            return .boolToInt(WPTerm(instruction.observation)) * $0
-          }
-        case is JumpInstruction, is BranchInstruction:
-          // Already handled by branchesToInfer. Nothing to do anymore.
-          newStateToInfer = stateToInfer
-        case is ReturnInstruction:
-          fatalError("WP inference is initialised at the ReturnInstruction which means the ReturnInstruction has already been inferred")
-        case is PhiInstruction:
-          fatalError("Should always be jumped over by branchesToInfer")
-        case let unknownInstruction:
-          fatalError("Unknown instruction: \(type(of: unknownInstruction))")
+        if stateToInfer.focusRate.isZero {
+          continue
         }
-        if newStateToInfer.focusRate.isZero {
-          // This state is not contributing anything. There is no point in pursuing it.
-        } else if newStateToInfer.position == programStartState {
-          // At least one branching history of the state must have been completely taken care of.
-          // Otherwise there are branches that we haven't considered which means we have reached the top of the program on a branching path that hasn't been specified in branching histories.
-          if newStateToInfer.branchingHistories.contains(where: { $0.isEmpty }) {
-            finishedInferenceStates.append(newStateToInfer)
-          }
-        } else {
-          // Check if we already have an inference state with the same characteristics.
-          // If we do, combine the terms of newStateToInfer with the existing entry.
-          let existingIndex = inferenceStatesWorklist.firstIndex(where: {
-            return $0.position == newStateToInfer.position &&
-              $0.remainingLoopUnrolls == newStateToInfer.remainingLoopUnrolls &&
-              $0.branchingHistories == newStateToInfer.branchingHistories
-          })
-          if let existingIndex = existingIndex {
-            let existingEntry = inferenceStatesWorklist[existingIndex]
-            assert(existingEntry.generateLostStatesForBlocks == newStateToInfer.generateLostStatesForBlocks, "generateLostStatesForBlocks should never change")
-            
-            inferenceStatesWorklist[existingIndex] = WPInferenceState(
-              position: existingEntry.position,
-              term: WPTerm.add(terms: [existingEntry.term, newStateToInfer.term]),
-              observeSatisfactionRate: WPTerm.add(terms: [existingEntry.observeSatisfactionRate, newStateToInfer.observeSatisfactionRate]),
-              focusRate: WPTerm.add(terms: [existingEntry.focusRate, newStateToInfer.focusRate]),
-              intentionalLossRate: WPTerm.add(terms: [existingEntry.intentionalLossRate, newStateToInfer.intentionalLossRate]),
-              generateLostStatesForBlocks: existingEntry.generateLostStatesForBlocks,
-              remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
-              branchingHistories: existingEntry.branchingHistories
-            )
-          } else {
-            inferenceStatesWorklist.append(newStateToInfer)
-            inferenceStatesWorklist.sort(by: { !program.predominators[$0.position.basicBlock]!.contains($1.position.basicBlock) })
-          }
-        }
+        
+        addStateToWorklistOrFinishedStates(performInferenceStep(stateToInfer))
       }
     }
     
@@ -306,7 +397,7 @@ public class WPInferenceEngine {
       intentionalLossRate: WPTerm.add(terms: finishedInferenceStates.map(\.intentionalLossRate)),
       generateLostStatesForBlocks: firstFinishedState.generateLostStatesForBlocks,
       remainingLoopUnrolls: LoopUnrolls([:]),
-      branchingHistories: []
+      branchingHistories: [[]]
     )
   }
   

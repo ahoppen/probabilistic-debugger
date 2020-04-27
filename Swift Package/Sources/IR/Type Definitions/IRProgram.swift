@@ -103,6 +103,14 @@ public class IRProgram: Equatable, CustomStringConvertible {
     }
     return _immediatePostdominator!
   }
+  
+  private var _loopInducingBlocks: Set<BasicBlockName>?
+  public var loopInducingBlocks: Set<BasicBlockName> {
+    if _loopInducingBlocks == nil {
+      _loopInducingBlocks = IRAnalysis.loopInducingBlocks(properPredominators: properPredominators, transitivePredecessors: transitivePredecessors)
+    }
+    return _loopInducingBlocks!
+  }
 }
 
 // MARK: - Utility functions
