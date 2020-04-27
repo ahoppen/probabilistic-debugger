@@ -34,6 +34,14 @@ public class WPInferenceEngine {
   
   /// Given a state that is pointed to the first instruction in a basic block and a predecessor block of this state, move the instruction position to the predecessor block and perform WP-inference for the branch or jump instruction in the predecessor block.
   private func inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> [WPInferenceState] {
+    var state = state
+    // We no longer need to generate lost states for blocks that are postdominated by the new block
+    for block in state.generateLostStatesForBlocks {
+      if program.properPostdominators[block]!.contains(predecessor) {
+        state.generateLostStatesForBlocks.remove(block)
+      }
+    }
+    
     if let remainingLoopUnrolls = state.remainingLoopUnrolls[conditionBlock: state.position.basicBlock],
       program.properPredominators[state.position.basicBlock]!.contains(predecessor) {
       // We want to leave a loop to the top. Check if the loop has been unrolled a sufficient number of times

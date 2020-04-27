@@ -696,7 +696,6 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
     XCTAssertNoThrow(try {
       let sampleCount = 10_000
       let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
-      print(outline)
       guard case .loop(_, let iterations, _) = outline.entries[3] else {
         XCTFail()
         return
@@ -704,6 +703,12 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       let iterationEntryState = iterations[2].entries.first!.state
       let inferenceEngine = WPInferenceEngine(program: ir.program)
       XCTAssertEqual(inferenceEngine.reachingProbability(of: iterationEntryState), 0.25)
+      
+      guard case .branch(_, let trueBranch, _) = iterations[1].entries.first! else {
+        XCTFail()
+        return
+      }
+      XCTAssertEqual(inferenceEngine.reachingProbability(of: trueBranch!.entries.first!.state), 0.25)
     }())
   }
 }
