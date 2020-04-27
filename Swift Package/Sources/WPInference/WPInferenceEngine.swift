@@ -219,7 +219,7 @@ public class WPInferenceEngine {
   /// Try loading the result of infering the given state all the way to the top of the program from the cache.
   /// If no entry exists in the cache yet, compute the inference result and store it in the cache.
   /// It is assumed that the `state`s terms aren't very complex and that thus hashValue calculation is not a performance bottleneck
-  /// The `state` is the result from
+  /// The current instruction of `stateToInfer` has **not** been inferred yet.
   private func loadInferenceResultFromCacheOrPopulateCache(_ state: WPInferenceState) -> WPInferenceState? {
     // Try normalizing the state so that e.g. queries for 0.5 * [%1 = 1] and 0.25 * [%1 = 1] will be able to use the same cache entry.
     // For this, if the query is a multipliation, normalize the contant factor to 1.
@@ -260,7 +260,7 @@ public class WPInferenceEngine {
     if let cachedReuslt = inferenceCache[normalizedState] {
       result = cachedReuslt
     } else {
-      result = self.performInference(for: normalizedState, disableCacheLookupOnInitialState: true)
+      result = self.performInference(for: performInferenceStep(normalizedState))
       inferenceCache[normalizedState] = result
     }
     
@@ -273,7 +273,8 @@ public class WPInferenceEngine {
     }
   }
   
-  /// Perform a single inference step
+  /// Perform a single inference step.
+  /// The current instruction of `stateToInfer` has **not** been inferred yet.
   private func performInferenceStep(_ stateToInfer: WPInferenceState) -> WPInferenceState {
     let position = stateToInfer.position
     let newStateToInfer: WPInferenceState
@@ -316,7 +317,7 @@ public class WPInferenceEngine {
     return newStateToInfer
   }
   
-  private func performInference(for initialState: WPInferenceState, disableCacheLookupOnInitialState: Bool = false) -> WPInferenceState? {
+  private func performInference(for initialState: WPInferenceState) -> WPInferenceState? {
     let programStartState = InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0)
     
     var inferenceStatesWorklist = [initialState]
@@ -369,23 +370,20 @@ public class WPInferenceEngine {
       inferenceStatesWorklist = []
       finishedInferenceStates = [initialState]
     }
-    var useCache = !disableCacheLookupOnInitialState
     
     while let worklistEntry = inferenceStatesWorklist.popLast() {
       // Pop one entry of the worklist and perform WP-inference for it
-      
-      if useCache, cachableIntermediateProgramPositions.contains(worklistEntry.position) {
-        addStateToWorklistOrFinishedStates(loadInferenceResultFromCacheOrPopulateCache(worklistEntry))
-        continue
-      }
-      useCache = true
       
       for stateToInfer in self.branchesToInfer(before: worklistEntry) {
         if stateToInfer.focusRate.isZero {
           continue
         }
         
-        addStateToWorklistOrFinishedStates(performInferenceStep(stateToInfer))
+        if cachableIntermediateProgramPositions.contains(stateToInfer.position) {
+          addStateToWorklistOrFinishedStates(loadInferenceResultFromCacheOrPopulateCache(stateToInfer))
+        } else {
+          addStateToWorklistOrFinishedStates(performInferenceStep(stateToInfer))
+        }
       }
     }
     
