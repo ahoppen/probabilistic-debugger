@@ -224,7 +224,12 @@ class ExecutionOutlineViewDataSource: NSObject, NSOutlineViewDelegate, NSOutline
       return ""
     }
     let approximationError = inferenceEngine.approximationError(of: state)
-    return "\((approximationError * 100).rounded(decimalPlaces: 2))%"
+    let roundedApproximationError = (approximationError * 100).rounded(decimalPlaces: 2)
+    if roundedApproximationError == 0 && approximationError != 0 {
+      return "≈0%"
+    } else {
+      return "\((approximationError * 100).rounded(decimalPlaces: 2))%"
+    }
   }
   
   func executionOutlineSurvivalCellText(item: ExecutionOutlineRow) -> String {

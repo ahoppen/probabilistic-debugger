@@ -84,7 +84,7 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
         let formatter = NumberFormatter()
         formatter.numberStyle = .scientific
         formatter.positiveFormat = "0.#E0"
-        formatter.exponentSymbol = "^"
+        formatter.exponentSymbol = " × 10^"
         errorString = formatter.string(for: approximationError)!
       }
       return "Error: \(errorString)"
