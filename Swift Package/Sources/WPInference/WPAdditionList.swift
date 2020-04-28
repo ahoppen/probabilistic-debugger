@@ -211,7 +211,8 @@ public struct WPAdditionList: Hashable {
   
   private mutating func mergeDuplicateEntries() {
     var indiciesToRemove: [Int] = []
-    for (index, entry) in entries.enumerated() {
+    for index in 0..<entries.count {
+      let entry = entries[index]
       if let otherIndex = entries[(index + 1)...].firstIndex(where: { $0.term == entry.term && $0.conditions == entry.conditions }) {
         let otherEntry = entries[otherIndex]
         entries[otherIndex] = WPTermAdditionListEntry(factor: entry.factor + otherEntry.factor, conditions: entry.conditions, term: entry.term)

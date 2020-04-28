@@ -78,4 +78,18 @@ class WPTermTests: XCTestCase {
     let additionList = WPTerm._additionList(WPAdditionList(additionListEntries))
     XCTAssertEqual(additionList.simplified(recursively: true), .double(2.0))
   }
+  
+  func testMergeDuplicateEntriesWithDifferentFactors() {
+    let queryVar = IRVariable(name: "$query", type: .int)
+    
+    let condition = WPTerm.boolToInt(.equal(lhs: .integer(1), rhs: .variable(queryVar)))
+    
+    let additionTerms: [WPTerm] = [
+      condition * .double(20),
+      condition * .double(4),
+      condition * .double(16),
+    ]
+    
+    XCTAssertEqual(WPTerm.add(terms: additionTerms), condition * .double(40))
+  }
 }
