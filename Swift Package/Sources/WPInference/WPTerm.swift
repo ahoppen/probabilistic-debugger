@@ -477,6 +477,18 @@ public extension WPTerm {
   }
 }
 
+public extension WPTerm {
+  /// Convenience function to construct a term of the form `[variable = value]`
+  static func probability(of variable: IRVariable, equalTo value: WPTerm) -> WPTerm {
+    return .boolToInt(.equal(lhs: .variable(variable), rhs: value))
+  }
+  
+  /// Convenience function to construct a term of the form `[variable = value]`
+  static func probability(of variable: VariableOrValue, equalTo value: WPTerm) -> WPTerm {
+    return .boolToInt(.equal(lhs: WPTerm(variable), rhs: value))
+  }
+}
+
 public func +(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
   return WPTerm.add(terms: [lhs, rhs])
 }

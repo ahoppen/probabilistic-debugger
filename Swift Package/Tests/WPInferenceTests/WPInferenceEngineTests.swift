@@ -345,7 +345,7 @@ class WPInferenceEngineTests: XCTestCase {
 
     let inferenceEngine = WPInferenceEngine(program: program)
     
-    let inferred = inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(var6), rhs: .integer(0))), loopUnrolls: loopUnrolls, inferenceStopPosition: program.returnPosition, branchingHistories: [[.any(predominatedBy: program.startBlock)]])
+    let inferred = inferenceEngine.infer(term: .probability(of: var6, equalTo: .integer(0)), loopUnrolls: loopUnrolls, inferenceStopPosition: program.returnPosition, branchingHistories: [[.any(predominatedBy: program.startBlock)]])
     XCTAssertEqual(inferred.value.doubleValue, 0.5)
     XCTAssertEqual(inferred.runsNotCutOffByLoopIterationBounds.doubleValue, 0.9375)
     XCTAssertEqual(inferred.observeSatisfactionRate.doubleValue, 1.0)

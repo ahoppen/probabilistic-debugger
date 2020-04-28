@@ -143,7 +143,7 @@ public class Debugger {
       var variableDistribution: [IRValue: Double] = [:]
       let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
       
-      let inferred = inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(irVariable), rhs: .variable(placeholderVariable))), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
+      let inferred = inferenceEngine.infer(term: .probability(of: irVariable, equalTo: .variable(placeholderVariable)), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
       let placholderTerm: WPTerm
       switch approximationErrorHandling {
       case .distribute:

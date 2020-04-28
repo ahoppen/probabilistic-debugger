@@ -144,8 +144,8 @@ public class WPInferenceEngine {
             position: predecessorBlockPosition,
             term: .integer(0),
             observeSatisfactionRate: .integer(0),
-            focusRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * state.focusRate,
-            intentionalLossRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * state.focusRate,
+            focusRate: .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * state.focusRate,
+            intentionalLossRate: .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
             branchingHistories: newBranchingHistories
@@ -159,15 +159,15 @@ public class WPInferenceEngine {
           .withRemainingLoopUnrolls(remainingLoopUnrolls)
           .withBranchingHistories(newBranchingHistories)
           .updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
-            return .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(takenBranch))) * $0
+            return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
           }
         if state.generateLostStatesForBlocks.contains(predecessor) {
           newStates += WPInferenceState(
             position: predecessorBlockPosition,
             term: .integer(0),
             observeSatisfactionRate: .integer(0),
-            focusRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(!takenBranch))) * state.focusRate,
-            intentionalLossRate: .boolToInt(.equal(lhs: WPTerm(instruction.condition), rhs: .bool(!takenBranch))) * state.focusRate,
+            focusRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
+            intentionalLossRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
             branchingHistories: newBranchingHistories
@@ -494,7 +494,7 @@ public extension WPInferenceEngine {
   /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
   /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
   func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
-    return inferProbability(of: .boolToInt(.equal(lhs: .variable(variable), rhs: WPTerm(value))), loopUnrolls: loopUnrolls, to: inferenceStopPosition, branchingHistories: branchingHistories)
+    return inferProbability(of: .probability(of: variable, equalTo: WPTerm(value)), loopUnrolls: loopUnrolls, to: inferenceStopPosition, branchingHistories: branchingHistories)
   }
   
   func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
