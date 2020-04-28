@@ -14,6 +14,7 @@
 		FA53F639243DF80C00F9CD38 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA53F638243DF80C00F9CD38 /* Assets.xcassets */; };
 		FA53F63C243DF80C00F9CD38 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = FA53F63A243DF80C00F9CD38 /* Main.storyboard */; };
 		FA53F645243DFB7000F9CD38 /* SourceCode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA53F644243DFB7000F9CD38 /* SourceCode.swift */; };
+		FA676ECF2458170400B6A503 /* DelayedLatestPublisher.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA676ECE2458170400B6A503 /* DelayedLatestPublisher.swift */; };
 		FA9FCC0A243E092F00347882 /* libppdb in Frameworks */ = {isa = PBXBuildFile; productRef = FA9FCC09243E092F00347882 /* libppdb */; };
 		FAC48B29243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B28243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift */; };
 		FAC48B2B243F132E00DE39F8 /* DelayedImmutable.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC48B2A243F132E00DE39F8 /* DelayedImmutable.swift */; };
@@ -34,6 +35,7 @@
 		FA53F63D243DF80C00F9CD38 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FA53F63E243DF80C00F9CD38 /* ProbabilisticDebugger_UI.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProbabilisticDebugger_UI.entitlements; sourceTree = "<group>"; };
 		FA53F644243DFB7000F9CD38 /* SourceCode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceCode.swift; sourceTree = "<group>"; };
+		FA676ECE2458170400B6A503 /* DelayedLatestPublisher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelayedLatestPublisher.swift; sourceTree = "<group>"; };
 		FAC48B28243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebuggerVariablesTableViewDataSource.swift; sourceTree = "<group>"; };
 		FAC48B2A243F132E00DE39F8 /* DelayedImmutable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DelayedImmutable.swift; sourceTree = "<group>"; };
 		FAC48B2C243F134000DE39F8 /* DebuggerWrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebuggerWrapper.swift; sourceTree = "<group>"; };
@@ -76,6 +78,7 @@
 			children = (
 				FA53F632243DF80900F9CD38 /* AppDelegate.swift */,
 				FA53F634243DF80900F9CD38 /* DebuggerViewController.swift */,
+				FA676ECE2458170400B6A503 /* DelayedLatestPublisher.swift */,
 				FAC48B2A243F132E00DE39F8 /* DelayedImmutable.swift */,
 				FAC48B2E243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift */,
 				FAC48B28243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift */,
@@ -174,6 +177,7 @@
 			files = (
 				FA53F635243DF80900F9CD38 /* DebuggerViewController.swift in Sources */,
 				FAC48B2F243F137100DE39F8 /* ExecutionOutlineViewDataSource.swift in Sources */,
+				FA676ECF2458170400B6A503 /* DelayedLatestPublisher.swift in Sources */,
 				FAC48B29243F130100DE39F8 /* DebuggerVariablesTableViewDataSource.swift in Sources */,
 				FA53F633243DF80900F9CD38 /* AppDelegate.swift in Sources */,
 				FA53F637243DF80900F9CD38 /* SourceCodeDocument.swift in Sources */,

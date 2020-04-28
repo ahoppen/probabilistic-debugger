@@ -71,7 +71,9 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
     self.debugger = debugger
     self.tableView = tableView
     super.init()
-    cancellables += Publishers.CombineLatest4(debugger.$samples, debugger.survivingSampleIds,  Publishers.CombineLatest(debugger.$variableValuesRefinedUsingWPDroppingApproxmiationError, debugger.$variableValuesRefinedUsingWPDistributingApproximationError), Publishers.CombineLatest3(survivingSamplesOnly, refineProbabilitiesUsingWpInference, distributeApproximationError)).sink { [unowned self] (samples, survivingSampleIds, variableValuesRefinedUsingWP, options) in
+    let combinedPublisher = Publishers.CombineLatest4(debugger.$samples, debugger.survivingSampleIds,  Publishers.CombineLatest(debugger.$variableValuesRefinedUsingWPDroppingApproxmiationError, debugger.$variableValuesRefinedUsingWPDistributingApproximationError), Publishers.CombineLatest3(survivingSamplesOnly, refineProbabilitiesUsingWpInference, distributeApproximationError))
+    let delayedLatest = DelayedLatest(upstream: combinedPublisher, wait: .milliseconds(50), queue: .global(qos: .userInitiated))
+    cancellables += delayedLatest.sink { [unowned self] (samples, survivingSampleIds, variableValuesRefinedUsingWP, options) in
       let survivingSamplesOnly = options.0
       let refineProbabilitiesUsingWpInference = options.1
       let distributeApproximationError = options.2
