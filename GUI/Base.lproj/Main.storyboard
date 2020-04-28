@@ -726,7 +726,7 @@
                                                     <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
                                                     <tableColumns>
-                                                        <tableColumn identifier="code" width="418" minWidth="40" maxWidth="1000" id="ReV-k6-4wc">
+                                                        <tableColumn identifier="code" width="521" minWidth="40" maxWidth="1000" id="ReV-k6-4wc">
                                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Code">
                                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                                 <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -762,7 +762,7 @@
                                                             </textFieldCell>
                                                             <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                         </tableColumn>
-                                                        <tableColumn identifier="survival" width="100" minWidth="100" maxWidth="100" id="yPR-Al-0WA">
+                                                        <tableColumn identifier="survival" width="100" minWidth="100" maxWidth="100" hidden="YES" id="yPR-Al-0WA">
                                                             <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Survival Rate">
                                                                 <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                                                 <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -884,7 +884,7 @@
                                                         </customSpacing>
                                                     </stackView>
                                                     <stackView distribution="fill" orientation="horizontal" alignment="firstBaseline" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Hl4-S9-DhH">
-                                                        <rect key="frame" x="246" y="208" width="463" height="16"/>
+                                                        <rect key="frame" x="426" y="208" width="283" height="16"/>
                                                         <subviews>
                                                             <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="SCY-SE-yM2">
                                                                 <rect key="frame" x="-2" y="-1" width="121" height="18"/>
@@ -896,8 +896,8 @@
                                                                     <binding destination="5gI-5U-AMq" name="value" keyPath="self.refineProbabilitiesUsingWpInference" id="dQr-SN-eKu"/>
                                                                 </connections>
                                                             </button>
-                                                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="am9-xG-n5B">
-                                                                <rect key="frame" x="123" y="-1" width="79" height="18"/>
+                                                            <button hidden="YES" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="am9-xG-n5B">
+                                                                <rect key="frame" x="-2" y="0.0" width="79" height="18"/>
                                                                 <buttonCell key="cell" type="check" title="Surviving" bezelStyle="regularSquare" imagePosition="leading" alignment="center" inset="2" id="fZg-hc-VvV">
                                                                     <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                                                     <font key="font" metaFont="system"/>
@@ -907,7 +907,7 @@
                                                                 </connections>
                                                             </button>
                                                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="P4m-bc-oXk">
-                                                                <rect key="frame" x="206" y="0.0" width="61" height="16"/>
+                                                                <rect key="frame" x="123" y="0.0" width="61" height="16"/>
                                                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Error: 0%" id="GCN-ol-axc">
                                                                     <font key="font" metaFont="system"/>
                                                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -915,15 +915,15 @@
                                                                 </textFieldCell>
                                                             </textField>
                                                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wmx-kd-aHS">
-                                                                <rect key="frame" x="271" y="0.0" width="97" height="16"/>
+                                                                <rect key="frame" x="188" y="0.0" width="97" height="16"/>
                                                                 <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Samples: 100%" id="JI0-Ee-cYf">
                                                                     <font key="font" usesAppearanceFont="YES"/>
                                                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                                 </textFieldCell>
                                                             </textField>
-                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9Xt-jN-KJ6">
-                                                                <rect key="frame" x="372" y="0.0" width="93" height="16"/>
+                                                            <textField hidden="YES" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9Xt-jN-KJ6">
+                                                                <rect key="frame" x="-2" y="0.0" width="93" height="16"/>
                                                                 <textFieldCell key="cell" lineBreakMode="clipping" title="Survival: 100%" id="1J3-cS-AFA">
                                                                     <font key="font" metaFont="system"/>
                                                                     <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
