@@ -51,19 +51,26 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
   }
   var cancellables: [AnyCancellable] = []
   
-  init(debugger: DebuggerCentral, survivingSamplesOnly: Published<Bool>.Publisher, refineProbabilitiesUsingWpInference: Published<Bool>.Publisher, tableView: NSTableView) {
+  init(debugger: DebuggerCentral, survivingSamplesOnly: Published<Bool>.Publisher, refineProbabilitiesUsingWpInference: Published<Bool>.Publisher, distributeApproximationError: Published<Bool>.Publisher, tableView: NSTableView) {
     self.debugger = debugger
     self.tableView = tableView
     super.init()
-    cancellables += Publishers.CombineLatest4(debugger.$samples, debugger.$variableValuesRefinedUsingWP, debugger.survivingSampleIds, Publishers.CombineLatest(survivingSamplesOnly, refineProbabilitiesUsingWpInference)).sink { [unowned self] (samples, variableValuesRefinedUsingWP, survivingSampleIds, options) in
+    cancellables += Publishers.CombineLatest4(debugger.$samples, debugger.survivingSampleIds,  Publishers.CombineLatest(debugger.$variableValuesRefinedUsingWPDroppingApproxmiationError, debugger.$variableValuesRefinedUsingWPDistributingApproximationError), Publishers.CombineLatest3(survivingSamplesOnly, refineProbabilitiesUsingWpInference, distributeApproximationError)).sink { [unowned self] (samples, survivingSampleIds, variableValuesRefinedUsingWPValues, options) in
       let survivingSamplesOnly = options.0
       let refineProbabilitiesUsingWpInference = options.1
+      let distributeApproximationError = options.2
       
       let displayedSamples: [SourceCodeSample]
       if survivingSamplesOnly {
         displayedSamples = samples.filter({ survivingSampleIds.contains($0.id) })
       } else {
         displayedSamples = samples
+      }
+      let variableValuesRefinedUsingWP: [String: [IRValue: Double]]?
+      if distributeApproximationError {
+        variableValuesRefinedUsingWP = variableValuesRefinedUsingWPValues.1
+      } else {
+        variableValuesRefinedUsingWP = variableValuesRefinedUsingWPValues.0
       }
       
       DispatchQueue.main.async {

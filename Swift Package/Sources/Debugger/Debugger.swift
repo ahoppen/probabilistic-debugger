@@ -15,6 +15,11 @@ fileprivate extension VariableOrValue {
 
 /// Wrapper around `IRExecutor` that keeps track of the current execution state and translates the `IRExecutionState`s into values for variables in the source code.
 public class Debugger {
+  public enum ApproximationErrorHandling {
+    case drop
+    case distribute
+  }
+  
   // MARK: - Private members
   
   /// The executor that actually executes the IR
@@ -35,9 +40,6 @@ public class Debugger {
   public private(set) var stateStack: [IRExecutionState?] {
     didSet {
       assert(!stateStack.isEmpty)
-      // Reset the caches for values computed using WP
-      _variableValuesRefinedUsingWP = nil
-      _reachingProababilities = nil
     }
   }
   
@@ -109,58 +111,59 @@ public class Debugger {
     return sourceCodeSamples
   }
   
-  private var _reachingProababilities: (runsNotCutOffByLoopIterationBounds: Double, observeSatisfactionRate: Double, intentionalFocusRate: Double)? = nil
-  private var reachingProbabilities: (runsNotCutOffByLoopIterationBounds: Double, observeSatisfactionRate: Double, intentionalFocusRate: Double) {
-    if _reachingProababilities == nil {
-      guard let currentState = currentState else {
-        return (0, 0, 0)
-      }
-      let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
-      _reachingProababilities = (
-        runsNotCutOffByLoopIterationBounds: inferred.runsNotCutOffByLoopIterationBounds.doubleValue,
-        observeSatisfactionRate: inferred.observeSatisfactionRate.doubleValue,
-        intentionalFocusRate: inferred.intentionalFocusRate.doubleValue
-      )
-    }
-    return _reachingProababilities!
-  }
-  
   /// The probability with which this state is reached when program execution is started at the beginning.
   public var reachingProbability: Double {
-    return reachingProbabilities.observeSatisfactionRate * reachingProbabilities.intentionalFocusRate
+    guard let currentState = currentState else {
+      return 0
+    }
+    let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
+    return (inferred.observeSatisfactionRate * inferred.intentionalFocusRate).doubleValue
   }
   
   /// The error that might have been introduced by limiting the maximum number of loop iterations.
   public var approximationError: Double {
-    return 1 - reachingProbabilities.runsNotCutOffByLoopIterationBounds
-  }
-  
-  private var runsNotCutOffByLoopIterationBounds: Double {
-    return reachingProbabilities.runsNotCutOffByLoopIterationBounds
-  }
-  
-  private var _variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
-  public var variableValuesRefinedUsingWP: [String: [IRValue: Double]] {
-    if _variableValuesRefinedUsingWP == nil {
-      guard let currentState = currentState else {
-        return [:]
-      }
-      
-      var variableValues: [String: [IRValue: Double]] = [:]
-      guard let instructionInfo = debugInfo.info[currentState.position] else {
-        fatalError("Could not find debug info for the current statement")
-      }
-      for (sourceVariable, irVariable) in instructionInfo.variables {
-        var variableDistribution: [IRValue: Double] = [:]
-        let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
-        for value in possibleValues {
-          variableDistribution[value] = inferenceEngine.inferProbability(of: irVariable, beingEqualTo: VariableOrValue(value), loopUnrolls: currentState.loopUnrolls, to: currentState.position, branchingHistories: currentState.branchingHistories) / runsNotCutOffByLoopIterationBounds
-        }
-        variableValues[sourceVariable] = variableDistribution
-      }
-      _variableValuesRefinedUsingWP = variableValues
+    guard let currentState = currentState else {
+      return 0
     }
-    return _variableValuesRefinedUsingWP!
+    let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
+    return 1 - inferred.runsNotCutOffByLoopIterationBounds.doubleValue
+  }
+  
+  public func variableValuesRefinedUsingWP(approximationErrorHandling: ApproximationErrorHandling) -> [String: [IRValue: Double]] {
+    guard let currentState = currentState else {
+      return [:]
+    }
+    
+    var variableValues: [String: [IRValue: Double]] = [:]
+    guard let instructionInfo = debugInfo.info[currentState.position] else {
+      fatalError("Could not find debug info for the current statement")
+    }
+    for (sourceVariable, irVariable) in instructionInfo.variables {
+      let placeholderVariable = IRVariable(name: "$query", type: irVariable.type)
+      var variableDistribution: [IRValue: Double] = [:]
+      let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
+      
+      let inferred = inferenceEngine.infer(term: .boolToInt(.equal(lhs: .variable(irVariable), rhs: .variable(placeholderVariable))), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
+      let placholderTerm: WPTerm
+      switch approximationErrorHandling {
+      case .distribute:
+        placholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds)
+      case .drop:
+        placholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
+      }
+      for value in possibleValues {
+        let valueTerm: WPTerm
+        switch value {
+        case .integer(let value):
+          valueTerm = .integer(value)
+        case .bool(let value):
+          valueTerm = .bool(value)
+        }
+        variableDistribution[value] = placholderTerm.replacing(variable: placeholderVariable, with: valueTerm).doubleValue
+      }
+      variableValues[sourceVariable] = variableDistribution
+    }
+    return variableValues
   }
   
   public func sourceLocation(of executionState: IRExecutionState) -> SourceCodeLocation? {

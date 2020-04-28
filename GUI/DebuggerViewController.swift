@@ -26,22 +26,15 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
   @IBOutlet var survivingTextField: NSTextField!
   @IBOutlet var approximationErrorTextField: NSTextField!
   
-  @Published
-  @objc var survivingSamplesOnlyInVariablesView: Bool = false
-  
-  @Published
-  @objc var refineProbabilitiesUsingWpInference: Bool = true
-  
-  @DelayedImmutable
-  private var debuggerCentral: DebuggerCentral
-  
   private var cancellables: [AnyCancellable] = []
   
-  @DelayedImmutable
-  private var variablesDataSource: DebuggerVariablesTableViewDataSource!
+  @Published @objc var survivingSamplesOnlyInVariablesView: Bool = false
+  @Published @objc var refineProbabilitiesUsingWpInference: Bool = true
+  @Published @objc var distributeApproximationError: Bool = false
   
-  @DelayedImmutable
-  private var executionOutlineDataSource: ExecutionOutlineViewDataSource!
+  @DelayedImmutable private var debuggerCentral: DebuggerCentral
+  @DelayedImmutable private var variablesDataSource: DebuggerVariablesTableViewDataSource!
+  @DelayedImmutable private var executionOutlineDataSource: ExecutionOutlineViewDataSource!
   
   // MARK: View lifecycle
   
@@ -100,7 +93,7 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
       return "Surviving: \(percentage)%"
     }).assign(to: \.stringValue, on: survivingTextField)
     
-    variablesDataSource = DebuggerVariablesTableViewDataSource(debugger: self.debuggerCentral, survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView, refineProbabilitiesUsingWpInference: self.$refineProbabilitiesUsingWpInference, tableView: self.variablesTableView)
+    variablesDataSource = DebuggerVariablesTableViewDataSource(debugger: self.debuggerCentral, survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView, refineProbabilitiesUsingWpInference: self.$refineProbabilitiesUsingWpInference, distributeApproximationError: self.$distributeApproximationError, tableView: self.variablesTableView)
     self.variablesTableView.dataSource = variablesDataSource
     self.variablesTableView.delegate = variablesDataSource
     

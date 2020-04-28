@@ -17,7 +17,6 @@ public struct WPTermAdditionListEntry: Hashable {
       return true
     }
     
-    // Remove all entries with a condition that cannot be satisified
     if conditions.contains(.bool(false)) {
       return true
     }

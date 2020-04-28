@@ -70,7 +70,8 @@ class DebuggerCentral {
   @Published public private(set) var sourceCode: String = ""
   @Published public private(set) var debuggerLocation: SourceCodeLocation? = nil
   @Published public private(set) var samples: [SourceCodeSample] = []
-  @Published public private(set) var variableValuesRefinedUsingWP: [String: [IRValue: Double]]? = nil
+  @Published public private(set) var variableValuesRefinedUsingWPDroppingApproxmiationError: [String: [IRValue: Double]]? = nil
+  @Published public private(set) var variableValuesRefinedUsingWPDistributingApproximationError: [String: [IRValue: Double]]? = nil
   @Published public private(set) var reachabilityProbability: Double = 0
   @Published public private(set) var approximationError: Double = 0
   @Published public private(set) var inferenceEngine: WPInferenceEngine?
@@ -129,13 +130,15 @@ class DebuggerCentral {
   private func updatePublishedDebuggerVariables() {
     self.debuggerLocation = self.debugger?.sourceLocation
     self.samples = self.debugger?.samples ?? []
-    self.variableValuesRefinedUsingWP = nil
+    self.variableValuesRefinedUsingWPDroppingApproxmiationError = nil
+    self.variableValuesRefinedUsingWPDistributingApproximationError = nil
     self.reachabilityProbability = Double(samples.count) / Double(self.initialSamples)
     if let debugger = self.debugger {
       // Copy the debugger instance to avoid race conditions with the debugger modifying its sate
       let copiedDebugger = Debugger(debugger)
       DispatchQueue.global(qos: .userInitiated).async {
-        self.variableValuesRefinedUsingWP = copiedDebugger.variableValuesRefinedUsingWP
+        self.variableValuesRefinedUsingWPDroppingApproxmiationError = copiedDebugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)
+        self.variableValuesRefinedUsingWPDistributingApproximationError = copiedDebugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)
         self.reachabilityProbability = copiedDebugger.reachingProbability
         self.approximationError = copiedDebugger.approximationError
       }
