@@ -361,7 +361,14 @@ public class WPInferenceEngine {
           )
         } else {
           inferenceStatesWorklist.append(newStateToInfer)
-          inferenceStatesWorklist.sort(by: { !program.predominators[$0.position.basicBlock]!.contains($1.position.basicBlock) })
+          inferenceStatesWorklist.sort(by: {
+            // $0 < $1 if
+            //  - $0 predominates $1
+            //  or
+            //  - $1 postdominates $0
+            return program.predominators[$1.position.basicBlock]!.contains($0.position.basicBlock) ||
+              program.postdominators[$0.position.basicBlock]!.contains($1.position.basicBlock)
+          })
         }
       }
     }
