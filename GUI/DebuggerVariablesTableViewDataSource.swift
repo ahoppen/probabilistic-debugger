@@ -96,8 +96,14 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
     let viewController = HistogramViewController()
     let variableName = objc_getAssociatedObject(sender, &InspectButtonVariableNameAsssociatedObjectHandle) as! String
     let histogram = data.displayedSamples.map({ $0.values[variableName]! }).histogram()
-    let values = histogram.map({ (item: (irValue: IRValue, occurances: Int)) -> (key: String, value: Double) in
-      return (item.irValue.description, Double(item.occurances) / Double(data.displayedSamples.count))
+    let values = histogram.sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending }).map({ (irValue: IRValue, occurances: Int) -> (key: String, value: Double) in
+      let probability: Double
+      if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
+        probability = variableValuesRefinedUsingWP[variableName]?[irValue] ?? 0
+      } else {
+        probability = Double(occurances) / Double(data.displayedSamples.count)
+      }
+      return (irValue.description, probability)
     }).sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending })
     viewController.values = values
     
