@@ -9,7 +9,7 @@
 import Cocoa
 
 class HistogramViewController: NSViewController {
-  var values: [(key: String, value: Double)] {
+  var values: [(label: String, probability: Double)] {
     get {
       histogramView.values
     }
@@ -28,7 +28,7 @@ class HistogramViewController: NSViewController {
 }
 
 fileprivate class HistogramView: NSView {
-  var values: [(key: String, value: Double)] = [] {
+  var values: [(label: String, probability: Double)] = [] {
     didSet {
       makeHistogram()
     }
@@ -49,21 +49,25 @@ fileprivate class HistogramView: NSView {
     let labelHeight: CGFloat = 30
     let topBottomSpacing: CGFloat = 10
     
-    for (index, (histogramKey, value)) in values.enumerated() {
-      assert(value <= 1)
+    for (index, (label, probability)) in values.enumerated() {
+      assert(probability <= 1)
       let frame = NSRect(
         x: CGFloat(index) * barWidth + leftRightSpacing * barWidth,
         y: labelHeight + topBottomSpacing,
         width: barWidth - (2 * leftRightSpacing * barWidth),
-        height: CGFloat(value) * (self.bounds.height - labelHeight - 2 * topBottomSpacing)
+        height: CGFloat(probability) * (self.bounds.height - labelHeight - 2 * topBottomSpacing)
       )
       let bar = NSView(frame: frame)
       bar.wantsLayer = true
-      bar.layer?.backgroundColor = CGColor.init(red: 0, green: 0, blue: 1, alpha: 1)
+      if label == "?" {
+        bar.layer?.backgroundColor = CGColor.init(red: 1, green: 0, blue: 0, alpha: 1)
+      } else {
+        bar.layer?.backgroundColor = CGColor.init(red: 0, green: 0, blue: 1, alpha: 1)
+      }
       self.addSubview(bar)
       self.histogramSubviews.append(bar)
       
-      let label = NSTextField(labelWithString: histogramKey)
+      let label = NSTextField(labelWithString: label)
       label.frame = NSRect(
         x: CGFloat(index) * barWidth + leftRightSpacing * barWidth,
         y: topBottomSpacing,

@@ -99,6 +99,25 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       }
     }
   }
+  
+  private func histogram(for variableName: String) -> [(label: String, probability: Double)] {
+    let sampleHistogram = data.displayedSamples.map({ $0.values[variableName]! }).histogram()
+      .sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending })
+    var probabilityHistogram = sampleHistogram.map({ (value, numSamples) -> (label: String, probability: Double) in
+      let probability: Double
+      if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
+        probability = variableValuesRefinedUsingWP[variableName]?[value] ?? 0
+      } else {
+        probability = Double(numSamples) / Double(data.displayedSamples.count)
+      }
+      return (value.description, probability)
+    })
+    let probabilitySum = probabilityHistogram.map(\.probability).reduce(0, { $0 + $1 })
+    if probabilitySum < 1 {
+      probabilityHistogram.append((label: "?", probability: 1 - probabilitySum))
+    }
+    return probabilityHistogram
+  }
 
   func numberOfRows(in tableView: NSTableView) -> Int {
     guard let firstSample = data.displayedSamples.first else {
@@ -112,17 +131,7 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
     
     let viewController = HistogramViewController()
     let variableName = objc_getAssociatedObject(sender, &InspectButtonVariableNameAsssociatedObjectHandle) as! String
-    let histogram = data.displayedSamples.map({ $0.values[variableName]! }).histogram()
-    let values = histogram.sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending }).map({ (irValue: IRValue, occurances: Int) -> (key: String, value: Double) in
-      let probability: Double
-      if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
-        probability = variableValuesRefinedUsingWP[variableName]?[irValue] ?? 0
-      } else {
-        probability = Double(occurances) / Double(data.displayedSamples.count)
-      }
-      return (irValue.description, probability)
-    }).sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending })
-    viewController.values = values
+    viewController.values = self.histogram(for: variableName)
     
     popover.contentViewController = viewController
     popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .minX)
@@ -152,15 +161,8 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       let textView = NSTextField(labelWithString: "\(average.rounded(decimalPlaces: 4))")
       return textView
     case "value":
-      let histogram = data.displayedSamples.map({ $0.values[variableName]! }).histogram()
-      let values = histogram.sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending }).map({ (value, numSamples) in
-        let probability: Double
-        if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
-          probability = variableValuesRefinedUsingWP[variableName]?[value] ?? 0
-        } else {
-          probability = Double(numSamples) / Double(data.displayedSamples.count)
-        }
-        return "\(value): \((probability * 100).rounded(decimalPlaces: 2))%"
+      let values = self.histogram(for: variableName).map({
+        return "\($0.label): \(($0.probability * 100).rounded(decimalPlaces: 2))%"
       }).joined(separator: ", ")
       let textView = NSTextField(labelWithString: values)
       return textView
