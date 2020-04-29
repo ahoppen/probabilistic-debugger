@@ -203,6 +203,27 @@ internal struct WPInferenceState: Hashable {
     )
   }
   
+  static func merged(states: [WPInferenceState], remainingLoopUnrolls: LoopUnrolls, branchingHistories: [BranchingHistory]) -> WPInferenceState? {
+    guard let firstState = states.first else {
+      return nil
+    }
+    
+    assert(states.map(\.generateLostStatesForBlocks).allEqual)
+    assert(states.map(\.position).allEqual)
+    assert(states.map(\.generateLostStatesForBlocks).allEqual)
+    
+    return WPInferenceState(
+      position: firstState.position,
+      term: WPTerm.add(terms: states.map(\.term)),
+      observeSatisfactionRate: WPTerm.add(terms: states.map(\.observeSatisfactionRate)),
+      focusRate: WPTerm.add(terms: states.map(\.focusRate)),
+      intentionalLossRate: WPTerm.add(terms: states.map(\.intentionalLossRate)),
+      generateLostStatesForBlocks: firstState.generateLostStatesForBlocks,
+      remainingLoopUnrolls: remainingLoopUnrolls,
+      branchingHistories: branchingHistories
+    )
+  }
+  
   // MARK: - Mutating the state
   
   mutating func replace(variable: IRVariable, by replacementTerm: WPTerm) {

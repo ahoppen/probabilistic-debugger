@@ -363,18 +363,11 @@ public class WPInferenceEngine {
             })
             if let existingIndex = existingIndex {
               let existingEntry = inferenceStatesWorklist[existingIndex]
-              assert(existingEntry.generateLostStatesForBlocks == inferredState.generateLostStatesForBlocks, "generateLostStatesForBlocks should never change")
-              
-              inferenceStatesWorklist[existingIndex] = WPInferenceState(
-                position: existingEntry.position,
-                term: WPTerm.add(terms: [existingEntry.term, inferredState.term]),
-                observeSatisfactionRate: WPTerm.add(terms: [existingEntry.observeSatisfactionRate, inferredState.observeSatisfactionRate]),
-                focusRate: WPTerm.add(terms: [existingEntry.focusRate, inferredState.focusRate]),
-                intentionalLossRate: WPTerm.add(terms: [existingEntry.intentionalLossRate, inferredState.intentionalLossRate]),
-                generateLostStatesForBlocks: existingEntry.generateLostStatesForBlocks,
+              inferenceStatesWorklist[existingIndex] = WPInferenceState.merged(
+                states: [existingEntry, inferredState],
                 remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
                 branchingHistories: existingEntry.branchingHistories
-              )
+              )!
             } else {
               inferenceStatesWorklist.append(inferredState)
               inferenceStatesWorklist.sort(by: {
@@ -392,20 +385,9 @@ public class WPInferenceEngine {
     }
     
     assert(finishedInferenceStates.allSatisfy({ $0.branchingHistories.contains(where: { $0.isEmpty }) }))
-    assert(finishedInferenceStates.map(\.position).allEqual)
-    assert(finishedInferenceStates.map(\.generateLostStatesForBlocks).allEqual)
     
-    guard let firstFinishedState = finishedInferenceStates.first else {
-      return nil
-    }
-    
-    return WPInferenceState(
-      position: firstFinishedState.position,
-      term: WPTerm.add(terms: finishedInferenceStates.map(\.term)),
-      observeSatisfactionRate: WPTerm.add(terms: finishedInferenceStates.map(\.observeSatisfactionRate)),
-      focusRate: WPTerm.add(terms: finishedInferenceStates.map(\.focusRate)),
-      intentionalLossRate: WPTerm.add(terms: finishedInferenceStates.map(\.intentionalLossRate)),
-      generateLostStatesForBlocks: firstFinishedState.generateLostStatesForBlocks,
+    return WPInferenceState.merged(
+      states: finishedInferenceStates,
       remainingLoopUnrolls: LoopUnrolls([:]),
       branchingHistories: [[]]
     )
