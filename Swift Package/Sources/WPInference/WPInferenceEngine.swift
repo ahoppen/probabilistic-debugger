@@ -325,54 +325,6 @@ public class WPInferenceEngine {
     // WPInferenceStates that have reached the start of the program. The sum of these state's terms determines the final result
     var finishedInferenceStates: [WPInferenceState] = []
     
-    func addStateToWorklistOrFinishedStates(_ newStateToInfer: WPInferenceState?) {
-      guard let newStateToInfer = newStateToInfer else {
-        return
-      }
-      if newStateToInfer.focusRate.isZero {
-        // This state is not contributing anything. There is no point in pursuing it.
-      } else if newStateToInfer.position == programStartState {
-        // At least one branching history of the state must have been completely taken care of.
-        // Otherwise there are branches that we haven't considered which means we have reached the top of the program on a branching path that hasn't been specified in branching histories.
-        if newStateToInfer.branchingHistories.contains(where: { $0.isEmpty }) {
-          finishedInferenceStates.append(newStateToInfer)
-        }
-      } else {
-        // Check if we already have an inference state with the same characteristics.
-        // If we do, combine the terms of newStateToInfer with the existing entry.
-        let existingIndex = inferenceStatesWorklist.firstIndex(where: {
-          return $0.position == newStateToInfer.position &&
-            $0.remainingLoopUnrolls == newStateToInfer.remainingLoopUnrolls &&
-            $0.branchingHistories == newStateToInfer.branchingHistories
-        })
-        if let existingIndex = existingIndex {
-          let existingEntry = inferenceStatesWorklist[existingIndex]
-          assert(existingEntry.generateLostStatesForBlocks == newStateToInfer.generateLostStatesForBlocks, "generateLostStatesForBlocks should never change")
-          
-          inferenceStatesWorklist[existingIndex] = WPInferenceState(
-            position: existingEntry.position,
-            term: WPTerm.add(terms: [existingEntry.term, newStateToInfer.term]),
-            observeSatisfactionRate: WPTerm.add(terms: [existingEntry.observeSatisfactionRate, newStateToInfer.observeSatisfactionRate]),
-            focusRate: WPTerm.add(terms: [existingEntry.focusRate, newStateToInfer.focusRate]),
-            intentionalLossRate: WPTerm.add(terms: [existingEntry.intentionalLossRate, newStateToInfer.intentionalLossRate]),
-            generateLostStatesForBlocks: existingEntry.generateLostStatesForBlocks,
-            remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
-            branchingHistories: existingEntry.branchingHistories
-          )
-        } else {
-          inferenceStatesWorklist.append(newStateToInfer)
-          inferenceStatesWorklist.sort(by: {
-            // $0 < $1 if
-            //  - $0 predominates $1
-            //  or
-            //  - $1 postdominates $0
-            return program.predominators[$1.position.basicBlock]!.contains($0.position.basicBlock) ||
-              program.postdominators[$0.position.basicBlock]!.contains($1.position.basicBlock)
-          })
-        }
-      }
-    }
-    
     if initialState.position == programStartState {
       inferenceStatesWorklist = []
       finishedInferenceStates = [initialState]
@@ -380,16 +332,61 @@ public class WPInferenceEngine {
     
     while let worklistEntry = inferenceStatesWorklist.popLast() {
       // Pop one entry of the worklist and perform WP-inference for it
-      
       for stateToInfer in self.branchesToInfer(before: worklistEntry) {
         if stateToInfer.focusRate.isZero {
           continue
         }
         
+        let inferredState: WPInferenceState?
         if cachableIntermediateProgramPositions.contains(stateToInfer.position) {
-          addStateToWorklistOrFinishedStates(loadInferenceResultFromCacheOrPopulateCache(stateToInfer))
+          inferredState = loadInferenceResultFromCacheOrPopulateCache(stateToInfer)
         } else {
-          addStateToWorklistOrFinishedStates(performInferenceStep(stateToInfer))
+          inferredState = performInferenceStep(stateToInfer)
+        }
+        
+        if let inferredState = inferredState {
+          if inferredState.focusRate.isZero {
+            // This state is not contributing anything. There is no point in pursuing it.
+          } else if inferredState.position == programStartState {
+            // At least one branching history of the state must have been completely taken care of.
+            // Otherwise there are branches that we haven't considered which means we have reached the top of the program on a branching path that hasn't been specified in branching histories.
+            if inferredState.branchingHistories.contains(where: { $0.isEmpty }) {
+              finishedInferenceStates.append(inferredState)
+            }
+          } else {
+            // Check if we already have an inference state with the same characteristics.
+            // If we do, combine the terms of newStateToInfer with the existing entry.
+            let existingIndex = inferenceStatesWorklist.firstIndex(where: {
+              return $0.position == inferredState.position &&
+                $0.remainingLoopUnrolls == inferredState.remainingLoopUnrolls &&
+                $0.branchingHistories == inferredState.branchingHistories
+            })
+            if let existingIndex = existingIndex {
+              let existingEntry = inferenceStatesWorklist[existingIndex]
+              assert(existingEntry.generateLostStatesForBlocks == inferredState.generateLostStatesForBlocks, "generateLostStatesForBlocks should never change")
+              
+              inferenceStatesWorklist[existingIndex] = WPInferenceState(
+                position: existingEntry.position,
+                term: WPTerm.add(terms: [existingEntry.term, inferredState.term]),
+                observeSatisfactionRate: WPTerm.add(terms: [existingEntry.observeSatisfactionRate, inferredState.observeSatisfactionRate]),
+                focusRate: WPTerm.add(terms: [existingEntry.focusRate, inferredState.focusRate]),
+                intentionalLossRate: WPTerm.add(terms: [existingEntry.intentionalLossRate, inferredState.intentionalLossRate]),
+                generateLostStatesForBlocks: existingEntry.generateLostStatesForBlocks,
+                remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
+                branchingHistories: existingEntry.branchingHistories
+              )
+            } else {
+              inferenceStatesWorklist.append(inferredState)
+              inferenceStatesWorklist.sort(by: {
+                // $0 < $1 if
+                //  - $0 predominates $1
+                //  or
+                //  - $1 postdominates $0
+                return program.predominators[$1.position.basicBlock]!.contains($0.position.basicBlock) ||
+                  program.postdominators[$0.position.basicBlock]!.contains($1.position.basicBlock)
+              })
+            }
+          }
         }
       }
     }
