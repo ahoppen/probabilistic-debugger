@@ -154,6 +154,33 @@ public class Debugger {
     return debugInfo.info[executionState.position]?.sourceCodeLocation
   }
   
+  // MARK: - Slicing the program for a variable
+  
+  /// Returns a set of source code ranges that do not have an influence on `sourceVariable` up to the current position.
+  public func slice(for sourceVariable: String) throws -> Set<Range<SourceCodeLocation>> {
+    guard let currentState = currentState else {
+      return []
+    }
+    guard let irVariable = debugInfo.info[currentState.position]?.variables[sourceVariable] else {
+      throw DebuggerError(message: "Source variable '\(sourceVariable)' does not exist at the current position")
+    }
+    
+    let slice = inferenceEngine.slice(
+      term: .variable(irVariable),
+      loopUnrolls: currentState.loopUnrolls,
+      inferenceStopPosition: currentState.position,
+      branchingHistories: currentState.branchingHistories
+    )
+    let slicedRanges = debugInfo.info.compactMap({ (instructionPosition, instructionDebugInfo) -> Range<SourceCodeLocation>? in
+      if slice.contains(instructionPosition) {
+        return nil
+      } else {
+        return instructionDebugInfo.sourceCodeRange
+      }
+    })
+    return Set(slicedRanges)
+  }
+  
   // MARK: - Step through the program
   
   /// Run the program until the end

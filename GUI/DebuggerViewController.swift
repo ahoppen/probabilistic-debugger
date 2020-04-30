@@ -31,6 +31,7 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
   @Published @objc var survivingSamplesOnlyInVariablesView: Bool = false
   @Published @objc var refineProbabilitiesUsingWpInference: Bool = true
   @Published @objc var distributeApproximationError: Bool = false
+  @Published var slicedRanges: Set<Range<SourceCodeLocation>> = []
   
   @DelayedImmutable private var debuggerCentral: DebuggerCentral
   @DelayedImmutable private var variablesDataSource: DebuggerVariablesTableViewDataSource!
@@ -44,7 +45,7 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
     self.debuggerCentral = DebuggerCentral()
     self.debuggerCentral.sourceCodeModel = sourceCode
     
-    cancellables += Publishers.CombineLatest(debuggerCentral.$sourceCode, debuggerCentral.$debuggerLocation).map({ (sourceCode, debuggerPosition) -> NSAttributedString in
+    cancellables += Publishers.CombineLatest3(debuggerCentral.$sourceCode, debuggerCentral.$debuggerLocation, self.$slicedRanges).map({ (sourceCode, debuggerPosition, slicedRanges) -> NSAttributedString in
       let lines = sourceCode.components(separatedBy: "\n").map({
         return NSMutableAttributedString.init(string: "\($0)\n", attributes: [
           .font: NSFont(name: "Menlo", size: 13)!
@@ -54,6 +55,29 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
         let line = lines[currentLine - 1]
         line.addAttribute(.backgroundColor, value: #colorLiteral(red: 0.8431372549, green: 0.9098039216, blue: 0.8549019608, alpha: 1) as NSColor, range: NSRange(location: 0, length: line.length))
       }
+      
+      for (zeroBasedLineNumber, line) in lines.enumerated() {
+        let oneBasedLineNumber = zeroBasedLineNumber + 1
+        for slicedRange in slicedRanges {
+          guard slicedRange.lowerBound.line <= oneBasedLineNumber, slicedRange.upperBound.line >= oneBasedLineNumber else {
+            continue
+          }
+          let startColumn: Int
+          let endColumn: Int
+          if slicedRange.lowerBound.line == oneBasedLineNumber {
+            startColumn = slicedRange.lowerBound.column - 1
+          } else {
+            startColumn = 0
+          }
+          if slicedRange.upperBound.line == oneBasedLineNumber {
+            endColumn = slicedRange.upperBound.column - 1
+          } else {
+            endColumn = line.length
+          }
+          line.addAttribute(.foregroundColor, value: #colorLiteral(red: 0.6000000238, green: 0.6000000238, blue: 0.6000000238, alpha: 1) as NSColor, range: NSRange(location: startColumn, length: endColumn - startColumn))
+        }
+      }
+
       let highlightedSourceCode = NSMutableAttributedString()
       for line in lines {
         highlightedSourceCode.append(line)
@@ -93,19 +117,40 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
       return "Surviving: \(percentage)%"
     }).assign(to: \.stringValue, on: survivingTextField)
     
-    variablesDataSource = DebuggerVariablesTableViewDataSource(debugger: self.debuggerCentral, survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView, refineProbabilitiesUsingWpInference: self.$refineProbabilitiesUsingWpInference, distributeApproximationError: self.$distributeApproximationError, tableView: self.variablesTableView)
+    variablesDataSource = DebuggerVariablesTableViewDataSource(
+      debugger: self.debuggerCentral,
+      survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView,
+      refineProbabilitiesUsingWpInference: self.$refineProbabilitiesUsingWpInference,
+      distributeApproximationError: self.$distributeApproximationError,
+      tableView: self.variablesTableView,
+      variableSelectionDidChange: { [weak self] in
+        self?.variableViewDidSelectVariable(selectedVariable: $0)
+      }
+    )
     self.variablesTableView.dataSource = variablesDataSource
     self.variablesTableView.delegate = variablesDataSource
     
-    executionOutlineDataSource = ExecutionOutlineViewDataSource(debuggerCentral: debuggerCentral, outlineView: executionOutlineView, selectionChangeCallback: { [weak self] in
-      self?.runOutlineViewDidSelectExecutionState($0)
-    })
+    executionOutlineDataSource = ExecutionOutlineViewDataSource(
+      debuggerCentral: debuggerCentral,
+      outlineView: executionOutlineView,
+      selectionChangeCallback: { [weak self] in
+        self?.runOutlineViewDidSelectExecutionState($0)
+      }
+    )
     self.executionOutlineView.dataSource = executionOutlineDataSource
     self.executionOutlineView.delegate = executionOutlineDataSource
   }
   
   func runOutlineViewDidSelectExecutionState(_ executionState: IRExecutionState) {
     debuggerCentral.jumpToExecutionState(executionState)
+  }
+  
+  func variableViewDidSelectVariable(selectedVariable: String?) {
+    if let selectedVariable = selectedVariable {
+      slicedRanges = debuggerCentral.slice(for: selectedVariable)
+    } else {
+      slicedRanges = []
+    }
   }
   
   // MARK: Managing the source code

@@ -1,4 +1,4 @@
-public struct SourceCodeLocation: Comparable, CustomStringConvertible {
+public struct SourceCodeLocation: Comparable, Hashable, CustomStringConvertible {
   /// The line of this position (1-based)
   public let line: Int
   

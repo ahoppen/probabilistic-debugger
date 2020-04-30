@@ -149,4 +149,8 @@ class DebuggerCentral {
     debugger?.jumpToState(executionState)
     updatePublishedDebuggerVariables()
   }
+  
+  public func slice(for variable: String) -> Set<Range<SourceCodeLocation>> {
+    return (try? debugger?.slice(for: variable)) ?? []
+  }
 }
