@@ -61,6 +61,9 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
   /// The result of `0 / 0` is undefined. It can be `0`, `nan` or something completely different.
   case _div(term: WPTerm, divisors: [WPTerm])
   
+  /// Divide `term` by `divisors` with the additional semantics that `0 / 0` is well-defined as `0`.
+  case _zeroDiv(term: WPTerm, divisors: [WPTerm])
+  
   public static func not(_ wrapped: WPTerm) -> WPTerm {
     return _not(wrapped).simplified(recursively: false)
   }
@@ -91,6 +94,10 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
   
   public static func div(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
     return _div(term: lhs, divisors: [rhs]).simplified(recursively: false)
+  }
+  
+  public static func zeroDiv(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+    return _zeroDiv(term: lhs, divisors: [rhs]).simplified(recursively: false)
   }
   
   public init(_ variableOrValue: VariableOrValue) {
@@ -133,6 +140,8 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
       return "(\(terms.map({ $0.description }).joined(separator: " * ")))"
     case ._div(term: let term, divisors: let divisors):
       return "(\(term.description)) / \(divisors.map(\.description).joined(separator: " / "))"
+    case ._zeroDiv(term: let term, divisors: let divisors):
+      return "(\(term.description)) ./. \(divisors.map(\.description).joined(separator: " ./. "))"
     }
   }
   
@@ -191,6 +200,12 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
     case ._div(term: let term, divisors: let divisors):
       return """
       ▽ /
+      \(term.treeDescription.indented())
+      \(divisors.map({ $0.treeDescription.indented() }).joined(separator: "\n"))
+      """
+    case ._zeroDiv(term: let term, divisors: let divisors):
+      return """
+      ▽ */*
       \(term.treeDescription.indented())
       \(divisors.map({ $0.treeDescription.indented() }).joined(separator: "\n"))
       """
@@ -277,6 +292,13 @@ public extension WPTerm {
         return nil
       }
       return WPTerm._div(term: termReplaced ?? term, divisors: divisorsReplaced ?? divisors).simplified(recursively: false)
+    case ._zeroDiv(term: let term, divisors: let divisors):
+      let termReplaced = term.replacing(variable: variable, with: replacementTerm)
+      let divisorsReplaced = divisors.replacing(variable: variable, with: replacementTerm)
+      if termReplaced == nil, divisorsReplaced == nil {
+        return nil
+      }
+      return WPTerm._zeroDiv(term: termReplaced ?? term, divisors: divisorsReplaced ?? divisors).simplified(recursively: false)
     }
   }
 }
@@ -466,7 +488,7 @@ internal extension WPTerm {
     }
   }
   
-  func simplifyDiv(term: WPTerm, divisors: [WPTerm], recursively: Bool) -> WPTerm {
+  func simplifyDiv(term: WPTerm, divisors: [WPTerm], zeroDiv: Bool, recursively: Bool) -> WPTerm {
     var term = term.selfOrSimplified(simplified: recursively)
     var divisors = divisors
     if recursively {
@@ -491,38 +513,58 @@ internal extension WPTerm {
       }
     }
     
+    /// If possible, cancel this term from the division's `term` with entries in `otherComponents` or combine it with the `integerComponent` or `doubleComponent`.
+    /// If the term could be (partially) cancelled, returns the new term. If no cancellation was performed, returns `nil`.
+    /// `otherComponents` etc. are updated by this function.
+    func tryToCancelTerm(termToCancel: WPTerm) -> WPTerm? {
+      switch termToCancel {
+      case .integer(let value):
+        doubleComponent /= Double(value)
+        return .integer(1)
+      case .double(let value):
+        doubleComponent /= value
+        return .integer(1)
+      case ._boolToInt where zeroDiv:
+        // If we want to have 0 / 0 = 0, and have a condition in both the term and divisors, we can remove it from the divisors but not from the term.
+        // Otherwise, we can cancel the terms in the default case
+        if let otherComponentsIndex = otherComponents.firstIndex(of: termToCancel) {
+          otherComponents.remove(at: otherComponentsIndex)
+        }
+        return nil
+      case ._additionList(var additionList):
+        otherComponents = additionList.tryDividing(by: otherComponents)
+        if integerComponent != 1 || doubleComponent != 1 {
+          additionList.divide(by: Double(integerComponent) * doubleComponent)
+          integerComponent = 1
+          doubleComponent = 1
+        }
+        return WPTerm._additionList(additionList).simplified(recursively: false)
+      case _ where !zeroDiv:
+        // We can only cancel terms if we don't define 0 / 0 = 0
+        if let otherComponentsIndex = otherComponents.firstIndex(of: termToCancel) {
+          otherComponents.remove(at: otherComponentsIndex)
+          return .integer(1)
+        } else {
+          return nil
+        }
+      default:
+        return nil
+      }
+    }
+    
     // Perform simplifications on term that don't completely evaluate it
     switch term {
     case ._mul(terms: var multiplicationTerms):
       for multiplicationTermIndex in (0..<multiplicationTerms.count).reversed() {
         let multiplicationTerm = multiplicationTerms[multiplicationTermIndex]
-        switch multiplicationTerm {
-        case .integer(let value):
-          multiplicationTerms.remove(at: multiplicationTermIndex)
-          doubleComponent /= Double(value)
-        case .double(let value):
-          multiplicationTerms.remove(at: multiplicationTermIndex)
-          doubleComponent /= value
-        default:
-          if let otherComponentsIndex = otherComponents.firstIndex(of: multiplicationTerm) {
-            multiplicationTerms.remove(at: multiplicationTermIndex)
-            otherComponents.remove(at: otherComponentsIndex)
-          }
+        if let cancelledTerm = tryToCancelTerm(termToCancel: multiplicationTerm) {
+          multiplicationTerms[multiplicationTermIndex] = cancelledTerm
         }
       }
       term = WPTerm._mul(terms: multiplicationTerms).simplified(recursively: false)
-    case ._additionList(var additionList):
-      otherComponents = additionList.tryDividing(by: otherComponents)
-      if integerComponent != 1 || doubleComponent != 1 {
-        additionList.divide(by: Double(integerComponent) * doubleComponent)
-        integerComponent = 1
-        doubleComponent = 1
-      }
-      term = WPTerm._additionList(additionList).simplified(recursively: false)
     default:
-      if let otherComponentsIndex = otherComponents.firstIndex(of: term) {
-        term = .integer(1)
-        otherComponents.remove(at: otherComponentsIndex)
+      if let cancelledTerm = tryToCancelTerm(termToCancel: term) {
+        term = cancelledTerm
       }
     }
     
@@ -577,7 +619,9 @@ internal extension WPTerm {
     case ._mul(terms: let terms):
       return Self.simplifyMul(terms: terms, recursively: recursively)
     case ._div(term: let term, divisors: let divisors):
-      return simplifyDiv(term: term, divisors: divisors, recursively: recursively)
+      return simplifyDiv(term: term, divisors: divisors, zeroDiv: false, recursively: recursively)
+    case ._zeroDiv(term: let term, divisors: let divisors):
+      return simplifyDiv(term: term, divisors: divisors, zeroDiv: true, recursively: recursively)
     }
   }
 }
@@ -600,6 +644,8 @@ public extension WPTerm {
     case ._mul(terms: let terms):
       return terms.contains(where: { $0.contains(variable: variable) })
     case ._div(term: let term, divisors: let divisors):
+      return term.contains(variable: variable) || divisors.contains(where: { $0.contains(variable: variable) })
+    case ._zeroDiv(term: let term, divisors: let divisors):
       return term.contains(variable: variable) || divisors.contains(where: { $0.contains(variable: variable) })
     }
   }
@@ -641,6 +687,8 @@ public extension WPTerm {
 
 // MARK: - Operators
 
+infix operator ./.: MultiplicationPrecedence
+
 public func +(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
   return WPTerm.add(terms: [lhs, rhs])
 }
@@ -655,4 +703,8 @@ public func *(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
 
 public func /(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
   return WPTerm.div(lhs: lhs, rhs: rhs)
+}
+
+public func ./.(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
+  return WPTerm.zeroDiv(lhs: lhs, rhs: rhs)
 }
