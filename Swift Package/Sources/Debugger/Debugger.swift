@@ -147,9 +147,9 @@ public class Debugger {
       let placeholderTerm: WPTerm
       switch approximationErrorHandling {
       case .distribute:
-        placeholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds)
+        placeholderTerm = (inferred.value / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds) ./. inferred.observeSatisfactionRate
       case .drop:
-        placeholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
+        placeholderTerm = (inferred.value / inferred.intentionalFocusRate) ./. inferred.observeSatisfactionRate
       }
       for value in possibleValues {
         let valueTerm: WPTerm

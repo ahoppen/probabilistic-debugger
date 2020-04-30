@@ -458,18 +458,20 @@ public class WPInferenceEngine {
       )
     }
     
-    let focusRateSum = inferredState.focusRate
-    let intentionalLossRate = inferredState.intentionalLossRate / focusRateSum
+    let runsNotCutOffByLoopIterationBounds = inferredState.focusRate
+    let intentionalLossRate = inferredState.intentionalLossRate / runsNotCutOffByLoopIterationBounds
     let intentionalFocusRate = (.integer(1) - intentionalLossRate)
+    let observeSatisfactionRate = inferredState.observeSatisfactionRate / runsNotCutOffByLoopIterationBounds / intentionalFocusRate
     
-    assert(0 <= focusRateSum.doubleValue && focusRateSum.doubleValue <= 1)
+    assert(0 <= runsNotCutOffByLoopIterationBounds.doubleValue && runsNotCutOffByLoopIterationBounds.doubleValue <= 1)
     assert(0 <= intentionalLossRate.doubleValue && intentionalLossRate.doubleValue <= 1)
     assert(0 <= intentionalFocusRate.doubleValue && intentionalFocusRate.doubleValue <= 1)
+    assert(0 <= observeSatisfactionRate.doubleValue && observeSatisfactionRate.doubleValue <= 1)
     
     return (
       value: inferredState.term,
-      runsNotCutOffByLoopIterationBounds: focusRateSum,
-      observeSatisfactionRate: (inferredState.observeSatisfactionRate / focusRateSum / intentionalFocusRate),
+      runsNotCutOffByLoopIterationBounds: runsNotCutOffByLoopIterationBounds,
+      observeSatisfactionRate: observeSatisfactionRate,
       intentionalFocusRate: intentionalFocusRate
     )
   }
@@ -485,7 +487,7 @@ public extension WPInferenceEngine {
   
   func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
     let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingHistories: branchingHistories)
-    let probabilityTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
+    let probabilityTerm = (inferred.value / inferred.intentionalFocusRate ) ./. inferred.observeSatisfactionRate
     return probabilityTerm.doubleValue
   }
   
