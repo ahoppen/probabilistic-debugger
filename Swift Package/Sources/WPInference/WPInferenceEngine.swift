@@ -408,7 +408,7 @@ public class WPInferenceEngine {
   ///  - `runsNotCutOffByLoopIterationBounds`: The proportion of runs that were not cut off because of loop iteration bounds
   ///  - `observeSatisfactionRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of runs that satisified all `observe` instructions
   ///  - `intentionalFocusRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of all possible runs on which the inferrence was focused via the branching history.
-  public func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> (value: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, observeSatisfactionRate: WPTerm, intentionalFocusRate: WPTerm) {
+  internal func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> (value: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, observeSatisfactionRate: WPTerm, intentionalFocusRate: WPTerm) {
     
     #if DEBUG
     // Check that we have a loop repetition bound for every loop in the program

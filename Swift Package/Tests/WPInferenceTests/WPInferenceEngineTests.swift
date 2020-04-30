@@ -1,6 +1,6 @@
 import IR
 import IRExecution
-import WPInference
+@testable import WPInference
 
 import XCTest
 

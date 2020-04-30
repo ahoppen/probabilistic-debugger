@@ -111,8 +111,7 @@ public class Debugger {
     guard let currentState = currentState else {
       return 0
     }
-    let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
-    return (inferred.observeSatisfactionRate * inferred.intentionalFocusRate).doubleValue
+    return inferenceEngine.reachingProbability(of: currentState)
   }
   
   /// The error that might have been introduced by limiting the maximum number of loop iterations.
@@ -120,8 +119,7 @@ public class Debugger {
     guard let currentState = currentState else {
       return 0
     }
-    let inferred = inferenceEngine.infer(term: .integer(0), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
-    return 1 - inferred.runsNotCutOffByLoopIterationBounds.doubleValue
+    return inferenceEngine.approximationError(of: currentState)
   }
   
   public func variableValuesRefinedUsingWP(approximationErrorHandling: WPInferenceEngine.ApproximationErrorHandling) -> [String: [IRValue: Double]] {
