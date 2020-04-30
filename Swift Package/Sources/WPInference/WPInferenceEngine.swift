@@ -14,6 +14,14 @@ extension WPTerm {
 }
 
 public class WPInferenceEngine {
+  /// If WP-inference looses some probability mass due to loop iteration bounds, this specifies how the lost probability mass should be handled.
+  public enum ApproximationErrorHandling {
+    /// Don't handle the lost proabability mass and return a probability distribution with sum that might be less than 1.
+    case drop
+    /// Proportionally distribute the lost probability mass onto the known values.
+    case distribute
+  }
+  
   private let program: IRProgram
   
   /// Cached inference results. Maps an inference state to the resulting inference state when performing WP-inference to the top of the program.
@@ -481,13 +489,19 @@ public extension WPInferenceEngine {
   /// Infer the probability that `variable` has the value `value` after executing the program to `inferenceStopPosition`.
   /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
   /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
-  func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
-    return inferProbability(of: .probability(of: variable, equalTo: WPTerm(value)), loopUnrolls: loopUnrolls, to: inferenceStopPosition, branchingHistories: branchingHistories)
-  }
-  
-  func inferProbability(of term: WPTerm, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
+  func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, approximationErrorHandling: ApproximationErrorHandling, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
+    let queryVariable = IRVariable.queryVariable(type: variable.type)
+    let term = WPTerm.probability(of: variable, equalTo: .variable(queryVariable))
     let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingHistories: branchingHistories)
-    let probabilityTerm = (inferred.value / inferred.intentionalFocusRate ) ./. inferred.observeSatisfactionRate
+    
+    let probabilityTermWithPlaceholder: WPTerm
+    switch approximationErrorHandling {
+    case .distribute:
+      probabilityTermWithPlaceholder = (inferred.value / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds ) ./. inferred.observeSatisfactionRate
+    case .drop:
+      probabilityTermWithPlaceholder = (inferred.value / inferred.intentionalFocusRate ) ./. inferred.observeSatisfactionRate
+    }
+    let probabilityTerm = probabilityTermWithPlaceholder.replacing(variable: queryVariable, with: WPTerm(value)) ?? probabilityTermWithPlaceholder
     return probabilityTerm.doubleValue
   }
   

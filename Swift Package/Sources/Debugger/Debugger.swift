@@ -15,11 +15,6 @@ fileprivate extension VariableOrValue {
 
 /// Wrapper around `IRExecutor` that keeps track of the current execution state and translates the `IRExecutionState`s into values for variables in the source code.
 public class Debugger {
-  public enum ApproximationErrorHandling {
-    case drop
-    case distribute
-  }
-  
   // MARK: - Private members
   
   /// The executor that actually executes the IR
@@ -129,7 +124,7 @@ public class Debugger {
     return 1 - inferred.runsNotCutOffByLoopIterationBounds.doubleValue
   }
   
-  public func variableValuesRefinedUsingWP(approximationErrorHandling: ApproximationErrorHandling) -> [String: [IRValue: Double]] {
+  public func variableValuesRefinedUsingWP(approximationErrorHandling: WPInferenceEngine.ApproximationErrorHandling) -> [String: [IRValue: Double]] {
     guard let currentState = currentState else {
       return [:]
     }
@@ -139,27 +134,18 @@ public class Debugger {
       fatalError("Could not find debug info for the current statement")
     }
     for (sourceVariable, irVariable) in instructionInfo.variables {
-      let placeholderVariable = IRVariable.queryVariable(type: irVariable.type)
       var variableDistribution: [IRValue: Double] = [:]
       let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
       
-      let inferred = inferenceEngine.infer(term: .probability(of: irVariable, equalTo: .variable(placeholderVariable)), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
-      let placeholderTerm: WPTerm
-      switch approximationErrorHandling {
-      case .distribute:
-        placeholderTerm = (inferred.value / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds) ./. inferred.observeSatisfactionRate
-      case .drop:
-        placeholderTerm = (inferred.value / inferred.intentionalFocusRate) ./. inferred.observeSatisfactionRate
-      }
       for value in possibleValues {
-        let valueTerm: WPTerm
-        switch value {
-        case .integer(let value):
-          valueTerm = .integer(value)
-        case .bool(let value):
-          valueTerm = .bool(value)
-        }
-        variableDistribution[value] = (placeholderTerm.replacing(variable: placeholderVariable, with: valueTerm) ?? placeholderTerm).doubleValue
+        variableDistribution[value] = inferenceEngine.inferProbability(
+          of: irVariable,
+          beingEqualTo: VariableOrValue(value),
+          approximationErrorHandling: approximationErrorHandling,
+          loopUnrolls: currentState.loopUnrolls,
+          to: currentState.position,
+          branchingHistories: currentState.branchingHistories
+        )
       }
       variableValues[sourceVariable] = variableDistribution
     }
