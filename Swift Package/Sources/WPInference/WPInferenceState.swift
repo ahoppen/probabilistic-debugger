@@ -1,5 +1,6 @@
 import IR
 import IRExecution
+import Utils
 
 internal struct WPInferenceState: Hashable {
   /// WPInferenceState is a copy on write container for performance reasons. `Storage` stores the actual data of the struct.
@@ -12,6 +13,7 @@ internal struct WPInferenceState: Hashable {
     var generateLostStatesForBlocks: Set<BasicBlockName>
     var remainingLoopUnrolls: LoopUnrolls
     var branchingHistories: [BranchingHistory]
+    var slicingStates: [WPTerm: WPSlicingState]
     
     init(
       position: InstructionPosition,
@@ -21,7 +23,8 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: WPTerm,
       generateLostStatesForBlocks: Set<BasicBlockName>,
       remainingLoopUnrolls: LoopUnrolls,
-      branchingHistories: [BranchingHistory]
+      branchingHistories: [BranchingHistory],
+      slicingStates: [WPTerm: WPSlicingState]
     ) {
       self.position = position
       self.term = term
@@ -31,6 +34,7 @@ internal struct WPInferenceState: Hashable {
       self.generateLostStatesForBlocks = generateLostStatesForBlocks
       self.remainingLoopUnrolls = remainingLoopUnrolls
       self.branchingHistories = branchingHistories
+      self.slicingStates = slicingStates
     }
     
     init(_ other: Storage) {
@@ -42,6 +46,7 @@ internal struct WPInferenceState: Hashable {
       self.generateLostStatesForBlocks = other.generateLostStatesForBlocks
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
       self.branchingHistories = other.branchingHistories
+      self.slicingStates = other.slicingStates
     }
     
     func hash(into hasher: inout Hasher) {
@@ -53,6 +58,7 @@ internal struct WPInferenceState: Hashable {
       generateLostStatesForBlocks.hash(into: &hasher)
       remainingLoopUnrolls.hash(into: &hasher)
       branchingHistories.hash(into: &hasher)
+      slicingStates.hash(into: &hasher)
     }
     
     static func ==(lhs: WPInferenceState.Storage, rhs: WPInferenceState.Storage) -> Bool {
@@ -63,7 +69,8 @@ internal struct WPInferenceState: Hashable {
         lhs.intentionalLossRate == rhs.intentionalLossRate &&
         lhs.generateLostStatesForBlocks == rhs.generateLostStatesForBlocks &&
         lhs.remainingLoopUnrolls == rhs.remainingLoopUnrolls &&
-        lhs.branchingHistories == rhs.branchingHistories
+        lhs.branchingHistories == rhs.branchingHistories &&
+        lhs.slicingStates == rhs.slicingStates
     }
   }
   
@@ -188,9 +195,32 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
+  /// For the slicing queries that are tracked by this inference state, the corresponding slicing states.
+  private(set) var slicingStates: [WPTerm: WPSlicingState] {
+    get {
+      return storage.slicingStates
+    }
+    set {
+      if !isKnownUniquelyReferenced(&storage) {
+        storage = Storage(storage)
+      }
+      storage.slicingStates = newValue
+    }
+  }
+  
   // MARK: - Initialization
   
-  init(position: InstructionPosition, term: WPTerm, observeSatisfactionRate: WPTerm, focusRate: WPTerm, intentionalLossRate: WPTerm, generateLostStatesForBlocks: Set<BasicBlockName>, remainingLoopUnrolls: LoopUnrolls, branchingHistories: [BranchingHistory]) {
+  private init(
+    position: InstructionPosition,
+    term: WPTerm,
+    observeSatisfactionRate: WPTerm,
+    focusRate: WPTerm,
+    intentionalLossRate: WPTerm,
+    generateLostStatesForBlocks: Set<BasicBlockName>,
+    remainingLoopUnrolls: LoopUnrolls,
+    branchingHistories: [BranchingHistory],
+    slicingStates: [WPTerm: WPSlicingState]
+  ) {
     self.storage = Storage(
       position: position,
       term: term,
@@ -199,7 +229,55 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: intentionalLossRate,
       generateLostStatesForBlocks: generateLostStatesForBlocks,
       remainingLoopUnrolls: remainingLoopUnrolls,
-      branchingHistories: branchingHistories
+      branchingHistories: branchingHistories,
+      slicingStates: slicingStates
+    )
+  }
+  
+  /// Create a state with which WP-inference can be started.
+  init(
+    initialInferenceStateAtPosition position: InstructionPosition,
+    term: WPTerm,
+    generateLostStatesForBlocks: Set<BasicBlockName>,
+    loopUnrolls: LoopUnrolls,
+    branchingHistories: [BranchingHistory],
+    slicingForTerms slicingTerms: [WPTerm]
+  ) {
+    var slicingStates: [WPTerm: WPSlicingState] = [:]
+    for slicingTerm in slicingTerms {
+      slicingStates[slicingTerm] = WPSlicingState(initialStateFor: slicingTerm)
+    }
+    self.init(
+      position: position,
+      term: term,
+      observeSatisfactionRate: .integer(1),
+      focusRate: .integer(1),
+      intentionalLossRate: .integer(0),
+      generateLostStatesForBlocks: generateLostStatesForBlocks,
+      remainingLoopUnrolls: loopUnrolls,
+      branchingHistories: branchingHistories,
+      slicingStates: slicingStates
+    )
+  }
+  
+  /// Create a `WPInferenceState` that tracks an execution rate that has been explicitly lost.
+  init(
+    lostStateAtPosition position: InstructionPosition,
+    lostRate: WPTerm,
+    generateLostStatesForBlocks: Set<BasicBlockName>,
+    remainingLoopUnrolls: LoopUnrolls,
+    branchingHistories: [BranchingHistory]
+  ) {
+    self.init(
+      position: position,
+      term: .integer(0),
+      observeSatisfactionRate: .integer(0),
+      focusRate: lostRate,
+      intentionalLossRate: lostRate,
+      generateLostStatesForBlocks: generateLostStatesForBlocks,
+      remainingLoopUnrolls: remainingLoopUnrolls,
+      branchingHistories: branchingHistories,
+      slicingStates: [:]
     )
   }
   
@@ -220,7 +298,8 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: WPTerm.add(terms: states.map(\.intentionalLossRate)),
       generateLostStatesForBlocks: firstState.generateLostStatesForBlocks,
       remainingLoopUnrolls: remainingLoopUnrolls,
-      branchingHistories: branchingHistories
+      branchingHistories: branchingHistories,
+      slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged([$0, $1]) })
     )
   }
   
@@ -232,7 +311,7 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable? = nil, update: (WPTerm) -> WPTerm?) {
     if updateTerm, let updatedTerm = update(self.term) {
       self.term = updatedTerm
     }
@@ -245,5 +324,43 @@ internal struct WPInferenceState: Hashable {
     if updateIntentionalLossRate, let updatedIntentionalLossRate = update(self.intentionalLossRate) {
       self.intentionalLossRate = updatedIntentionalLossRate
     }
+    for key in slicingStates.keys {
+      slicingStates[key]!.updateTerms(position: position, term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, controlFlowDependency: controlFlowDependency, update: update)
+    }
+    
+    // If we are slicing and a new control flow dependency got introduce, also compute the slice for this control flow dependency.
+    if !slicingStates.isEmpty, let controlFlowDependency = controlFlowDependency, slicingStates[.variable(controlFlowDependency)] == nil {
+      slicingStates[.variable(controlFlowDependency)] = WPSlicingState(initialStateFor: .variable(controlFlowDependency))
+    }
+  }
+
+  // MARK: Slicing
+
+  /// Return all instructions that have influenced the value of `term` at the end of the program.
+  /// `term` must be specified in `slicingForTerms` when this state was created, otherwise the behaviour of this method is undefined.
+  func influencingInstructions(of term: WPTerm) -> Set<InstructionPosition> {
+    assert(slicingStates[term] != nil, "No slicing information is specified for \(term). It needs to be specified before WP-inference is started")
+    
+    var worklist = [term]
+    var handledTerms: Set<WPTerm> = []
+
+    var influencingInstructions: Set<InstructionPosition> = []
+    while let worklistEntry = worklist.popLast() {
+      if handledTerms.contains(worklistEntry) {
+        continue
+      }
+      handledTerms.insert(worklistEntry)
+      
+      let slicingState = slicingStates[worklistEntry]!
+      
+      influencingInstructions.formUnion(slicingState.influencingInstructions)
+      
+      for controlFlowDependency in slicingState.controlFlowDependencies {
+        let controlFlowCondition = slicingState.controlFlowConditions[controlFlowDependency]!
+        influencingInstructions.insert(controlFlowDependency)
+        worklist.append(.variable(controlFlowCondition))
+      }
+    }
+    return influencingInstructions
   }
 }

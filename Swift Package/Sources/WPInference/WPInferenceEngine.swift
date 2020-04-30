@@ -148,11 +148,8 @@ public class WPInferenceEngine {
           return []
         } else {
           let newState = WPInferenceState(
-            position: predecessorBlockPosition,
-            term: .integer(0),
-            observeSatisfactionRate: .integer(0),
-            focusRate: .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * state.focusRate,
-            intentionalLossRate: .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * state.focusRate,
+            lostStateAtPosition: predecessorBlockPosition,
+            lostRate: .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
             branchingHistories: newBranchingHistories
@@ -163,11 +160,8 @@ public class WPInferenceEngine {
         var newStates: [WPInferenceState] = []
         if state.generateLostStatesForBlocks.contains(predecessor) {
           newStates += WPInferenceState(
-            position: predecessorBlockPosition,
-            term: .integer(0),
-            observeSatisfactionRate: .integer(0),
-            focusRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
-            intentionalLossRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
+            lostStateAtPosition: predecessorBlockPosition,
+            lostRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
             branchingHistories: newBranchingHistories
@@ -177,7 +171,13 @@ public class WPInferenceEngine {
         newState.position = predecessorBlockPosition
         newState.remainingLoopUnrolls = remainingLoopUnrolls
         newState.branchingHistories = newBranchingHistories
-        newState.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
+        let controlFlowDependency: IRVariable?
+        if case .variable(let conditionVariable) = instruction.condition {
+          controlFlowDependency = conditionVariable
+        } else {
+          controlFlowDependency = nil
+        }
+        newState.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, controlFlowDependency: controlFlowDependency) {
           return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
         }
         newStates += newState
@@ -438,16 +438,13 @@ public class WPInferenceEngine {
       }
     }
     
-    // WPInferenceStates that have not yet reached the start of the program and for which further inference needs to be performed
     let initialState = WPInferenceState(
-      position: inferenceStopPosition,
+      initialInferenceStateAtPosition: inferenceStopPosition,
       term: term,
-      observeSatisfactionRate: .integer(1),
-      focusRate: .integer(1),
-      intentionalLossRate: .integer(0),
       generateLostStatesForBlocks: generateLostStatesForBlocks,
-      remainingLoopUnrolls: loopUnrolls,
-      branchingHistories: branchingHistories
+      loopUnrolls: loopUnrolls,
+      branchingHistories: branchingHistories,
+      slicingForTerms: []
     )
     
     let inferredStateOrNil: WPInferenceState?
@@ -485,6 +482,32 @@ public class WPInferenceEngine {
       observeSatisfactionRate: observeSatisfactionRate,
       intentionalFocusRate: intentionalFocusRate
     )
+  }
+  
+  public func slice(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Set<InstructionPosition> {
+    let initialState = WPInferenceState(
+      initialInferenceStateAtPosition: inferenceStopPosition,
+      term: .integer(0),
+      generateLostStatesForBlocks: [],
+      loopUnrolls: loopUnrolls,
+      branchingHistories: branchingHistories,
+      slicingForTerms: [term]
+    )
+    
+    let inferredStateOrNil: WPInferenceState?
+    
+    if let cachedReuslt = inferenceCache[initialState] {
+      inferredStateOrNil = cachedReuslt
+    } else {
+      inferredStateOrNil = self.performInference(for: initialState)
+      inferenceCache[initialState] = inferredStateOrNil
+    }
+    
+    guard let inferredState = inferredStateOrNil else {
+      // There was no successful inference run of the program. Manually put together the "zero" inference results.
+      return []
+    }
+    return inferredState.influencingInstructions(of: term)
   }
 }
 
