@@ -231,4 +231,40 @@ public struct WPAdditionList: Hashable {
       entries.remove(at: index)
     }
   }
+  
+  /// Divide all entries in the addition list by the given constant
+  mutating func divide(by divisor: Double) {
+    for index in 0..<entries.count {
+      entries[index].factor /= Double(divisor)
+    }
+  }
+  
+  /// Try dividing the entries in the addition list by the given `divisors`.
+  /// Returns the terms for which division was not able to cancel out terms in the addition list.
+  mutating func tryDividing(by divisors: [WPTerm]) -> [WPTerm] {
+    var remainingDivisors: [WPTerm] = []
+    for divisor in divisors {
+      switch divisor {
+      case .integer(let value):
+        for index in 0..<entries.count {
+          entries[index].factor /= Double(value)
+        }
+      case .double(let value):
+        for index in 0..<entries.count {
+          entries[index].factor /= value
+        }
+      case ._boolToInt(let wrapped):
+        if entries.allSatisfy({ $0.conditions.contains(wrapped) }) {
+          for index in 0..<entries.count {
+            entries[index].conditions.remove(wrapped)
+          }
+        } else {
+          remainingDivisors.append(divisor)
+        }
+      default:
+        remainingDivisors.append(divisor)
+      }
+    }
+    return remainingDivisors
+  }
 }

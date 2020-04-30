@@ -57,8 +57,9 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
   /// Multiply `terms`.
   case _mul(terms: [WPTerm])
   
-  /// Divide `lhs` by `rhs`
-  case _div(lhs: WPTerm, rhs: WPTerm)
+  /// Divide `term` by `divisors`
+  /// The result of `0 / 0` is undefined. It can be `0`, `nan` or something completely different.
+  case _div(term: WPTerm, divisors: [WPTerm])
   
   public static func not(_ wrapped: WPTerm) -> WPTerm {
     return _not(wrapped).simplified(recursively: false)
@@ -89,7 +90,7 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
   }
   
   public static func div(lhs: WPTerm, rhs: WPTerm) -> WPTerm {
-    return _div(lhs: lhs, rhs: rhs).simplified(recursively: false)
+    return _div(term: lhs, divisors: [rhs]).simplified(recursively: false)
   }
   
   public init(_ variableOrValue: VariableOrValue) {
@@ -130,8 +131,8 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
       return "\(lhs.description) - \(rhs.description)"
     case ._mul(terms: let terms):
       return "(\(terms.map({ $0.description }).joined(separator: " * ")))"
-    case ._div(lhs: let lhs, rhs: let rhs):
-      return "(\(lhs.description)) / (\(rhs.description))"
+    case ._div(term: let term, divisors: let divisors):
+      return "(\(term.description)) / \(divisors.map(\.description).joined(separator: " / "))"
     }
   }
   
@@ -187,11 +188,11 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
       """
     case ._mul(terms: let terms):
       return "▽ *\n\(terms.map({ $0.treeDescription.indented() }).joined(separator: "\n"))"
-    case ._div(lhs: let lhs, rhs: let rhs):
+    case ._div(term: let term, divisors: let divisors):
       return """
       ▽ /
-      \(lhs.treeDescription.indented())
-      \(rhs.treeDescription.indented())
+      \(term.treeDescription.indented())
+      \(divisors.map({ $0.treeDescription.indented() }).joined(separator: "\n"))
       """
     }
   }
@@ -267,15 +268,15 @@ public extension WPTerm {
       if hasPerformedReplacement {
         return WPTerm._mul(terms: replacedTerms).simplified(recursively: false)
       } else {
-        return self
-      }
-    case ._div(lhs: let lhs, rhs: let rhs):
-      let lhsReplaced = lhs.replacing(variable: variable, with: replacementTerm)
-      let rhsReplaced = rhs.replacing(variable: variable, with: replacementTerm)
-      if lhsReplaced == nil && rhsReplaced == nil {
         return nil
       }
-      return WPTerm._div(lhs: lhsReplaced ?? lhs, rhs: rhsReplaced ?? rhs).simplified(recursively: false)
+    case ._div(term: let term, divisors: let divisors):
+      let termReplaced = term.replacing(variable: variable, with: replacementTerm)
+      let divisorsReplaced = divisors.replacing(variable: variable, with: replacementTerm)
+      if termReplaced == nil, divisorsReplaced == nil {
+        return nil
+      }
+      return WPTerm._div(term: termReplaced ?? term, divisors: divisorsReplaced ?? divisors).simplified(recursively: false)
     }
   }
 }
@@ -465,22 +466,89 @@ internal extension WPTerm {
     }
   }
   
-  func simplifyDiv(lhs: WPTerm, rhs: WPTerm, recursively: Bool) -> WPTerm {
-    switch (lhs.selfOrSimplified(simplified: recursively), rhs.selfOrSimplified(simplified: recursively)) {
-    case (.integer(let lhsValue), .integer(let rhsValue)):
-      return .double(Double(lhsValue) / Double(rhsValue))
-    case (.double(let lhsValue), .double(let rhsValue)):
-      return .double(lhsValue / rhsValue)
-    case (.double(let lhsValue), .integer(let rhsValue)):
-      return .double(lhsValue / Double(rhsValue))
-    case (.integer(let lhsValue), .double(let rhsValue)):
-      return .double(Double(lhsValue) / rhsValue)
-    case (.integer(0), _):
-      return .integer(0)
-    case (.double(0), _):
-      return .double(0)
-    case (let lhsValue, let rhsValue):
-      return ._div(lhs: lhsValue, rhs: rhsValue)
+  func simplifyDiv(term: WPTerm, divisors: [WPTerm], recursively: Bool) -> WPTerm {
+    var term = term.selfOrSimplified(simplified: recursively)
+    var divisors = divisors
+    if recursively {
+      divisors = divisors.map({ $0.simplified(recursively: recursively) })
+    }
+    
+    var integerComponent = 1
+    var doubleComponent = 1.0
+    var otherComponents: [WPTerm] = []
+    
+    // Flatten the divisors
+    for divisor in divisors {
+      switch divisor {
+      case .integer(let value):
+        integerComponent *= value
+      case .double(let value):
+        doubleComponent *= value
+      case ._mul(terms: let terms):
+        otherComponents.append(contentsOf: terms)
+      default:
+        otherComponents.append(divisor)
+      }
+    }
+    
+    // Perform simplifications on term that don't completely evaluate it
+    switch term {
+    case ._mul(terms: var multiplicationTerms):
+      for multiplicationTermIndex in (0..<multiplicationTerms.count).reversed() {
+        let multiplicationTerm = multiplicationTerms[multiplicationTermIndex]
+        switch multiplicationTerm {
+        case .integer(let value):
+          multiplicationTerms.remove(at: multiplicationTermIndex)
+          doubleComponent /= Double(value)
+        case .double(let value):
+          multiplicationTerms.remove(at: multiplicationTermIndex)
+          doubleComponent /= value
+        default:
+          if let otherComponentsIndex = otherComponents.firstIndex(of: multiplicationTerm) {
+            multiplicationTerms.remove(at: multiplicationTermIndex)
+            otherComponents.remove(at: otherComponentsIndex)
+          }
+        }
+      }
+      term = WPTerm._mul(terms: multiplicationTerms).simplified(recursively: false)
+    case ._additionList(var additionList):
+      otherComponents = additionList.tryDividing(by: otherComponents)
+      if integerComponent != 1 || doubleComponent != 1 {
+        additionList.divide(by: Double(integerComponent) * doubleComponent)
+        integerComponent = 1
+        doubleComponent = 1
+      }
+      term = WPTerm._additionList(additionList).simplified(recursively: false)
+    default:
+      if let otherComponentsIndex = otherComponents.firstIndex(of: term) {
+        term = .integer(1)
+        otherComponents.remove(at: otherComponentsIndex)
+      }
+    }
+    
+    // Evaluate the term if it has been sufficiently simplified
+    if otherComponents.isEmpty {
+      switch term {
+      case .integer(0):
+        return .integer(0)
+      case .integer(let value):
+        return .double(Double(value) / Double(integerComponent) / doubleComponent)
+      case .double(0):
+        return .double(0)
+      case .double(let value):
+        return .double(value / Double(integerComponent) / doubleComponent)
+      default:
+        switch (integerComponent, doubleComponent) {
+        case (1, 1):
+          return term
+        case (_, 1):
+          return ._div(term: term, divisors: [.integer(integerComponent)])
+        case (_, _):
+          return ._div(term: term, divisors: [.double(Double(integerComponent) * doubleComponent)])
+        }
+      }
+    } else {
+      return ._div(term: term, divisors: divisors)
     }
   }
   
@@ -508,8 +576,8 @@ internal extension WPTerm {
       return Self.simplifySub(lhs: lhs, rhs: rhs, recursively: recursively)
     case ._mul(terms: let terms):
       return Self.simplifyMul(terms: terms, recursively: recursively)
-    case ._div(lhs: let lhs, rhs: let rhs):
-      return simplifyDiv(lhs: lhs, rhs: rhs, recursively: recursively)
+    case ._div(term: let term, divisors: let divisors):
+      return simplifyDiv(term: term, divisors: divisors, recursively: recursively)
     }
   }
 }
@@ -531,8 +599,8 @@ public extension WPTerm {
       return additionList.contains(variable: variable)
     case ._mul(terms: let terms):
       return terms.contains(where: { $0.contains(variable: variable) })
-    case ._div(lhs: let lhs, rhs: let rhs):
-      return lhs.contains(variable: variable) || rhs.contains(variable: variable)
+    case ._div(term: let term, divisors: let divisors):
+      return term.contains(variable: variable) || divisors.contains(where: { $0.contains(variable: variable) })
     }
   }
 }
