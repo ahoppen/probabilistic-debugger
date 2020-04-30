@@ -1775,4 +1775,34 @@ class WPInferenceEngineTests: XCTestCase {
       InstructionPosition(basicBlock: bb1Name, instructionIndex: 2),
     ])
   }
+
+  func testSliceAwayObserveThatsIrrelevant() {
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .bool)
+    
+    let bb1Name = BasicBlockName("bb1")
+    
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(3)),
+      DiscreteDistributionInstruction(assignee: var2, distribution: [0: 0.4, 1: 0.6]),
+      CompareInstruction(comparison: .equal, assignee: var3, lhs: .variable(var2), rhs: .integer(0)),
+      ObserveInstruction(observation: .variable(var3)),
+      ReturnInstruction()
+    ])
+    
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
+    
+    let inferenceEngine = WPInferenceEngine(program: program)
+    let slice = inferenceEngine.slice(
+      term: .variable(var1),
+      loopUnrolls: LoopUnrolls([:]),
+      inferenceStopPosition: program.returnPosition,
+      branchingHistories: [[.any(predominatedBy: bb1Name)]]
+    )
+    XCTAssertEqual(slice, [
+      InstructionPosition(basicBlock: bb1Name, instructionIndex: 0),
+    ])
+  }
 }

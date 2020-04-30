@@ -499,6 +499,15 @@ internal extension WPTerm {
     var doubleComponent = 1.0
     var otherComponents: [WPTerm] = []
     
+    // Flatten term
+    switch term {
+    case ._div(term: let nestedTerm, divisors: let nestedDivisors):
+      term = nestedTerm
+      divisors += nestedDivisors
+    default:
+      break
+    }
+    
     // Flatten the divisors
     for divisor in divisors {
       switch divisor {
