@@ -1,42 +1,78 @@
 import IR
 import Utils
 
-struct WPSlicingState: Hashable {
-  // MARK: The current state's terms
-  
-  /// The (updated) term for which a program slice is being computed. Similar to `term` in `WPInferenceState`-
+fileprivate struct WPResultTerm: Hashable {
   private(set) var term: WPTerm
-  
-  /// The following properties match the values of the parent `WPInferenceState`
   private(set) var observeSatisfactionRate: WPTerm
   private(set) var focusRate: WPTerm
   private(set) var intentionalLossRate: WPTerm
+  
+  static func merged(_ terms: [WPResultTerm]) -> WPResultTerm {
+    return WPResultTerm(
+      term: WPTerm.add(terms: terms.map(\.term)),
+      observeSatisfactionRate: WPTerm.add(terms: terms.map(\.observeSatisfactionRate)),
+      focusRate: WPTerm.add(terms: terms.map(\.focusRate)),
+      intentionalLossRate: WPTerm.add(terms: terms.map(\.intentionalLossRate))
+    )
+  }
+  
+  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, update: (WPTerm) -> WPTerm?) {
+    if updateTerm, let updatedTerm = update(term) {
+      self.term = updatedTerm
+    }
+    if updateObserveSatisfactionRate, let updatedObserveSatisfactionRate = update(observeSatisfactionRate) {
+      self.observeSatisfactionRate = updatedObserveSatisfactionRate
+    }
+    if updateFocusRate, let updatedFocusRate = update(focusRate) {
+      self.focusRate = updatedFocusRate
+    }
+    if updateIntentionalLossRate, let updatedIntentionalLossRate = update(intentionalLossRate) {
+      self.intentionalLossRate = updatedIntentionalLossRate
+    }
+  }
+  
+  var isZeroInBothComponents: Bool {
+    return term.isZero && observeSatisfactionRate.isZero
+  }
+  
+  var value: WPTerm {
+    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
+    return (term / focusRate / intentionalFocusRate) ./. (observeSatisfactionRate / focusRate / intentionalFocusRate)
+  }
+  
+  func hash(into hasher: inout Hasher) {
+    self.value.hash(into: &hasher)
+  }
+  
+  static func ==(lhs: WPResultTerm, rhs: WPResultTerm) -> Bool {
+    return lhs.value == rhs.value
+  }
+}
+
+struct WPSlicingState: Hashable {
+  // MARK: The current state's terms
+  
+  private var resultTerm: WPResultTerm
   
   // MARK: Keeping track of influencing positions and dependencies
   
   /// For each result term (as built using the `buildResultTerm` function), a set of instructions that influence this term.
   /// When we encounter a new result term, we add it to the list.
   /// Should we encounter a result term that we have seen before, we know that the intermediat instructions didn't have an affect on the result term and thus don't need to be considered influencing.
-  private(set) var influencingInstructionsForTerms: [WPTerm: Set<InstructionPosition>]
+  private var influencingInstructionsForTerms: [WPResultTerm: Set<InstructionPosition>]
   
   /// Control flow points that might have influenced the value of resultTerm.
   /// Whenever a branching point is encountered, the current result term is recorded.
   /// The branch point was relevant if WP-inference had different values for two WP inference states when they were merged again at a branching point.
   /// Thus, at the end of WP-inference, all positions with more than one resultTerm had an influence on the resultTerm
-  private(set) var potentialControlFlowDependencies: [InstructionPosition: Set<WPTerm>]
+  private var potentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>]
   
   /// For each control flow position, the variable that determined the branch, so that its influencing instructions can also be added to this state's influencing instructions.
   private(set) var controlFlowConditions: [InstructionPosition: IRVariable]
   
   /// Build the result term that is used for `potentialControlFlowDependencies` and `influencingInstructionsForTerms`.
-  private static func buildResultTerm(term: WPTerm, observeSatisfactionRate: WPTerm, focusRate: WPTerm, intentionalLossRate: WPTerm) -> WPTerm {
-    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
-    return (term / focusRate / intentionalFocusRate) ./. (observeSatisfactionRate / focusRate / intentionalFocusRate)
-  }
-  
-  /// The current result term that is used for `potentialControlFlowDependencies` and `influencingInstructionsForTerms`.
-  private var resultTerm: WPTerm {
-    return Self.buildResultTerm(term: term, observeSatisfactionRate: observeSatisfactionRate, focusRate: focusRate, intentionalLossRate: intentionalLossRate)
+  private static func buildResultTerm(term: WPResultTerm) -> WPTerm {
+    return term.value
   }
   
   // MARK: Retrieving the result
@@ -63,36 +99,34 @@ struct WPSlicingState: Hashable {
   
   /// Create the initial `WPSlicingState` to create a program slice for `queryTerm`.
   init(initialStateFor sliceFor: WPTerm) {
+    let queryVariableType: IRType
     if case .variable(let variable) = sliceFor {
-      self.term = WPTerm.boolToInt(.equal(lhs: sliceFor, rhs: .variable(IRVariable.queryVariable(type: variable.type))))
+      queryVariableType = variable.type
     } else {
       // We don't currently have a complex way to combine boolean values. The variable must be of type int.
       // Actually the variable type also doesn't matter
-      self.term = WPTerm.boolToInt(.equal(lhs: sliceFor, rhs: .variable(IRVariable.queryVariable(type: .int))))
+      queryVariableType = .int
     }
-    self.observeSatisfactionRate = .integer(1)
-    self.focusRate = .integer(1)
-    self.intentionalLossRate = .integer(0)
+    self.resultTerm = WPResultTerm(
+      term: WPTerm.boolToInt(.equal(lhs: sliceFor, rhs: .variable(IRVariable.queryVariable(type: queryVariableType)))),
+      observeSatisfactionRate: .integer(1),
+      focusRate: .integer(1),
+      intentionalLossRate: .integer(0)
+    )
     self.influencingInstructionsForTerms = [
-      Self.buildResultTerm(term: self.term, observeSatisfactionRate: self.observeSatisfactionRate, focusRate: self.focusRate, intentionalLossRate: self.intentionalLossRate): []
+      self.resultTerm: []
     ]
     self.potentialControlFlowDependencies = [:]
     self.controlFlowConditions = [:]
   }
   
   private init(
-    term: WPTerm,
-    observeSatisfactionRate: WPTerm,
-    focusRate: WPTerm,
-    intentionalLossRate: WPTerm,
-    influencingInstructions: [WPTerm: Set<InstructionPosition>],
-    potentialControlFlowDependencies: [InstructionPosition: Set<WPTerm>],
+    term: WPResultTerm,
+    influencingInstructions: [WPResultTerm: Set<InstructionPosition>],
+    potentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>],
     controlFlowConditions: [InstructionPosition: IRVariable]
   ) {
-    self.term = term
-    self.observeSatisfactionRate = observeSatisfactionRate
-    self.focusRate = focusRate
-    self.intentionalLossRate = intentionalLossRate
+    self.resultTerm = term
     self.influencingInstructionsForTerms = influencingInstructions
     self.potentialControlFlowDependencies = potentialControlFlowDependencies
     self.controlFlowConditions = controlFlowConditions
@@ -101,11 +135,14 @@ struct WPSlicingState: Hashable {
   /// Merge a list of slicing states
   static func merged(_ states: [WPSlicingState]) -> WPSlicingState {
     guard !states.isEmpty else {
-      return WPSlicingState(
+      let term = WPResultTerm(
         term: .integer(0),
         observeSatisfactionRate: .integer(0),
         focusRate: .integer(0),
-        intentionalLossRate: .integer(0),
+        intentionalLossRate: .integer(0)
+      )
+      return WPSlicingState(
+        term: term,
         influencingInstructions: [:],
         potentialControlFlowDependencies: [:],
         controlFlowConditions: [:]
@@ -116,31 +153,26 @@ struct WPSlicingState: Hashable {
     }
     
     // If a state has both term and observeSatisfactionRate set to 0, it will not be contributing anything to the resulting state's resultTerm. We can thus safely ignore it.
-    let states = states.filter({ !($0.term.isZero && $0.observeSatisfactionRate.isZero) })
+    let states = states.filter({ !$0.resultTerm.isZeroInBothComponents })
     
     // Compute all term for which all states to merge have a set of influencing instructions. If one term doesn't have influencing instructions stored for a term, we can't make any statements on it.
     let mergedKeys = states.map(\.influencingInstructionsForTerms.keys).reduce(Set(states.first!.influencingInstructionsForTerms.keys), { $0.intersection($1) })
     
     // For those keys, the influencing instructions are the union of all influencing instructions of the states to merge
-    var mergedInfluencingInstructions: [WPTerm: Set<InstructionPosition>] = [:]
+    var mergedInfluencingInstructions: [WPResultTerm: Set<InstructionPosition>] = [:]
     for key in mergedKeys {
       mergedInfluencingInstructions[key] = states.map({ $0.influencingInstructionsForTerms[key]! }).reduce(Set(), { $0 + $1 })
     }
     
-    // Merge the terms by adding them
-    let mergedTerm = WPTerm.add(terms: states.map(\.term))
-    let mergedObserveSatisfactionRate = WPTerm.add(terms: states.map(\.observeSatisfactionRate))
-    let mergedFocusRate = WPTerm.add(terms: states.map(\.focusRate))
-    let mergedIntentionalLossRate = WPTerm.add(terms: states.map(\.intentionalLossRate))
+    let mergedResultTerm = WPResultTerm.merged(states.map(\.resultTerm))
     
     // Add a new entry in the influencing instructions for the merged terms by merging together their currently influencing instructions.
-    let mergedKey = buildResultTerm(term: mergedTerm, observeSatisfactionRate: mergedObserveSatisfactionRate, focusRate: mergedFocusRate, intentionalLossRate: mergedIntentionalLossRate)
-    if mergedInfluencingInstructions[mergedKey] == nil {
-      mergedInfluencingInstructions[mergedKey] = states.map(\.influencingInstructions).reduce(Set(), { $0 + $1 })
+    if mergedInfluencingInstructions[mergedResultTerm] == nil {
+      mergedInfluencingInstructions[mergedResultTerm] = states.map(\.influencingInstructions).reduce(Set(), { $0 + $1 })
     }
   
     // Merge the potential control flow dependencies
-    var mergedPotentialControlFlowDependencies: [InstructionPosition: Set<WPTerm>] = [:]
+    var mergedPotentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>] = [:]
     for state in states {
       for (position, branchingTerms) in state.potentialControlFlowDependencies {
         mergedPotentialControlFlowDependencies[position] = mergedPotentialControlFlowDependencies[position, default: Set()] + branchingTerms
@@ -150,11 +182,9 @@ struct WPSlicingState: Hashable {
     // Merge the control flow conditions. The variable for each control flow condition should be static and be equal in all states.
     let mergedControlFlowConditions = Dictionary.merged(states.map(\.controlFlowConditions), uniquingKeysWith: { assert($0 == $1); return $0 })
     
+    
     return WPSlicingState(
-      term: mergedTerm,
-      observeSatisfactionRate: mergedObserveSatisfactionRate,
-      focusRate: mergedFocusRate,
-      intentionalLossRate: mergedIntentionalLossRate,
+      term: mergedResultTerm,
       influencingInstructions: mergedInfluencingInstructions,
       potentialControlFlowDependencies: mergedPotentialControlFlowDependencies,
       controlFlowConditions: mergedControlFlowConditions
@@ -165,36 +195,28 @@ struct WPSlicingState: Hashable {
   
   mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
     
+    let termBeforeUpdate = self.resultTerm
+    
     // Update all terms
     let previousInfluencingInstructions = influencingInstructionsForTerms[self.resultTerm]!
-    if updateTerm, let updatedTerm = update(term) {
-      self.term = updatedTerm
-    }
-    if updateObserveSatisfactionRate, let updatedObserveSatisfactionRate = update(observeSatisfactionRate) {
-      self.observeSatisfactionRate = updatedObserveSatisfactionRate
-    }
-    if updateFocusRate, let updatedFocusRate = update(focusRate) {
-      self.focusRate = updatedFocusRate
-    }
-    if updateIntentionalLossRate, let updatedIntentionalLossRate = update(intentionalLossRate) {
-      self.intentionalLossRate = updatedIntentionalLossRate
-    }
-    if updateTerm {
-      self.potentialControlFlowDependencies = self.potentialControlFlowDependencies.mapValues({ branchingTerms in
-        Set(branchingTerms.map({ update($0) ?? $0 }))
-      })
-    }
+    self.resultTerm.updateTerms(term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, update: update)
+    self.potentialControlFlowDependencies = self.potentialControlFlowDependencies.mapValues({ branchingTerms in
+      Set(branchingTerms.map({ (term: WPResultTerm) -> WPResultTerm in
+        var term = term
+        term.updateTerms(term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, update: update)
+        return term
+      }))
+    })
     
     // Add a new entry for influencing instructions
-    let key = Self.buildResultTerm(term: term, observeSatisfactionRate: observeSatisfactionRate, focusRate: focusRate, intentionalLossRate: intentionalLossRate)
-    if self.influencingInstructionsForTerms[key] == nil {
-      self.influencingInstructionsForTerms[key] = previousInfluencingInstructions + [position]
+    if self.influencingInstructionsForTerms[resultTerm] == nil {
+      self.influencingInstructionsForTerms[resultTerm] = previousInfluencingInstructions + [position]
     }
     
     // Record a control flow dependency if necessary
     if let controlFlowDependency = controlFlowDependency {
       controlFlowConditions[position] = controlFlowDependency
-      potentialControlFlowDependencies[position] = potentialControlFlowDependencies[position, default: Set()] + [self.resultTerm]
+      potentialControlFlowDependencies[position] = potentialControlFlowDependencies[position, default: Set()] + [termBeforeUpdate]
     }
   }
 }

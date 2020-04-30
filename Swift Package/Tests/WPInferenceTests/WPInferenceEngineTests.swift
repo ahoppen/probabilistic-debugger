@@ -1805,4 +1805,56 @@ class WPInferenceEngineTests: XCTestCase {
       InstructionPosition(basicBlock: bb1Name, instructionIndex: 0),
     ])
   }
+  
+  func testSliceAwayTwoSuccessiveIfs() {
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .int)
+    let var4 = IRVariable(name: "4", type: .bool)
+    let var5 = IRVariable(name: "5", type: .bool)
+
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    let bb5Name = BasicBlockName("bb5")
+
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      DiscreteDistributionInstruction(assignee: var1, distribution: [0: 0.7, 1: 0.3]),
+      AssignInstruction(assignee: var2, value: .variable(var1)),
+      AssignInstruction(assignee: var3, value: .integer(0)),
+      CompareInstruction(comparison: .equal, assignee: var4, lhs: .variable(var2), rhs: .integer(0)),
+      BranchInstruction(condition: .variable(var4), targetTrue: bb2Name, targetFalse: bb3Name)
+    ])
+
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      JumpInstruction(target: bb3Name)
+    ])
+
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      CompareInstruction(comparison: .equal, assignee: var5, lhs: .variable(var2), rhs: .integer(0)),
+      BranchInstruction(condition: .variable(var4), targetTrue: bb4Name, targetFalse: bb5Name)
+    ])
+
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      JumpInstruction(target: bb5Name)
+    ])
+
+    let bb5 = BasicBlock(name: bb5Name, instructions: [
+      ReturnInstruction()
+    ])
+
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4, bb5])
+
+    let inferenceEngine = WPInferenceEngine(program: program)
+    let slice = inferenceEngine.slice(
+      term: .variable(var1),
+      loopUnrolls: LoopUnrolls([:]),
+      inferenceStopPosition: program.returnPosition,
+      branchingHistories: [[.any(predominatedBy: bb1Name)]]
+    )
+    XCTAssertEqual(slice, [
+      InstructionPosition(basicBlock: bb1Name, instructionIndex: 0)
+    ])
+  }
 }
