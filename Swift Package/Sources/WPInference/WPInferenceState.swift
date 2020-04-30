@@ -299,7 +299,7 @@ internal struct WPInferenceState: Hashable {
       generateLostStatesForBlocks: firstState.generateLostStatesForBlocks,
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistories: branchingHistories,
-      slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged([$0, $1]) })
+      slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged($0, $1) })
     )
   }
   

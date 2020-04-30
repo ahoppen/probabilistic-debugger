@@ -1,7 +1,7 @@
 import IR
 import Utils
 
-fileprivate struct WPResultTerm: Hashable {
+struct WPResultTerm: Hashable {
   private(set) var term: WPTerm
   private(set) var observeSatisfactionRate: WPTerm
   private(set) var focusRate: WPTerm
@@ -40,6 +40,16 @@ fileprivate struct WPResultTerm: Hashable {
     return (term / focusRate / intentionalFocusRate) ./. (observeSatisfactionRate / focusRate / intentionalFocusRate)
   }
   
+  var normalizedTerm: WPTerm {
+    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
+    return term / focusRate / intentionalFocusRate
+  }
+  
+  var normalizedObserveSatisfactionRate: WPTerm {
+    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
+    return observeSatisfactionRate / focusRate / intentionalFocusRate
+  }
+  
   func hash(into hasher: inout Hasher) {
     self.value.hash(into: &hasher)
   }
@@ -52,7 +62,7 @@ fileprivate struct WPResultTerm: Hashable {
 struct WPSlicingState: Hashable {
   // MARK: The current state's terms
   
-  private var resultTerm: WPResultTerm
+  var resultTerm: WPResultTerm
   
   // MARK: Keeping track of influencing positions and dependencies
   
@@ -133,54 +143,36 @@ struct WPSlicingState: Hashable {
   }
   
   /// Merge a list of slicing states
-  static func merged(_ states: [WPSlicingState]) -> WPSlicingState {
-    guard !states.isEmpty else {
-      let term = WPResultTerm(
-        term: .integer(0),
-        observeSatisfactionRate: .integer(0),
-        focusRate: .integer(0),
-        intentionalLossRate: .integer(0)
-      )
-      return WPSlicingState(
-        term: term,
-        influencingInstructions: [:],
-        potentialControlFlowDependencies: [:],
-        controlFlowConditions: [:]
-      )
-    }
-    if states.count == 1 {
-      return states.first!
-    }
-    
+  static func merged(_ lhs: WPSlicingState, _ rhs: WPSlicingState) -> WPSlicingState {
     // If a state has both term and observeSatisfactionRate set to 0, it will not be contributing anything to the resulting state's resultTerm. We can thus safely ignore it.
     let states = states.filter({ !$0.resultTerm.isZeroInBothComponents })
     
     // Compute all term for which all states to merge have a set of influencing instructions. If one term doesn't have influencing instructions stored for a term, we can't make any statements on it.
-    let mergedKeys = states.map(\.influencingInstructionsForTerms.keys).reduce(Set(states.first!.influencingInstructionsForTerms.keys), { $0.intersection($1) })
+    let mergedKeys = Set(lhs.influencingInstructionsForTerms.keys).intersection(rhs.influencingInstructionsForTerms.keys)
     
     // For those keys, the influencing instructions are the union of all influencing instructions of the states to merge
     var mergedInfluencingInstructions: [WPResultTerm: Set<InstructionPosition>] = [:]
     for key in mergedKeys {
-      mergedInfluencingInstructions[key] = states.map({ $0.influencingInstructionsForTerms[key]! }).reduce(Set(), { $0 + $1 })
+      mergedInfluencingInstructions[key] = lhs.influencingInstructionsForTerms[key]! + rhs.influencingInstructionsForTerms[key]!
     }
     
-    let mergedResultTerm = WPResultTerm.merged(states.map(\.resultTerm))
+    let mergedResultTerm = WPResultTerm.merged([lhs.resultTerm, rhs.resultTerm])
     
     // Add a new entry in the influencing instructions for the merged terms by merging together their currently influencing instructions.
     if mergedInfluencingInstructions[mergedResultTerm] == nil {
-      mergedInfluencingInstructions[mergedResultTerm] = states.map(\.influencingInstructions).reduce(Set(), { $0 + $1 })
+      mergedInfluencingInstructions[mergedResultTerm] = lhs.influencingInstructions + rhs.influencingInstructions
     }
   
     // Merge the potential control flow dependencies
     var mergedPotentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>] = [:]
-    for state in states {
+    for state in [lhs, rhs] {
       for (position, branchingTerms) in state.potentialControlFlowDependencies {
         mergedPotentialControlFlowDependencies[position] = mergedPotentialControlFlowDependencies[position, default: Set()] + branchingTerms
       }
     }
     
     // Merge the control flow conditions. The variable for each control flow condition should be static and be equal in all states.
-    let mergedControlFlowConditions = Dictionary.merged(states.map(\.controlFlowConditions), uniquingKeysWith: { assert($0 == $1); return $0 })
+    let mergedControlFlowConditions = lhs.controlFlowConditions.merging(rhs.controlFlowConditions, uniquingKeysWith: { assert($0 == $1); return $0 })
     
     
     return WPSlicingState(
