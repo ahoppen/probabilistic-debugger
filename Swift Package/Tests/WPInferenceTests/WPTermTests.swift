@@ -90,4 +90,8 @@ class WPTermTests: XCTestCase {
     
     XCTAssertEqual(WPTerm.add(terms: additionTerms), condition * .double(40))
   }
+  
+  func testZeroDividedByZeroIsZero() {
+    XCTAssertEqual(WPTerm.integer(0) / WPTerm.integer(0), WPTerm.integer(0))
+  }
 }

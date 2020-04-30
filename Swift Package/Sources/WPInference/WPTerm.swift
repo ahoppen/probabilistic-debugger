@@ -527,10 +527,10 @@ internal extension WPTerm {
     /// `otherComponents` etc. are updated by this function.
     func tryToCancelTerm(termToCancel: WPTerm) -> WPTerm? {
       switch termToCancel {
-      case .integer(let value):
+      case .integer(let value) where value != 0:
         doubleComponent /= Double(value)
         return .integer(1)
-      case .double(let value):
+      case .double(let value) where value != 0:
         doubleComponent /= value
         return .integer(1)
       case ._boolToInt where zeroDiv:
