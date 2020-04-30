@@ -74,9 +74,8 @@ public class WPInferenceEngine {
     switch instruction {
     case is JumpInstruction:
       // The jump jumps unconditionally, so there is no need to modify the state's term
-      let newState = state
-        .withPosition(predecessorBlockPosition)
-      return [newState]
+      state.position = predecessorBlockPosition
+      return [state]
     case let instruction as BranchInstruction:
       var remainingLoopUnrolls = state.remainingLoopUnrolls
       
@@ -162,13 +161,6 @@ public class WPInferenceEngine {
         }
       } else {
         var newStates: [WPInferenceState] = []
-        newStates += state
-          .withPosition(predecessorBlockPosition)
-          .withRemainingLoopUnrolls(remainingLoopUnrolls)
-          .withBranchingHistories(newBranchingHistories)
-          .updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
-            return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
-          }
         if state.generateLostStatesForBlocks.contains(predecessor) {
           newStates += WPInferenceState(
             position: predecessorBlockPosition,
@@ -181,6 +173,14 @@ public class WPInferenceEngine {
             branchingHistories: newBranchingHistories
           )
         }
+        var newState = state
+        newState.position = predecessorBlockPosition
+        newState.remainingLoopUnrolls = remainingLoopUnrolls
+        newState.branchingHistories = newBranchingHistories
+        newState.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
+          return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
+        }
+        newStates += newState
         return newStates
       }
     default:
@@ -214,7 +214,9 @@ public class WPInferenceEngine {
         })
       } else {
         // We are at a normal instruction, just adjust the position to the previous one and return all the values
-        return [state.withPosition(previousPosition)]
+        var newState = state
+        newState.position = previousPosition
+        return [newState]
       }
     } else {
       // We have reached the start of a block. Continue inference in the predecessor blocks.
@@ -264,7 +266,7 @@ public class WPInferenceEngine {
       })
     }
     
-    let result: WPInferenceState?
+    var result: WPInferenceState?
     if let cachedReuslt = inferenceCache[normalizedState] {
       result = cachedReuslt
     } else {
@@ -273,9 +275,10 @@ public class WPInferenceEngine {
     }
     
     if normalizationFactor != 1 {
-      return result?.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, update: {
+      result?.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, update: {
         return .double(normalizationFactor) * $0
       })
+      return result
     } else {
       return result
     }
@@ -283,38 +286,38 @@ public class WPInferenceEngine {
   
   /// Perform a single inference step.
   /// The current instruction of `stateToInfer` has **not** been inferred yet.
-  private func performInferenceStep(_ stateToInfer: WPInferenceState) -> WPInferenceState {
-    let position = stateToInfer.position
-    let newStateToInfer: WPInferenceState
+  private func performInferenceStep(_ state: WPInferenceState) -> WPInferenceState {
+    var state = state
+    let position = state.position
     let instruction = program.instruction(at: position)!
     switch instruction {
     case let instruction as AssignInstruction:
-      newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.value))
+      state.replace(variable: instruction.assignee, by: WPTerm(instruction.value))
     case let instruction as AddInstruction:
-      newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.lhs) + WPTerm(instruction.rhs))
+      state.replace(variable: instruction.assignee, by: WPTerm(instruction.lhs) + WPTerm(instruction.rhs))
     case let instruction as SubtractInstruction:
-      newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: WPTerm(instruction.lhs) - WPTerm(instruction.rhs))
+      state.replace(variable: instruction.assignee, by: WPTerm(instruction.lhs) - WPTerm(instruction.rhs))
     case let instruction as CompareInstruction:
       switch instruction.comparison {
       case .equal:
-        newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: .equal(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+        state.replace(variable: instruction.assignee, by: .equal(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
       case .lessThan:
-        newStateToInfer = stateToInfer.replacing(variable: instruction.assignee, by: .lessThan(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+        state.replace(variable: instruction.assignee, by: .lessThan(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
       }
     case let instruction as DiscreteDistributionInstruction:
-      newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) { (term) in
+      state.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) { (term) in
         let terms = instruction.distribution.map({ (value, probability) in
           return .double(probability) * (term.replacing(variable: instruction.assignee, with: .integer(value)) ?? term)
         })
         return .add(terms: terms)
       }
     case let instruction as ObserveInstruction:
-      newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: false, intentionalLossRate: false) {
+      state.updateTerms(term: true, observeSatisfactionRate: true, focusRate: false, intentionalLossRate: false) {
         return .boolToInt(WPTerm(instruction.observation)) * $0
       }
     case is JumpInstruction, is BranchInstruction:
       // Already handled by branchesToInfer. Nothing to do anymore.
-      newStateToInfer = stateToInfer
+      break
     case is ReturnInstruction:
       fatalError("WP inference is initialised at the ReturnInstruction which means the ReturnInstruction has already been inferred")
     case is PhiInstruction:
@@ -322,7 +325,7 @@ public class WPInferenceEngine {
     case let unknownInstruction:
       fatalError("Unknown instruction: \(type(of: unknownInstruction))")
     }
-    return newStateToInfer
+    return state
   }
   
   private func performInference(for initialState: WPInferenceState) -> WPInferenceState? {

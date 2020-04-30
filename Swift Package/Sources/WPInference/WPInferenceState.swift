@@ -224,7 +224,7 @@ internal struct WPInferenceState: Hashable {
     )
   }
   
-  // MARK: - Mutating the state
+  // MARK: - Updating the terms
   
   mutating func replace(variable: IRVariable, by replacementTerm: WPTerm) {
     self.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
@@ -245,37 +245,5 @@ internal struct WPInferenceState: Hashable {
     if updateIntentionalLossRate, let updatedIntentionalLossRate = update(self.intentionalLossRate) {
       self.intentionalLossRate = updatedIntentionalLossRate
     }
-  }
-  
-  // MARK: - Non-mutating update funtions
-  
-  func replacing(variable: IRVariable, by replacementTerm: WPTerm) -> WPInferenceState {
-    var modifiedState = self
-    modifiedState.replace(variable: variable, by: replacementTerm)
-    return modifiedState
-  }
-  
-  func updatingTerms(term: Bool, observeSatisfactionRate: Bool, focusRate: Bool, intentionalLossRate: Bool, update: (WPTerm) -> WPTerm) -> WPInferenceState {
-    var modifiedState = self
-    modifiedState.updateTerms(term: term, observeSatisfactionRate: observeSatisfactionRate, focusRate: focusRate, intentionalLossRate: intentionalLossRate, update: update)
-    return modifiedState
-  }
-  
-  func withPosition(_ newPosition: InstructionPosition) -> WPInferenceState {
-    var modifiedState = self
-    modifiedState.position = newPosition
-    return modifiedState
-  }
-  
-  func withRemainingLoopUnrolls(_ remainingLoopUnrolls: LoopUnrolls) -> WPInferenceState {
-    var modifiedState = self
-    modifiedState.remainingLoopUnrolls = remainingLoopUnrolls
-    return modifiedState
-  }
-  
-  func withBranchingHistories(_ branchingHistories: [BranchingHistory]) -> WPInferenceState {
-    var modifiedState = self
-    modifiedState.branchingHistories = branchingHistories
-    return modifiedState
   }
 }
