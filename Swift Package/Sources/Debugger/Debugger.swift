@@ -139,17 +139,17 @@ public class Debugger {
       fatalError("Could not find debug info for the current statement")
     }
     for (sourceVariable, irVariable) in instructionInfo.variables {
-      let placeholderVariable = IRVariable(name: "$query", type: irVariable.type)
+      let placeholderVariable = IRVariable.queryVariable(type: irVariable.type)
       var variableDistribution: [IRValue: Double] = [:]
       let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
       
       let inferred = inferenceEngine.infer(term: .probability(of: irVariable, equalTo: .variable(placeholderVariable)), loopUnrolls: currentState.loopUnrolls, inferenceStopPosition: currentState.position, branchingHistories: currentState.branchingHistories)
-      let placholderTerm: WPTerm
+      let placeholderTerm: WPTerm
       switch approximationErrorHandling {
       case .distribute:
-        placholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds)
+        placeholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate / inferred.runsNotCutOffByLoopIterationBounds)
       case .drop:
-        placholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
+        placeholderTerm = (inferred.value / inferred.observeSatisfactionRate / inferred.intentionalFocusRate)
       }
       for value in possibleValues {
         let valueTerm: WPTerm
@@ -159,7 +159,7 @@ public class Debugger {
         case .bool(let value):
           valueTerm = .bool(value)
         }
-        variableDistribution[value] = placholderTerm.replacing(variable: placeholderVariable, with: valueTerm).doubleValue
+        variableDistribution[value] = (placeholderTerm.replacing(variable: placeholderVariable, with: valueTerm) ?? placeholderTerm).doubleValue
       }
       variableValues[sourceVariable] = variableDistribution
     }

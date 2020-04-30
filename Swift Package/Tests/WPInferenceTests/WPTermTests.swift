@@ -66,7 +66,7 @@ class WPTermTests: XCTestCase {
     let var2 = IRVariable(name: "2", type: .int)
     let term = WPTerm.boolToInt(.equal(lhs: .variable(var1), rhs: .integer(0))) * WPTerm.boolToInt(.not(.equal(lhs: .variable(var2), rhs: .integer(1))))
     let terms = distribution.map({ (value, probability) in
-      return .double(probability) * term.replacing(variable: var1, with: .integer(value))
+      return .double(probability) * (term.replacing(variable: var1, with: .integer(value)) ?? term)
     })
     XCTAssertEqual(WPTerm.add(terms: terms), WPTerm.boolToInt(.not(.equal(lhs: .variable(var2), rhs: .integer(1)))) * .double(0.5))
   }
@@ -80,9 +80,7 @@ class WPTermTests: XCTestCase {
   }
   
   func testMergeDuplicateEntriesWithDifferentFactors() {
-    let queryVar = IRVariable(name: "$query", type: .int)
-    
-    let condition = WPTerm.boolToInt(.equal(lhs: .integer(1), rhs: .variable(queryVar)))
+    let condition = WPTerm.boolToInt(.equal(lhs: .integer(1), rhs: .variable(.queryVariable(type: .int))))
     
     let additionTerms: [WPTerm] = [
       condition * .double(20),

@@ -30,14 +30,18 @@ public struct WPTermAdditionListEntry: Hashable {
     return false
   }
   
+  fileprivate func contains(variable: IRVariable) -> Bool {
+    return conditions.contains(where: { $0.contains(variable: variable) }) || term.contains(variable: variable)
+  }
+  
   internal mutating func replace(variable: IRVariable, with replacementTerm: WPTerm) -> Bool {
     var hasPerformedReplacement = false
-    if let replacedTerm = self.term.replacingImpl(variable: variable, with: replacementTerm) {
+    if let replacedTerm = self.term.replacing(variable: variable, with: replacementTerm) {
       hasPerformedReplacement = true
       self.term = replacedTerm
     }
     for conditionTerm in conditions {
-      if let replacedCondition = conditionTerm.replacingImpl(variable: variable, with: replacementTerm) {
+      if let replacedCondition = conditionTerm.replacing(variable: variable, with: replacementTerm) {
         hasPerformedReplacement = true
         conditions.remove(conditionTerm)
         if replacedCondition != .bool(true) {
@@ -69,6 +73,10 @@ public struct WPAdditionList: Hashable {
   
   public init(_ entries: [WPTermAdditionListEntry]) {
     self.entries = entries
+  }
+  
+  internal func contains(variable: IRVariable) -> Bool {
+    return entries.contains(where: { $0.contains(variable: variable) })
   }
   
   internal mutating func replace(variable: IRVariable, with term: WPTerm) -> Bool {

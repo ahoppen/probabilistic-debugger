@@ -26,6 +26,10 @@ public struct IRVariable: Hashable, CustomStringConvertible {
     self.type = type
   }
   
+  public static func queryVariable(type: IRType) -> IRVariable {
+    return IRVariable(name: "$query", type: type)
+  }
+  
   public var description: String {
     return "\(type) \(name)"
   }

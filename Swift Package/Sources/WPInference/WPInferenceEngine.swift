@@ -296,7 +296,7 @@ public class WPInferenceEngine {
     case let instruction as DiscreteDistributionInstruction:
       newStateToInfer = stateToInfer.updatingTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) { (term) in
         let terms = instruction.distribution.map({ (value, probability) in
-          return .double(probability) * term.replacing(variable: instruction.assignee, with: .integer(value))
+          return .double(probability) * (term.replacing(variable: instruction.assignee, with: .integer(value)) ?? term)
         })
         return .add(terms: terms)
       }

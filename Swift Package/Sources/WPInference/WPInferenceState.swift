@@ -232,18 +232,18 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  mutating func updateTerms(term: Bool, observeSatisfactionRate: Bool, focusRate: Bool, intentionalLossRate: Bool, update: (WPTerm) -> WPTerm) {
-    if term {
-      self.term = update(self.term)
+  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, update: (WPTerm) -> WPTerm?) {
+    if updateTerm, let updatedTerm = update(self.term) {
+      self.term = updatedTerm
     }
-    if observeSatisfactionRate {
-      self.observeSatisfactionRate = update(self.observeSatisfactionRate)
+    if updateObserveSatisfactionRate, let updatedObserveSatisfactionRate = update(self.observeSatisfactionRate) {
+      self.observeSatisfactionRate = updatedObserveSatisfactionRate
     }
-    if focusRate {
-      self.focusRate = update(self.focusRate)
+    if updateFocusRate, let updatedFocusRate = update(self.focusRate) {
+      self.focusRate = updatedFocusRate
     }
-    if intentionalLossRate {
-      self.intentionalLossRate = update(self.intentionalLossRate)
+    if updateIntentionalLossRate, let updatedIntentionalLossRate = update(self.intentionalLossRate) {
+      self.intentionalLossRate = updatedIntentionalLossRate
     }
   }
   
