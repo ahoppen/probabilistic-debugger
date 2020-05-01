@@ -353,7 +353,7 @@ internal struct WPInferenceState: Hashable {
       
       let slicingState = slicingStates[worklistEntry]!
       
-      influencingInstructions.formUnion(slicingState.influencingInstructions)
+      influencingInstructions.formUnion(slicingState.minimalSlice)
       
       for controlFlowDependency in slicingState.controlFlowDependencies {
         let controlFlowCondition = slicingState.controlFlowConditions[controlFlowDependency]!
