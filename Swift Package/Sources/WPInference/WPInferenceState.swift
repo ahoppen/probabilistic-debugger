@@ -12,7 +12,7 @@ internal struct WPInferenceState: Hashable {
     var intentionalLossRate: WPTerm
     var generateLostStatesForBlocks: Set<BasicBlockName>
     var remainingLoopUnrolls: LoopUnrolls
-    var branchingHistories: [BranchingHistory]
+    var branchingHistory: BranchingHistory
     var slicingStates: [WPTerm: WPSlicingState]
     
     init(
@@ -23,7 +23,7 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: WPTerm,
       generateLostStatesForBlocks: Set<BasicBlockName>,
       remainingLoopUnrolls: LoopUnrolls,
-      branchingHistories: [BranchingHistory],
+      branchingHistory: BranchingHistory,
       slicingStates: [WPTerm: WPSlicingState]
     ) {
       self.position = position
@@ -33,7 +33,7 @@ internal struct WPInferenceState: Hashable {
       self.intentionalLossRate = intentionalLossRate
       self.generateLostStatesForBlocks = generateLostStatesForBlocks
       self.remainingLoopUnrolls = remainingLoopUnrolls
-      self.branchingHistories = branchingHistories
+      self.branchingHistory = branchingHistory
       self.slicingStates = slicingStates
     }
     
@@ -45,7 +45,7 @@ internal struct WPInferenceState: Hashable {
       self.intentionalLossRate = other.intentionalLossRate
       self.generateLostStatesForBlocks = other.generateLostStatesForBlocks
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
-      self.branchingHistories = other.branchingHistories
+      self.branchingHistory = other.branchingHistory
       self.slicingStates = other.slicingStates
     }
     
@@ -57,7 +57,7 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate.hash(into: &hasher)
       generateLostStatesForBlocks.hash(into: &hasher)
       remainingLoopUnrolls.hash(into: &hasher)
-      branchingHistories.hash(into: &hasher)
+      branchingHistory.hash(into: &hasher)
       slicingStates.hash(into: &hasher)
     }
     
@@ -69,7 +69,7 @@ internal struct WPInferenceState: Hashable {
         lhs.intentionalLossRate == rhs.intentionalLossRate &&
         lhs.generateLostStatesForBlocks == rhs.generateLostStatesForBlocks &&
         lhs.remainingLoopUnrolls == rhs.remainingLoopUnrolls &&
-        lhs.branchingHistories == rhs.branchingHistories &&
+        lhs.branchingHistory == rhs.branchingHistory &&
         lhs.slicingStates == rhs.slicingStates
     }
   }
@@ -183,15 +183,15 @@ internal struct WPInferenceState: Hashable {
   }
   
   /// The deliberate branching choices that have not been taken care of yet. All of these must be taken care of before WP-inference reaches the top of the program.
-  var branchingHistories: [BranchingHistory] {
+  var branchingHistory: BranchingHistory {
     get {
-      return storage.branchingHistories
+      return storage.branchingHistory
     }
     set {
       if !isKnownUniquelyReferenced(&storage) {
         storage = Storage(storage)
       }
-      storage.branchingHistories = newValue
+      storage.branchingHistory = newValue
     }
   }
   
@@ -218,7 +218,7 @@ internal struct WPInferenceState: Hashable {
     intentionalLossRate: WPTerm,
     generateLostStatesForBlocks: Set<BasicBlockName>,
     remainingLoopUnrolls: LoopUnrolls,
-    branchingHistories: [BranchingHistory],
+    branchingHistory: BranchingHistory,
     slicingStates: [WPTerm: WPSlicingState]
   ) {
     self.storage = Storage(
@@ -229,7 +229,7 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: intentionalLossRate,
       generateLostStatesForBlocks: generateLostStatesForBlocks,
       remainingLoopUnrolls: remainingLoopUnrolls,
-      branchingHistories: branchingHistories,
+      branchingHistory: branchingHistory,
       slicingStates: slicingStates
     )
   }
@@ -240,7 +240,7 @@ internal struct WPInferenceState: Hashable {
     term: WPTerm,
     generateLostStatesForBlocks: Set<BasicBlockName>,
     loopUnrolls: LoopUnrolls,
-    branchingHistories: [BranchingHistory],
+    branchingHistory: BranchingHistory,
     slicingForTerms slicingTerms: [WPTerm]
   ) {
     var slicingStates: [WPTerm: WPSlicingState] = [:]
@@ -255,7 +255,7 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: .integer(0),
       generateLostStatesForBlocks: generateLostStatesForBlocks,
       remainingLoopUnrolls: loopUnrolls,
-      branchingHistories: branchingHistories,
+      branchingHistory: branchingHistory,
       slicingStates: slicingStates
     )
   }
@@ -266,7 +266,7 @@ internal struct WPInferenceState: Hashable {
     lostRate: WPTerm,
     generateLostStatesForBlocks: Set<BasicBlockName>,
     remainingLoopUnrolls: LoopUnrolls,
-    branchingHistories: [BranchingHistory]
+    branchingHistory: BranchingHistory
   ) {
     self.init(
       position: position,
@@ -276,12 +276,12 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: lostRate,
       generateLostStatesForBlocks: generateLostStatesForBlocks,
       remainingLoopUnrolls: remainingLoopUnrolls,
-      branchingHistories: branchingHistories,
+      branchingHistory: branchingHistory,
       slicingStates: [:]
     )
   }
   
-  static func merged(states: [WPInferenceState], remainingLoopUnrolls: LoopUnrolls, branchingHistories: [BranchingHistory]) -> WPInferenceState? {
+  static func merged(states: [WPInferenceState], remainingLoopUnrolls: LoopUnrolls, branchingHistory: BranchingHistory) -> WPInferenceState? {
     guard let firstState = states.first else {
       return nil
     }
@@ -298,7 +298,7 @@ internal struct WPInferenceState: Hashable {
       intentionalLossRate: WPTerm.add(terms: states.map(\.intentionalLossRate)),
       generateLostStatesForBlocks: firstState.generateLostStatesForBlocks,
       remainingLoopUnrolls: remainingLoopUnrolls,
-      branchingHistories: branchingHistories,
+      branchingHistory: branchingHistory,
       slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged($0, $1) })
     )
   }

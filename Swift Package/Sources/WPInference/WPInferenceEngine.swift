@@ -98,34 +98,61 @@ public class WPInferenceEngine {
         takenBranch = false
       }
       
-      // Compute the branching histories that lead to the predecessor state.
-      let newBranchingHistories = state.branchingHistories.compactMap({ (branchingHistory) -> BranchingHistory? in
-        var branchingHistory = branchingHistory
-        // If we are leaving an any BranchingChoice to the top, shave it off the branching history to allow consuming a deliberate branch underneath it.
-        if case .any(predominatedBy: let predominator) = branchingHistory.lastChoice, !program.predominators[predecessor]!.contains(predominator) {
-          branchingHistory = branchingHistory.droppingLastChoice()
-        }
-        
-        switch branchingHistory.lastChoice {
-        case .choice(source: predecessor, target: state.position.basicBlock):
-          // We are taking a deliberate choice. Consider it taken care of by removing it off the list
-          return branchingHistory.droppingLastChoice()
-        case .any(predominatedBy: let predominator) where program.predominators[predecessor]!.contains(predominator):
-          // We are taking an `any` branching choice. Keep it in the list since we might take it again.
-          // Note that predominators contains the block itself.
-          return branchingHistory
-        default:
-          return nil
-        }
-      })
+      let cleanedBranchingHistory: BranchingHistory
+      // If we are leaving an any BranchingChoice to the top, shave it off the branching history to allow consuming a deliberate branch underneath it.
+      if case .any(predominatedBy: let predominator) = state.branchingHistory.lastChoice, !program.predominators[predecessor]!.contains(predominator) {
+        cleanedBranchingHistory = state.branchingHistory.droppingLastChoice()
+      } else {
+        cleanedBranchingHistory = state.branchingHistory
+      }
       
-      if newBranchingHistories.isEmpty {
+      let newBranchingHistory: BranchingHistory?
+      
+      switch cleanedBranchingHistory.lastChoice {
+      case .choice(source: predecessor, target: state.position.basicBlock):
+        // We are taking a deliberate choice. Consider it taken care of by removing it off the list
+        newBranchingHistory = cleanedBranchingHistory.droppingLastChoice()
+      case .any(predominatedBy: let predominator) where program.predominators[predecessor]!.contains(predominator):
+        // We are taking an `any` branching choice. Keep it in the list since we might take it again.
+        // Note that predominators contains the block itself.
+        newBranchingHistory = cleanedBranchingHistory
+      default:
+        newBranchingHistory = nil
+      }
+      
+      if let newBranchingHistory = newBranchingHistory {
+        var newStates: [WPInferenceState] = []
+        if state.generateLostStatesForBlocks.contains(predecessor) {
+          newStates += WPInferenceState(
+            lostStateAtPosition: predecessorBlockPosition,
+            lostRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
+            generateLostStatesForBlocks: state.generateLostStatesForBlocks,
+            remainingLoopUnrolls: remainingLoopUnrolls,
+            branchingHistory: newBranchingHistory
+          )
+        }
+        var newState = state
+        newState.position = predecessorBlockPosition
+        newState.remainingLoopUnrolls = remainingLoopUnrolls
+        newState.branchingHistory = newBranchingHistory
+        let controlFlowDependency: IRVariable?
+        if case .variable(let conditionVariable) = instruction.condition {
+          controlFlowDependency = conditionVariable
+        } else {
+          controlFlowDependency = nil
+        }
+        newState.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, controlFlowDependency: controlFlowDependency) {
+          return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
+        }
+        newStates += newState
+        return newStates
+      } else {
         // We haven't jumped into this branch of execution.
         // Dropping inference at this stage would mean that we loose some focusRate.
         // Thus we could not differentiate between the rate that was lost due to deliberate branching choices or due to loop iteration bounds.
         // To fix this up, continue inference with a term that has been marked as beeing intentionally lost.
         // Since this state is only for keeping track of the intentionalLossRate and to keep the focusRate up, set term and observeSatisfactionRate to 0.
-        let newBranchingHistories = state.branchingHistories.compactMap({  (branchingHistory) -> BranchingHistory? in
+        let branchingHistoryWithoutViolatedDeliberateBranch = Optional(state.branchingHistory).flatMap({ (branchingHistory) -> BranchingHistory? in
           // Shave off as many branching choices as necessary to expose the BranchingChoice that we have taken.
           for index in (0..<branchingHistory.choices.count).reversed() {
             switch branchingHistory.choices[index] {
@@ -143,45 +170,19 @@ public class WPInferenceEngine {
           return nil
         })
         
-        if newBranchingHistories.isEmpty {
-          // Might happen if state.branchingHistories contains only empty branching histories
-          return []
-        } else {
+        if let branchingHistoryWithoutViolatedDeliberateBranch = branchingHistoryWithoutViolatedDeliberateBranch {
           let newState = WPInferenceState(
             lostStateAtPosition: predecessorBlockPosition,
             lostRate: .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * state.focusRate,
             generateLostStatesForBlocks: state.generateLostStatesForBlocks,
             remainingLoopUnrolls: remainingLoopUnrolls,
-            branchingHistories: newBranchingHistories
+            branchingHistory: branchingHistoryWithoutViolatedDeliberateBranch
           )
           return [newState]
-        }
-      } else {
-        var newStates: [WPInferenceState] = []
-        if state.generateLostStatesForBlocks.contains(predecessor) {
-          newStates += WPInferenceState(
-            lostStateAtPosition: predecessorBlockPosition,
-            lostRate: .probability(of: instruction.condition, equalTo: .bool(!takenBranch)) * state.focusRate,
-            generateLostStatesForBlocks: state.generateLostStatesForBlocks,
-            remainingLoopUnrolls: remainingLoopUnrolls,
-            branchingHistories: newBranchingHistories
-          )
-        }
-        var newState = state
-        newState.position = predecessorBlockPosition
-        newState.remainingLoopUnrolls = remainingLoopUnrolls
-        newState.branchingHistories = newBranchingHistories
-        let controlFlowDependency: IRVariable?
-        if case .variable(let conditionVariable) = instruction.condition {
-          controlFlowDependency = conditionVariable
         } else {
-          controlFlowDependency = nil
+          // Might happen if state.branchingHistories contains only empty branching histories
+          return []
         }
-        newState.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true, controlFlowDependency: controlFlowDependency) {
-          return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
-        }
-        newStates += newState
-        return newStates
       }
     default:
       fatalError("Block that jumps to a different block should have terminated with a jump or branch instruction")
@@ -367,7 +368,7 @@ public class WPInferenceEngine {
           } else if inferredState.position == programStartState {
             // At least one branching history of the state must have been completely taken care of.
             // Otherwise there are branches that we haven't considered which means we have reached the top of the program on a branching path that hasn't been specified in branching histories.
-            if inferredState.branchingHistories.contains(where: { $0.isEmpty }) {
+            if inferredState.branchingHistory.isEmpty {
               finishedInferenceStates.append(inferredState)
             }
           } else {
@@ -376,14 +377,14 @@ public class WPInferenceEngine {
             let existingIndex = inferenceStatesWorklist.firstIndex(where: {
               return $0.position == inferredState.position &&
                 $0.remainingLoopUnrolls == inferredState.remainingLoopUnrolls &&
-                $0.branchingHistories == inferredState.branchingHistories
+                $0.branchingHistory == inferredState.branchingHistory
             })
             if let existingIndex = existingIndex {
               let existingEntry = inferenceStatesWorklist[existingIndex]
               inferenceStatesWorklist[existingIndex] = WPInferenceState.merged(
                 states: [existingEntry, inferredState],
                 remainingLoopUnrolls: existingEntry.remainingLoopUnrolls,
-                branchingHistories: existingEntry.branchingHistories
+                branchingHistory: existingEntry.branchingHistory
               )!
             } else {
               inferenceStatesWorklist.append(inferredState)
@@ -401,12 +402,12 @@ public class WPInferenceEngine {
       }
     }
     
-    assert(finishedInferenceStates.allSatisfy({ $0.branchingHistories.contains(where: { $0.isEmpty }) }))
+    assert(finishedInferenceStates.allSatisfy({ $0.branchingHistory.isEmpty }))
     
     return WPInferenceState.merged(
       states: finishedInferenceStates,
       remainingLoopUnrolls: LoopUnrolls([:]),
-      branchingHistories: [[]]
+      branchingHistory: []
     )
   }
   
@@ -417,7 +418,7 @@ public class WPInferenceEngine {
   ///  - `runsNotCutOffByLoopIterationBounds`: The proportion of runs that were not cut off because of loop iteration bounds
   ///  - `observeSatisfactionRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of runs that satisified all `observe` instructions
   ///  - `intentionalFocusRate`: Based on the runs that were not cut off because of loop iteration bounds, the proportion of all possible runs on which the inferrence was focused via the branching history.
-  internal func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> (value: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, observeSatisfactionRate: WPTerm, intentionalFocusRate: WPTerm) {
+  internal func infer(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistory: BranchingHistory) -> (value: WPTerm, runsNotCutOffByLoopIterationBounds: WPTerm, observeSatisfactionRate: WPTerm, intentionalFocusRate: WPTerm) {
     
     #if DEBUG
     // Check that we have a loop repetition bound for every loop in the program
@@ -449,7 +450,7 @@ public class WPInferenceEngine {
       term: term,
       generateLostStatesForBlocks: generateLostStatesForBlocks,
       loopUnrolls: loopUnrolls,
-      branchingHistories: branchingHistories,
+      branchingHistory: branchingHistory,
       slicingForTerms: []
     )
     
@@ -490,13 +491,13 @@ public class WPInferenceEngine {
     )
   }
   
-  public func slice(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Set<InstructionPosition> {
+  public func slice(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistory: BranchingHistory) -> Set<InstructionPosition> {
     let initialState = WPInferenceState(
       initialInferenceStateAtPosition: inferenceStopPosition,
       term: .integer(0),
       generateLostStatesForBlocks: [],
       loopUnrolls: loopUnrolls,
-      branchingHistories: branchingHistories,
+      branchingHistory: branchingHistory,
       slicingForTerms: [term]
     )
     
@@ -521,10 +522,10 @@ public extension WPInferenceEngine {
   /// Infer the probability that `variable` has the value `value` after executing the program to `inferenceStopPosition`.
   /// If `inferenceStopPosition` is `nil`, inference is done until the end of the program.
   /// If the program contains loops, `loopUnrolls` specifies how often loops should be unrolled.
-  func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, approximationErrorHandling: ApproximationErrorHandling, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistories: [BranchingHistory]) -> Double {
+  func inferProbability(of variable: IRVariable, beingEqualTo value: VariableOrValue, approximationErrorHandling: ApproximationErrorHandling, loopUnrolls: LoopUnrolls, to inferenceStopPosition: InstructionPosition, branchingHistory: BranchingHistory) -> Double {
     let queryVariable = IRVariable.queryVariable(type: variable.type)
     let term = WPTerm.probability(of: variable, equalTo: .variable(queryVariable))
-    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingHistories: branchingHistories)
+    let inferred = infer(term: term, loopUnrolls: loopUnrolls, inferenceStopPosition: inferenceStopPosition, branchingHistory: branchingHistory)
     
     let probabilityTermWithPlaceholder: WPTerm
     switch approximationErrorHandling {
@@ -538,12 +539,16 @@ public extension WPInferenceEngine {
   }
   
   func reachingProbability(of state: IRExecutionState) -> Double {
-    let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistories: state.branchingHistories)
+    // FIXME: Support WP inference for IRExecutionStates with multiple branching histories
+    assert(state.branchingHistories.count == 1)
+    let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistory: state.branchingHistories.first!)
     return (inferred.observeSatisfactionRate * inferred.intentionalFocusRate).doubleValue
   }
   
   func approximationError(of state: IRExecutionState) -> Double {
-    let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistories: state.branchingHistories)
+    // FIXME: Support WP inference for IRExecutionStates with multiple branching histories
+    assert(state.branchingHistories.count == 1)
+    let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistory: state.branchingHistories.first!)
     return 1 - inferred.runsNotCutOffByLoopIterationBounds.doubleValue
   }
 }

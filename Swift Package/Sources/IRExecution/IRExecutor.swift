@@ -46,6 +46,7 @@ public class IRExecutor {
         }
       }
     }
+    assert(stoppedExecutionBranches.map(\.position).allEqual)
     return IRExecutionState.merged(states: stoppedExecutionBranches)
   }
   

@@ -135,6 +135,8 @@ public class Debugger {
       var variableDistribution: [IRValue: Double] = [:]
       let possibleValues = Set(currentState.samples.map({ $0.values[irVariable]! }))
       
+      // FIXME: Support WP inference for IRExecutionStates with multiple branching histories
+      assert(currentState.branchingHistories.count == 1)
       for value in possibleValues {
         variableDistribution[value] = inferenceEngine.inferProbability(
           of: irVariable,
@@ -142,7 +144,7 @@ public class Debugger {
           approximationErrorHandling: approximationErrorHandling,
           loopUnrolls: currentState.loopUnrolls,
           to: currentState.position,
-          branchingHistories: currentState.branchingHistories
+          branchingHistory: currentState.branchingHistories.first!
         )
       }
       variableValues[sourceVariable] = variableDistribution
@@ -165,11 +167,13 @@ public class Debugger {
       throw DebuggerError(message: "Source variable '\(sourceVariable)' does not exist at the current position")
     }
     
+    // FIXME: Support WP inference for IRExecutionStates with multiple branching histories
+    assert(currentState.branchingHistories.count == 1)
     let slice = inferenceEngine.slice(
       term: .variable(irVariable),
       loopUnrolls: currentState.loopUnrolls,
       inferenceStopPosition: currentState.position,
-      branchingHistories: currentState.branchingHistories
+      branchingHistory: currentState.branchingHistories.first!
     )
     let slicedRanges = debugInfo.info.compactMap({ (instructionPosition, instructionDebugInfo) -> Range<SourceCodeLocation>? in
       if slice.contains(instructionPosition) {
