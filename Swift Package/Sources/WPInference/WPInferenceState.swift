@@ -7,10 +7,8 @@ internal struct WPInferenceState: Hashable {
   private class Storage: Hashable {
     var position: InstructionPosition
     var term: WPTerm
-    var observeSatisfactionRate: WPTerm
     var focusRate: WPTerm
-    var intentionalLossRate: WPTerm
-    var generateLostStatesForBlocks: Set<BasicBlockName>
+    var observeAndDeliberateBranchIgnoringFocusRate: WPTerm
     var remainingLoopUnrolls: LoopUnrolls
     var branchingHistory: BranchingHistory
     var slicingStates: [WPTerm: WPSlicingState]
@@ -18,20 +16,16 @@ internal struct WPInferenceState: Hashable {
     init(
       position: InstructionPosition,
       term: WPTerm,
-      observeSatisfactionRate: WPTerm,
       focusRate: WPTerm,
-      intentionalLossRate: WPTerm,
-      generateLostStatesForBlocks: Set<BasicBlockName>,
+      observeAndDeliberateBranchIgnoringFocusRate: WPTerm,
       remainingLoopUnrolls: LoopUnrolls,
       branchingHistory: BranchingHistory,
       slicingStates: [WPTerm: WPSlicingState]
     ) {
       self.position = position
       self.term = term
-      self.observeSatisfactionRate = observeSatisfactionRate
       self.focusRate = focusRate
-      self.intentionalLossRate = intentionalLossRate
-      self.generateLostStatesForBlocks = generateLostStatesForBlocks
+      self.observeAndDeliberateBranchIgnoringFocusRate = observeAndDeliberateBranchIgnoringFocusRate
       self.remainingLoopUnrolls = remainingLoopUnrolls
       self.branchingHistory = branchingHistory
       self.slicingStates = slicingStates
@@ -40,10 +34,8 @@ internal struct WPInferenceState: Hashable {
     init(_ other: Storage) {
       self.position = other.position
       self.term = other.term
-      self.observeSatisfactionRate = other.observeSatisfactionRate
       self.focusRate = other.focusRate
-      self.intentionalLossRate = other.intentionalLossRate
-      self.generateLostStatesForBlocks = other.generateLostStatesForBlocks
+      self.observeAndDeliberateBranchIgnoringFocusRate = other.observeAndDeliberateBranchIgnoringFocusRate
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
       self.branchingHistory = other.branchingHistory
       self.slicingStates = other.slicingStates
@@ -52,10 +44,8 @@ internal struct WPInferenceState: Hashable {
     func hash(into hasher: inout Hasher) {
       position.hash(into: &hasher)
       term.hash(into: &hasher)
-      observeSatisfactionRate.hash(into: &hasher)
       focusRate.hash(into: &hasher)
-      intentionalLossRate.hash(into: &hasher)
-      generateLostStatesForBlocks.hash(into: &hasher)
+      observeAndDeliberateBranchIgnoringFocusRate.hash(into: &hasher)
       remainingLoopUnrolls.hash(into: &hasher)
       branchingHistory.hash(into: &hasher)
       slicingStates.hash(into: &hasher)
@@ -64,10 +54,8 @@ internal struct WPInferenceState: Hashable {
     static func ==(lhs: WPInferenceState.Storage, rhs: WPInferenceState.Storage) -> Bool {
       return lhs.position == rhs.position &&
         lhs.term == rhs.term &&
-        lhs.observeSatisfactionRate == rhs.observeSatisfactionRate &&
         lhs.focusRate == rhs.focusRate &&
-        lhs.intentionalLossRate == rhs.intentionalLossRate &&
-        lhs.generateLostStatesForBlocks == rhs.generateLostStatesForBlocks &&
+        lhs.observeAndDeliberateBranchIgnoringFocusRate == rhs.observeAndDeliberateBranchIgnoringFocusRate &&
         lhs.remainingLoopUnrolls == rhs.remainingLoopUnrolls &&
         lhs.branchingHistory == rhs.branchingHistory &&
         lhs.slicingStates == rhs.slicingStates
@@ -105,24 +93,8 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  /// The rate of all potential runs for which all observe instructions have been satisified.
-  /// Dividing this by the `focusRate` gives the proportion of runs that satisfied all observes relative to the runs that this inference state is focused on.
-  var observeSatisfactionRate: WPTerm {
-    get {
-      return storage.observeSatisfactionRate
-    }
-    set {
-      if !isKnownUniquelyReferenced(&storage) {
-        storage = Storage(storage)
-      }
-      storage.observeSatisfactionRate = newValue
-    }
-  }
-  
   /// The rate of all potential runs on which this run is focused.
-  /// The `focusRate` is not reduced if an `observe` is violated.
-  /// When forking WP-inference at a branching point, two `WPInferenceStates` are created, each with a reduced `focusRate`. The sum of the two `focusRate`s is the `focusRate` before branching.
-  /// Some `focusRate` is lost when limiting the number of loop iterations and reaching the upper iteration limit.
+  /// This rate is being reduced by branches that are taken (both deliberate and not deliberate) as well as violated `observe` instructions. It will also be reduced by loops that are prematurely halted due to loop iteration bounds.
   var focusRate: WPTerm {
     get {
       return storage.focusRate
@@ -135,35 +107,17 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  /// The proportion of all possible runs that were intentionally lost due du deliberate branching choices.
-  /// In practice, this is either equal to `focusRate` or `0`.
-  var intentionalLossRate: WPTerm {
+  /// The rate of all runs that were not lost due to loop iteration bounds.
+  /// This value is similar to `focusRate` but does **not** get reduced by violated `observe` instructions or branches that are deliberate in the branching history.
+  var observeAndDeliberateBranchIgnoringFocusRate: WPTerm {
     get {
-      return storage.intentionalLossRate
+      return storage.observeAndDeliberateBranchIgnoringFocusRate
     }
     set {
       if !isKnownUniquelyReferenced(&storage) {
         storage = Storage(storage)
       }
-      storage.intentionalLossRate = newValue
-    }
-  }
-  
-  /// Blocks for which lost states should be created if a branch into them is being taken.
-  /// 
-  /// When infering from the last instruction in a program, we can always expect that both the false and the true branch of a branch instruction will be tried.
-  /// Should we have focused on one of the branches, the other branch will generate the `intentionalLossRate` when being tried.
-  /// If the instruction until which inference should be run is, however, inside e.g. the true branch already, we will never try the false branch and thus create lost states for it.
-  /// To fix this issue, such block can be listed in `generateLostStatesForBlocks` and every time a `true` branch into this block is taken, the lost states corresponding `false` branch will be automatically synthesized.
-  var generateLostStatesForBlocks: Set<BasicBlockName> {
-    get {
-      return storage.generateLostStatesForBlocks
-    }
-    set {
-      if !isKnownUniquelyReferenced(&storage) {
-        storage = Storage(storage)
-      }
-      storage.generateLostStatesForBlocks = newValue
+      storage.observeAndDeliberateBranchIgnoringFocusRate = newValue
     }
   }
   
@@ -213,10 +167,8 @@ internal struct WPInferenceState: Hashable {
   private init(
     position: InstructionPosition,
     term: WPTerm,
-    observeSatisfactionRate: WPTerm,
     focusRate: WPTerm,
-    intentionalLossRate: WPTerm,
-    generateLostStatesForBlocks: Set<BasicBlockName>,
+    observeAndDeliberateBranchIgnoringFocusRate: WPTerm,
     remainingLoopUnrolls: LoopUnrolls,
     branchingHistory: BranchingHistory,
     slicingStates: [WPTerm: WPSlicingState]
@@ -224,10 +176,8 @@ internal struct WPInferenceState: Hashable {
     self.storage = Storage(
       position: position,
       term: term,
-      observeSatisfactionRate: observeSatisfactionRate,
       focusRate: focusRate,
-      intentionalLossRate: intentionalLossRate,
-      generateLostStatesForBlocks: generateLostStatesForBlocks,
+      observeAndDeliberateBranchIgnoringFocusRate: observeAndDeliberateBranchIgnoringFocusRate,
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
       slicingStates: slicingStates
@@ -238,7 +188,6 @@ internal struct WPInferenceState: Hashable {
   init(
     initialInferenceStateAtPosition position: InstructionPosition,
     term: WPTerm,
-    generateLostStatesForBlocks: Set<BasicBlockName>,
     loopUnrolls: LoopUnrolls,
     branchingHistory: BranchingHistory,
     slicingForTerms slicingTerms: [WPTerm]
@@ -250,10 +199,8 @@ internal struct WPInferenceState: Hashable {
     self.init(
       position: position,
       term: term,
-      observeSatisfactionRate: .integer(1),
       focusRate: .integer(1),
-      intentionalLossRate: .integer(0),
-      generateLostStatesForBlocks: generateLostStatesForBlocks,
+      observeAndDeliberateBranchIgnoringFocusRate: .integer(1),
       remainingLoopUnrolls: loopUnrolls,
       branchingHistory: branchingHistory,
       slicingStates: slicingStates
@@ -264,17 +211,14 @@ internal struct WPInferenceState: Hashable {
   init(
     lostStateAtPosition position: InstructionPosition,
     lostRate: WPTerm,
-    generateLostStatesForBlocks: Set<BasicBlockName>,
     remainingLoopUnrolls: LoopUnrolls,
     branchingHistory: BranchingHistory
   ) {
     self.init(
       position: position,
       term: .integer(0),
-      observeSatisfactionRate: .integer(0),
-      focusRate: lostRate,
-      intentionalLossRate: lostRate,
-      generateLostStatesForBlocks: generateLostStatesForBlocks,
+      focusRate: .integer(0),
+      observeAndDeliberateBranchIgnoringFocusRate: .integer(0),
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
       slicingStates: [:]
@@ -286,17 +230,13 @@ internal struct WPInferenceState: Hashable {
       return nil
     }
     
-    assert(states.map(\.generateLostStatesForBlocks).allEqual)
     assert(states.map(\.position).allEqual)
-    assert(states.map(\.generateLostStatesForBlocks).allEqual)
     
     return WPInferenceState(
       position: firstState.position,
       term: WPTerm.add(terms: states.map(\.term)),
-      observeSatisfactionRate: WPTerm.add(terms: states.map(\.observeSatisfactionRate)),
       focusRate: WPTerm.add(terms: states.map(\.focusRate)),
-      intentionalLossRate: WPTerm.add(terms: states.map(\.intentionalLossRate)),
-      generateLostStatesForBlocks: firstState.generateLostStatesForBlocks,
+      observeAndDeliberateBranchIgnoringFocusRate: WPTerm.add(terms: states.map(\.observeAndDeliberateBranchIgnoringFocusRate)),
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
       slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged($0, $1) })
@@ -306,26 +246,23 @@ internal struct WPInferenceState: Hashable {
   // MARK: - Updating the terms
   
   mutating func replace(variable: IRVariable, by replacementTerm: WPTerm) {
-    self.updateTerms(term: true, observeSatisfactionRate: true, focusRate: true, intentionalLossRate: true) {
+    self.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: true) {
       return $0.replacing(variable: variable, with: replacementTerm)
     }
   }
   
-  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable? = nil, isObserveDependency: Bool = false, observeDependency: IRVariable? = nil, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(term updateTerm: Bool, focusRate updatefocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateObserveAndDeliberateBranchIgnoringFocusRate: Bool, controlFlowDependency: IRVariable? = nil, isObserveDependency: Bool = false, observeDependency: IRVariable? = nil, update: (WPTerm) -> WPTerm?) {
     if updateTerm, let updatedTerm = update(self.term) {
       self.term = updatedTerm
     }
-    if updateObserveSatisfactionRate, let updatedObserveSatisfactionRate = update(self.observeSatisfactionRate) {
-      self.observeSatisfactionRate = updatedObserveSatisfactionRate
+    if updatefocusRate, let updatedfocusRate = update(self.focusRate) {
+      self.focusRate = updatedfocusRate
     }
-    if updateFocusRate, let updatedFocusRate = update(self.focusRate) {
-      self.focusRate = updatedFocusRate
-    }
-    if updateIntentionalLossRate, let updatedIntentionalLossRate = update(self.intentionalLossRate) {
-      self.intentionalLossRate = updatedIntentionalLossRate
+    if updateObserveAndDeliberateBranchIgnoringFocusRate, let updatedobserveAndDeliberateBranchIgnoringFocusRate = update(self.observeAndDeliberateBranchIgnoringFocusRate) {
+      self.observeAndDeliberateBranchIgnoringFocusRate = updatedobserveAndDeliberateBranchIgnoringFocusRate
     }
     for key in slicingStates.keys {
-      slicingStates[key]!.updateTerms(position: position, term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, controlFlowDependency: controlFlowDependency, isObserveDependency: isObserveDependency, observeDependency: observeDependency, update: update)
+      slicingStates[key]!.updateTerms(position: position, term: updateTerm, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateObserveAndDeliberateBranchIgnoringFocusRate, controlFlowDependency: controlFlowDependency, isObserveDependency: isObserveDependency, observeDependency: observeDependency, update: update)
     }
     
     // If we are slicing and a new control flow dependency got introduce, also compute the slice for this control flow dependency.
@@ -364,7 +301,7 @@ internal struct WPInferenceState: Hashable {
         influencingInstructions.insert(controlFlowDependency)
         worklist.append(.variable(controlFlowCondition))
       }
-      if Set(slicingState.observeTerms.map(\.normalizedObserveSatisfactionRate)).count > 1 {
+      if !slicingState.observeTerms.map({ $0.focusRate / $0.observeAndDeliberateBranchIgnoringFocusRate }).allEqual {
         for observeDependency in slicingState.potentialObserveDependencies {
           influencingInstructions.insert(observeDependency)
           if let observeCondition = slicingState.controlFlowConditions[observeDependency] {

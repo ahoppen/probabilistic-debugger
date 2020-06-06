@@ -3,47 +3,31 @@ import Utils
 
 struct WPResultTerm: Hashable {
   fileprivate(set) var term: WPTerm
-  fileprivate(set) var observeSatisfactionRate: WPTerm
   fileprivate(set) var focusRate: WPTerm
-  fileprivate(set) var intentionalLossRate: WPTerm
+  fileprivate(set) var observeAndDeliberateBranchIgnoringFocusRate: WPTerm
   
   static func merged(_ terms: [WPResultTerm]) -> WPResultTerm {
     return WPResultTerm(
       term: WPTerm.add(terms: terms.map(\.term)),
-      observeSatisfactionRate: WPTerm.add(terms: terms.map(\.observeSatisfactionRate)),
       focusRate: WPTerm.add(terms: terms.map(\.focusRate)),
-      intentionalLossRate: WPTerm.add(terms: terms.map(\.intentionalLossRate))
+      observeAndDeliberateBranchIgnoringFocusRate: WPTerm.add(terms: terms.map(\.observeAndDeliberateBranchIgnoringFocusRate))
     )
   }
   
-  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(term updateTerm: Bool, focusRate updatefocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateobserveAndDeliberateBranchIgnoringFocusRate: Bool, update: (WPTerm) -> WPTerm?) {
     if updateTerm, let updatedTerm = update(term) {
       self.term = updatedTerm
     }
-    if updateObserveSatisfactionRate, let updatedObserveSatisfactionRate = update(observeSatisfactionRate) {
-      self.observeSatisfactionRate = updatedObserveSatisfactionRate
+    if updatefocusRate, let updatedfocusRate = update(self.focusRate) {
+      self.focusRate = updatedfocusRate
     }
-    if updateFocusRate, let updatedFocusRate = update(focusRate) {
-      self.focusRate = updatedFocusRate
-    }
-    if updateIntentionalLossRate, let updatedIntentionalLossRate = update(intentionalLossRate) {
-      self.intentionalLossRate = updatedIntentionalLossRate
+    if updateobserveAndDeliberateBranchIgnoringFocusRate, let updatedobserveAndDeliberateBranchIgnoringFocusRate = update(self.observeAndDeliberateBranchIgnoringFocusRate) {
+      self.observeAndDeliberateBranchIgnoringFocusRate = updatedobserveAndDeliberateBranchIgnoringFocusRate
     }
   }
   
   var value: WPTerm {
-    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
-    return (term / focusRate / intentionalFocusRate) ./. (observeSatisfactionRate / focusRate / intentionalFocusRate)
-  }
-  
-  var normalizedTerm: WPTerm {
-    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
-    return term / focusRate / intentionalFocusRate
-  }
-  
-  var normalizedObserveSatisfactionRate: WPTerm {
-    let intentionalFocusRate = (.integer(1) - intentionalLossRate)
-    return observeSatisfactionRate / focusRate / intentionalFocusRate
+    return (term / observeAndDeliberateBranchIgnoringFocusRate) ./. (focusRate / observeAndDeliberateBranchIgnoringFocusRate)
   }
   
   func hash(into hasher: inout Hasher) {
@@ -93,7 +77,7 @@ struct WPSlicingState: Hashable {
   /// This does **not** include control flow dependencies
   var minimalSlice: Set<InstructionPosition> {
     let slices = influencingInstructionsForTerms.flatMap({ (key, value) -> Set<Set<InstructionPosition>> in
-      if (key.normalizedTerm ./. key.normalizedObserveSatisfactionRate) == (resultTerm.normalizedTerm ./. resultTerm.normalizedObserveSatisfactionRate) {
+      if key.value == resultTerm.value {
         return value
       } else {
         return []
@@ -131,9 +115,8 @@ struct WPSlicingState: Hashable {
     }
     self.resultTerm = WPResultTerm(
       term: WPTerm.boolToInt(.equal(lhs: sliceFor, rhs: .variable(IRVariable.queryVariable(type: queryVariableType)))),
-      observeSatisfactionRate: .integer(1),
       focusRate: .integer(1),
-      intentionalLossRate: .integer(0)
+      observeAndDeliberateBranchIgnoringFocusRate: .integer(1)
     )
     self.influencingInstructionsForTerms = [
       self.resultTerm: [[]]
@@ -141,7 +124,11 @@ struct WPSlicingState: Hashable {
     self.potentialControlFlowDependencies = [:]
     self.controlFlowConditions = [:]
     self.visitedInstructions = []
-    self.observeTerms = [WPResultTerm(term: .integer(1), observeSatisfactionRate: .integer(1), focusRate: .integer(1), intentionalLossRate: .integer(0))]
+    self.observeTerms = [WPResultTerm(
+      term: .integer(1),
+      focusRate: .integer(1),
+      observeAndDeliberateBranchIgnoringFocusRate: .integer(1)
+    )]
     self.potentialObserveDependencies = []
   }
   
@@ -223,23 +210,23 @@ struct WPSlicingState: Hashable {
   
   // MARK: Updating the slicing state
   
-  mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable?, isObserveDependency: Bool, observeDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, focusRate updatefocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateobserveAndDeliberateBranchIgnoringFocusRate: Bool, controlFlowDependency: IRVariable?, isObserveDependency: Bool, observeDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
     
     let termBeforeUpdate = self.resultTerm
     
     // Update all terms
     let previousInfluencingInstructions = influencingInstructionsForTerms[self.resultTerm]!
-    self.resultTerm.updateTerms(term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, update: update)
+    self.resultTerm.updateTerms(term: updateTerm, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateobserveAndDeliberateBranchIgnoringFocusRate, update: update)
     self.potentialControlFlowDependencies = self.potentialControlFlowDependencies.mapValues({ branchingTerms in
       Set(branchingTerms.map({ (term: WPResultTerm) -> WPResultTerm in
         var term = term
-        term.updateTerms(term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, update: update)
+        term.updateTerms(term: updateTerm, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateobserveAndDeliberateBranchIgnoringFocusRate, update: update)
         return term
       }))
     })
     self.observeTerms = Set(self.observeTerms.map({ term in
       var term = term
-      term.updateTerms(term: false, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, update: update)
+      term.updateTerms(term: false, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateobserveAndDeliberateBranchIgnoringFocusRate, update: update)
       return term
     }))
     

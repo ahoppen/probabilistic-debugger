@@ -192,9 +192,8 @@ class WPInferenceEngineTests: XCTestCase {
     let inferenceEngine = WPInferenceEngine(program: irProgram)
     let inferred = inferenceEngine.infer(term: .variable(var4), loopUnrolls: .empty, inferenceStopPosition: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)])
     XCTAssertEqual(inferred.value.doubleValue, 14)
-    XCTAssertEqual(inferred.runsNotCutOffByLoopIterationBounds.doubleValue, 1)
-    XCTAssertEqual(inferred.observeSatisfactionRate.doubleValue, 1)
-    XCTAssertEqual(inferred.intentionalFocusRate.doubleValue, 1)
+    XCTAssertEqual(inferred.focusRate.doubleValue, 1)
+    XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
     
     XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0.6)
     XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(20), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0.4)
@@ -347,9 +346,8 @@ class WPInferenceEngineTests: XCTestCase {
     
     let inferred = inferenceEngine.infer(term: .probability(of: var6, equalTo: .integer(0)), loopUnrolls: loopUnrolls, inferenceStopPosition: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)])
     XCTAssertEqual(inferred.value.doubleValue, 0.5)
-    XCTAssertEqual(inferred.runsNotCutOffByLoopIterationBounds.doubleValue, 0.9375)
-    XCTAssertEqual(inferred.observeSatisfactionRate.doubleValue, 1.0)
-    XCTAssertEqual(inferred.intentionalFocusRate.doubleValue, 1)
+    XCTAssertEqual(inferred.focusRate.doubleValue, 0.9375)
+    XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 0.9375)
     
     
     XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.5)
@@ -766,9 +764,8 @@ class WPInferenceEngineTests: XCTestCase {
     let inferenceEngine = WPInferenceEngine(program: irProgram)
     let inferred = inferenceEngine.infer(term: .variable(var4), loopUnrolls: .empty, inferenceStopPosition: irProgram.returnPosition, branchingHistory: [.choice(source: bb0Name, target: bb1Name)])
     XCTAssertEqual(inferred.value.doubleValue, 6)
-    XCTAssertEqual(inferred.runsNotCutOffByLoopIterationBounds.doubleValue, 1)
-    XCTAssertEqual(inferred.observeSatisfactionRate.doubleValue, 1)
-    XCTAssertEqual(inferred.intentionalFocusRate.doubleValue, 0.6)
+    XCTAssertEqual(inferred.focusRate.doubleValue, 0.6)
+    XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
     
     XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.choice(source: bb0Name, target: bb1Name)]), 1)
   }
@@ -818,7 +815,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: InstructionPosition(basicBlock: bb3Name, instructionIndex: 1),
       branchingHistory: [.choice(source: bb2Name, target: bb3Name)]
     )
-    XCTAssertEqual(inferredAfterExactly1Unroll.runsNotCutOffByLoopIterationBounds.doubleValue, 1)
+    XCTAssertEqual(inferredAfterExactly1Unroll.focusRate.doubleValue, 0.5)
+    XCTAssertEqual(inferredAfterExactly1Unroll.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
     
     let inferredAfterExactly2Unrolls = inferenceEngine.infer(
       term: .integer(1),
@@ -826,7 +824,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: InstructionPosition(basicBlock: bb3Name, instructionIndex: 1),
       branchingHistory: [.choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name)]
     )
-    XCTAssertEqual(inferredAfterExactly2Unrolls.runsNotCutOffByLoopIterationBounds.doubleValue, 1)
+    XCTAssertEqual(inferredAfterExactly2Unrolls.focusRate.doubleValue, 0.25)
+    XCTAssertEqual(inferredAfterExactly2Unrolls.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
   }
   
   func testReachabilityProbabilityOfExitStateGeneratedSimilarToExecutionOutlineExitStates() {
@@ -874,7 +873,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
       branchingHistory: [.any(predominatedBy: irProgram.startBlock)]
     )
-    XCTAssertEqual(inferredAfterAtMostZeroUnrolls.runsNotCutOffByLoopIterationBounds.doubleValue, 0.5)
+    XCTAssertEqual(inferredAfterAtMostZeroUnrolls.focusRate.doubleValue, 0.5)
+    XCTAssertEqual(inferredAfterAtMostZeroUnrolls.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 0.5)
     
     let inferredAfterAtMostOneUnroll = inferenceEngine.infer(
       term: .integer(1),
@@ -882,7 +882,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
       branchingHistory: [.any(predominatedBy: irProgram.startBlock)]
     )
-    XCTAssertEqual(inferredAfterAtMostOneUnroll.runsNotCutOffByLoopIterationBounds.doubleValue, 0.75)
+    XCTAssertEqual(inferredAfterAtMostOneUnroll.focusRate.doubleValue, 0.75)
+    XCTAssertEqual(inferredAfterAtMostOneUnroll.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 0.75)
     
     let inferredAfterAtMostThreeUnrolls = inferenceEngine.infer(
       term: .integer(1),
@@ -890,7 +891,9 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
       branchingHistory: [.any(predominatedBy: irProgram.startBlock)]
     )
-    XCTAssertEqual(inferredAfterAtMostThreeUnrolls.runsNotCutOffByLoopIterationBounds.doubleValue, 0.875)
+    XCTAssertEqual(inferredAfterAtMostThreeUnrolls.focusRate.doubleValue, 0.875)
+    XCTAssertEqual(inferredAfterAtMostThreeUnrolls.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 0.875)
+    
   }
   
   
@@ -936,7 +939,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
       branchingHistory: [.choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb4Name)]
     )
-    XCTAssertEqual(inferred.runsNotCutOffByLoopIterationBounds.doubleValue, 1)
+    XCTAssertEqual(inferred.focusRate.doubleValue, 1)
+    XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
   }
   
   func testInferFocusRateWithBranchingHistoryIntoNestedIfAndOutAgain() {
@@ -984,9 +988,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: program.returnPosition,
       branchingHistory: [BranchingChoice(source: bb1Name, target: bb2Name), BranchingChoice(source: bb2Name, target: bb3Name)]
     )
-    XCTAssertEqual(inferred.runsNotCutOffByLoopIterationBounds.doubleValue, 1)
-    XCTAssertEqual(inferred.observeSatisfactionRate.doubleValue, 1)
-    XCTAssertEqual(inferred.intentionalFocusRate.doubleValue, 0.25)
+    XCTAssertEqual(inferred.focusRate.doubleValue, 0.25)
+    XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
   }
   
   func testSlicingIfNothingCanBeSlicedAway() {
@@ -2000,5 +2003,66 @@ class WPInferenceEngineTests: XCTestCase {
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
     ])
+  }
+  
+  func testInferInsideLoopIterationWithBranchInsideLoop() {
+    let var1 = IRVariable(name: "1", type: .bool)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .bool)
+    let var4 = IRVariable(name: "4", type: .bool)
+    let var5 = IRVariable(name: "5", type: .bool)
+    let var6 = IRVariable(name: "6", type: .bool)
+    
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    let bb5Name = BasicBlockName("bb5")
+    let bb6Name = BasicBlockName("bb6")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .bool(true)),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      PhiInstruction(assignee: var6, choices: [bb1Name: var1, bb6Name: var5]),
+      BranchInstruction(condition: .variable(var6), targetTrue: bb3Name, targetFalse: bb4Name)
+    ])
+    
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      DiscreteDistributionInstruction(assignee: var2, distribution: [0: 0.5, 1: 0.5]),
+      CompareInstruction(comparison: .equal, assignee: var3, lhs: .variable(var2), rhs: .integer(0)),
+      BranchInstruction(condition: .variable(var3), targetTrue: bb5Name, targetFalse: bb6Name)
+    ])
+    
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      ReturnInstruction()
+    ])
+    
+    let bb5 = BasicBlock(name: bb5Name, instructions: [
+      AssignInstruction(assignee: var4, value: .bool(false)),
+      JumpInstruction(target: bb6Name)
+    ])
+    
+    let bb6 = BasicBlock(name: bb6Name, instructions: [
+      PhiInstruction(assignee: var5, choices: [bb3Name: var6, bb5Name: var4]),
+      JumpInstruction(target: bb2Name)
+    ])
+    
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4, bb5, bb6])
+    
+    let inferenceEngine = WPInferenceEngine(program: program)
+    let inferred = inferenceEngine.infer(term: .integer(0),
+                          loopUnrolls: LoopUnrolls([IRLoop(conditionBlock: bb2Name, bodyStartBlock: bb3Name): [0, 1, 2]]),
+                          inferenceStopPosition: InstructionPosition(basicBlock: bb3Name, instructionIndex: 2),
+                          branchingHistory: [
+                            .choice(source: bb2Name, target: bb3Name),
+                            .any(predominatedBy: bb3Name),
+                            .choice(source: bb2Name, target: bb3Name),
+                            ]
+    )
+    XCTAssertEqual(inferred.focusRate.doubleValue, 0.5)
+    XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
   }
 }

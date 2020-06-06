@@ -711,4 +711,37 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       XCTAssertEqual(inferenceEngine.reachingProbability(of: trueBranch!.entries.first!.state), 0.25)
     }())
   }
+  
+  func testStopLoopWithGeometricDistribution() {
+    let sourceCode = """
+        bool alive = true
+        while alive {
+          if discrete({0: 0.5, 1: 0.5}) == 0 {
+            alive = false
+          }
+        }
+        """
+    
+    let ir = try! SLIRGen.generateIr(for: sourceCode)
+    
+    let outlineGenerator = ExecutionOutlineGenerator(program: ir.program, debugInfo: ir.debugInfo)
+    
+    XCTAssertNoThrow(try {
+      let sampleCount = 10_000
+      let outline = try outlineGenerator.generateOutline(sampleCount: sampleCount)
+      guard case .loop(_, let iterations, _) = outline.entries[1] else {
+        XCTFail()
+        return
+      }
+      let iterationEntryState = iterations[2].entries.first!.state
+      let inferenceEngine = WPInferenceEngine(program: ir.program)
+      XCTAssertEqual(inferenceEngine.reachingProbability(of: iterationEntryState), 0.25)
+      
+      guard case .branch(_, let trueBranch, _) = iterations[1].entries.first! else {
+        XCTFail()
+        return
+      }
+      XCTAssertEqual(inferenceEngine.reachingProbability(of: trueBranch!.entries.first!.state), 0.25)
+    }())
+  }
 }
