@@ -312,7 +312,13 @@ public class WPInferenceEngine {
         return .add(terms: terms)
       }
     case let instruction as ObserveInstruction:
-      state.updateTerms(term: true, observeSatisfactionRate: true, focusRate: false, intentionalLossRate: false) {
+      let observeDependency: IRVariable?
+      if case .variable(let observedVariable) = instruction.observation {
+        observeDependency = observedVariable
+      } else {
+        observeDependency = nil
+      }
+      state.updateTerms(term: true, observeSatisfactionRate: true, focusRate: false, intentionalLossRate: false, isObserveDependency: true, observeDependency: observeDependency) {
         return .boolToInt(WPTerm(instruction.observation)) * $0
       }
     case is JumpInstruction, is BranchInstruction:

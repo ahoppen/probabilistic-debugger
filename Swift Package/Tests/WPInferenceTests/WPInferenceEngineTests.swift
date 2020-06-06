@@ -1800,12 +1800,8 @@ class WPInferenceEngineTests: XCTestCase {
       inferenceStopPosition: program.returnPosition,
       branchingHistories: [[.any(predominatedBy: bb1Name)]]
     )
-    // We could theoretically slice away the observe, but our WP-slicing doesn't support it
     XCTAssertEqual(slice, [
-      InstructionPosition(basicBlock: bb1Name, instructionIndex: 0),
-      InstructionPosition(basicBlock: bb1Name, instructionIndex: 1),
-      InstructionPosition(basicBlock: bb1Name, instructionIndex: 2),
-      InstructionPosition(basicBlock: bb1Name, instructionIndex: 3),
+      InstructionPosition(basicBlock: bb1Name, instructionIndex: 0)
     ])
   }
   
@@ -1999,6 +1995,65 @@ class WPInferenceEngineTests: XCTestCase {
       InstructionPosition(basicBlock: bb4Name, instructionIndex: 3),
       InstructionPosition(basicBlock: bb5Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb5Name, instructionIndex: 1),
+    ])
+  }
+  
+  func testSliceAwayObserveAfterProbabilisticBranch() {
+    let var1 = IRVariable(name: "1", type: .int)
+    let var2 = IRVariable(name: "2", type: .int)
+    let var3 = IRVariable(name: "3", type: .bool)
+    let var4 = IRVariable(name: "4", type: .int)
+    let var5 = IRVariable(name: "5", type: .int)
+    let var6 = IRVariable(name: "6", type: .int)
+    let var7 = IRVariable(name: "7", type: .int)
+    let var8 = IRVariable(name: "8", type: .bool)
+    
+    let bb1Name = BasicBlockName("bb1")
+    let bb2Name = BasicBlockName("bb2")
+    let bb3Name = BasicBlockName("bb3")
+    let bb4Name = BasicBlockName("bb4")
+    
+    let bb1 = BasicBlock(name: bb1Name, instructions: [
+      AssignInstruction(assignee: var1, value: .integer(0)),
+      DiscreteDistributionInstruction(assignee: var2, distribution: [0: 0.4, 1: 0.6]),
+      CompareInstruction(comparison: .equal, assignee: var3, lhs: .variable(var2), rhs: .integer(0)),
+      BranchInstruction(condition: .variable(var3), targetTrue: bb2Name, targetFalse: bb3Name)
+    ])
+
+    let bb2 = BasicBlock(name: bb2Name, instructions: [
+      AssignInstruction(assignee: var4, value: .integer(1)),
+      JumpInstruction(target: bb4Name)
+    ])
+
+    let bb3 = BasicBlock(name: bb3Name, instructions: [
+      AssignInstruction(assignee: var5, value: .integer(2)),
+      JumpInstruction(target: bb4Name)
+    ])
+
+    let bb4 = BasicBlock(name: bb4Name, instructions: [
+      PhiInstruction(assignee: var6, choices: [bb2Name: var4, bb3Name: var5]),
+      DiscreteDistributionInstruction(assignee: var7, distribution: [0: 0.5, 1: 0.5]),
+      CompareInstruction(comparison: .equal, assignee: var8, lhs: .variable(var7), rhs: .integer(0)),
+      ObserveInstruction(observation: .variable(var8)),
+      ReturnInstruction()
+    ])
+
+    let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2, bb3, bb4])
+    
+    let inferenceEngine = WPInferenceEngine(program: program)
+    let slice = inferenceEngine.slice(
+      term: .variable(var6),
+      loopUnrolls: LoopUnrolls([:]),
+      inferenceStopPosition: program.returnPosition,
+      branchingHistories: [[.any(predominatedBy: bb1Name)]]
+    )
+    XCTAssertEqual(slice, [
+      InstructionPosition(basicBlock: bb1Name, instructionIndex: 1),
+      InstructionPosition(basicBlock: bb1Name, instructionIndex: 2),
+      InstructionPosition(basicBlock: bb1Name, instructionIndex: 3),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 0),
+      InstructionPosition(basicBlock: bb3Name, instructionIndex: 0),
+      InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
     ])
   }
 }

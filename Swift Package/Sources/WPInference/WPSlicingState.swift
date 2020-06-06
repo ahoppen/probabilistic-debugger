@@ -2,10 +2,10 @@ import IR
 import Utils
 
 struct WPResultTerm: Hashable {
-  private(set) var term: WPTerm
-  private(set) var observeSatisfactionRate: WPTerm
-  private(set) var focusRate: WPTerm
-  private(set) var intentionalLossRate: WPTerm
+  fileprivate(set) var term: WPTerm
+  fileprivate(set) var observeSatisfactionRate: WPTerm
+  fileprivate(set) var focusRate: WPTerm
+  fileprivate(set) var intentionalLossRate: WPTerm
   
   static func merged(_ terms: [WPResultTerm]) -> WPResultTerm {
     return WPResultTerm(
@@ -47,13 +47,11 @@ struct WPResultTerm: Hashable {
   }
   
   func hash(into hasher: inout Hasher) {
-    self.normalizedTerm.hash(into: &hasher)
-    self.normalizedObserveSatisfactionRate.hash(into: &hasher)
+    self.value.hash(into: &hasher)
   }
   
   static func ==(lhs: WPResultTerm, rhs: WPResultTerm) -> Bool {
-    return lhs.normalizedTerm == rhs.normalizedTerm &&
-      lhs.normalizedObserveSatisfactionRate == rhs.normalizedObserveSatisfactionRate
+    return lhs.value == rhs.value
   }
 }
 
@@ -76,6 +74,10 @@ struct WPSlicingState: Hashable {
   /// The branch point was relevant if WP-inference had different values for two WP inference states when they were merged again at a branching point.
   /// Thus, at the end of WP-inference, all positions with more than one resultTerm had an influence on the resultTerm
   private var potentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>]
+  
+  private(set) var observeTerms: Set<WPResultTerm>
+  
+  private(set) var potentialObserveDependencies: Set<InstructionPosition>
   
   /// For each control flow position, the variable that determined the branch, so that its influencing instructions can also be added to this state's influencing instructions.
   private(set) var controlFlowConditions: [InstructionPosition: IRVariable]
@@ -139,6 +141,8 @@ struct WPSlicingState: Hashable {
     self.potentialControlFlowDependencies = [:]
     self.controlFlowConditions = [:]
     self.visitedInstructions = []
+    self.observeTerms = [WPResultTerm(term: .integer(1), observeSatisfactionRate: .integer(1), focusRate: .integer(1), intentionalLossRate: .integer(0))]
+    self.potentialObserveDependencies = []
   }
   
   private init(
@@ -146,13 +150,17 @@ struct WPSlicingState: Hashable {
     influencingInstructions: [WPResultTerm: Set<Set<InstructionPosition>>],
     potentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>],
     controlFlowConditions: [InstructionPosition: IRVariable],
-    visitedInstructions: Set<InstructionPosition>
+    visitedInstructions: Set<InstructionPosition>,
+    observeTerms: Set<WPResultTerm>,
+    potentialObserveDependencies: Set<InstructionPosition>
   ) {
     self.resultTerm = term
     self.influencingInstructionsForTerms = influencingInstructions
     self.potentialControlFlowDependencies = potentialControlFlowDependencies
     self.controlFlowConditions = controlFlowConditions
     self.visitedInstructions = visitedInstructions
+    self.observeTerms = observeTerms
+    self.potentialObserveDependencies = potentialObserveDependencies
   }
   
   private static func mergeSlices(_ lhs: Set<Set<InstructionPosition>>, _ rhs: Set<Set<InstructionPosition>>, lhsVisitedInstructions: Set<InstructionPosition>, rhsVisitedInstructions: Set<InstructionPosition>) -> Set<Set<InstructionPosition>> {
@@ -207,13 +215,15 @@ struct WPSlicingState: Hashable {
       influencingInstructions: mergedInfluencingInstructions,
       potentialControlFlowDependencies: mergedPotentialControlFlowDependencies,
       controlFlowConditions: mergedControlFlowConditions,
-      visitedInstructions: lhs.visitedInstructions + rhs.visitedInstructions
+      visitedInstructions: lhs.visitedInstructions + rhs.visitedInstructions,
+      observeTerms: lhs.observeTerms + rhs.observeTerms,
+      potentialObserveDependencies: lhs.potentialObserveDependencies + rhs.potentialObserveDependencies
     )
   }
   
   // MARK: Updating the slicing state
   
-  mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable?, isObserveDependency: Bool, observeDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
     
     let termBeforeUpdate = self.resultTerm
     
@@ -227,6 +237,11 @@ struct WPSlicingState: Hashable {
         return term
       }))
     })
+    self.observeTerms = Set(self.observeTerms.map({ term in
+      var term = term
+      term.updateTerms(term: false, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, update: update)
+      return term
+    }))
     
     // Add a new entry for influencing instructions
     self.influencingInstructionsForTerms[resultTerm, default: Set()].formUnion(Set(previousInfluencingInstructions.map({ Set($0 + [position]) })))
@@ -236,6 +251,16 @@ struct WPSlicingState: Hashable {
     if let controlFlowDependency = controlFlowDependency {
       controlFlowConditions[position] = controlFlowDependency
       potentialControlFlowDependencies[position] = potentialControlFlowDependencies[position, default: Set()] + [termBeforeUpdate]
+    }
+    
+    if isObserveDependency {
+      potentialObserveDependencies.insert(position)
+      var observeTerm = self.resultTerm
+      observeTerm.term = .integer(1)
+      observeTerms.insert(observeTerm)
+      if let observeDependency = observeDependency {
+        controlFlowConditions[position] = observeDependency
+      }
     }
     
     visitedInstructions.insert(position)

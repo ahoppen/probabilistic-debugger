@@ -311,7 +311,7 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable? = nil, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(term updateTerm: Bool, observeSatisfactionRate updateObserveSatisfactionRate: Bool, focusRate updateFocusRate: Bool, intentionalLossRate updateIntentionalLossRate: Bool, controlFlowDependency: IRVariable? = nil, isObserveDependency: Bool = false, observeDependency: IRVariable? = nil, update: (WPTerm) -> WPTerm?) {
     if updateTerm, let updatedTerm = update(self.term) {
       self.term = updatedTerm
     }
@@ -325,12 +325,16 @@ internal struct WPInferenceState: Hashable {
       self.intentionalLossRate = updatedIntentionalLossRate
     }
     for key in slicingStates.keys {
-      slicingStates[key]!.updateTerms(position: position, term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, controlFlowDependency: controlFlowDependency, update: update)
+      slicingStates[key]!.updateTerms(position: position, term: updateTerm, observeSatisfactionRate: updateObserveSatisfactionRate, focusRate: updateFocusRate, intentionalLossRate: updateIntentionalLossRate, controlFlowDependency: controlFlowDependency, isObserveDependency: isObserveDependency, observeDependency: observeDependency, update: update)
     }
     
     // If we are slicing and a new control flow dependency got introduce, also compute the slice for this control flow dependency.
     if !slicingStates.isEmpty, let controlFlowDependency = controlFlowDependency, slicingStates[.variable(controlFlowDependency)] == nil {
       slicingStates[.variable(controlFlowDependency)] = WPSlicingState(initialStateFor: .variable(controlFlowDependency))
+    }
+    // If we are slicing and a new control flow dependency got introduce, also compute the slice for this control flow dependency.
+    if !slicingStates.isEmpty, let observeDependency = observeDependency, slicingStates[.variable(observeDependency)] == nil {
+      slicingStates[.variable(observeDependency)] = WPSlicingState(initialStateFor: .variable(observeDependency))
     }
   }
 
@@ -359,6 +363,14 @@ internal struct WPInferenceState: Hashable {
         let controlFlowCondition = slicingState.controlFlowConditions[controlFlowDependency]!
         influencingInstructions.insert(controlFlowDependency)
         worklist.append(.variable(controlFlowCondition))
+      }
+      if Set(slicingState.observeTerms.map(\.normalizedObserveSatisfactionRate)).count > 1 {
+        for observeDependency in slicingState.potentialObserveDependencies {
+          influencingInstructions.insert(observeDependency)
+          if let observeCondition = slicingState.controlFlowConditions[observeDependency] {
+            worklist.append(.variable(observeCondition))
+          }
+        }
       }
     }
     return influencingInstructions
