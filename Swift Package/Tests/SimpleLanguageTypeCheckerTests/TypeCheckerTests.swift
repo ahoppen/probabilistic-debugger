@@ -55,4 +55,15 @@ class TypeCheckerTests: XCTestCase {
     let resolvedStmts = try! VariableResolver().resolveVariables(in: unresolvedStmts)
     XCTAssertThrowsError(try TypeChecker().typeCheck(stmts: resolvedStmts))
   }
+  
+  func testTypeCheckerVisitsLoopBody() {
+    let sourceCode = """
+      while true {
+        bool a = 2
+      }
+      """
+    let unresolvedStmts = try! Parser(sourceCode: sourceCode).parseFile()
+    let resolvedStmts = try! VariableResolver().resolveVariables(in: unresolvedStmts)
+    XCTAssertThrowsError(try TypeChecker().typeCheck(stmts: resolvedStmts))
+  }
 }
