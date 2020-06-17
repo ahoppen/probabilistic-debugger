@@ -37,6 +37,16 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
     return LoopUnrolls(mergedContext)
   }
   
+  public static func intersection<SequenceType: Sequence>(_ contexts: SequenceType) -> LoopUnrolls where SequenceType.Element == LoopUnrolls {
+    var mergedContext: [IRLoop: LoopUnrollEntry] = [:]
+    for contextToMerge in contexts {
+      mergedContext.merge(contextToMerge.context, uniquingKeysWith: { (lhs, rhs) -> LoopUnrollEntry in
+        return lhs.intersection(other: rhs)
+      })
+    }
+    return LoopUnrolls(mergedContext)
+  }
+  
   // MARK: Querying for loop unrolls
   
   public subscript(conditionBlock conditionBlock: BasicBlockName) -> LoopUnrollEntry? {
@@ -102,8 +112,14 @@ public struct LoopUnrollEntry: Hashable, CustomStringConvertible, ExpressibleByA
   }
   
   public init<SequenceType: Sequence>(_ sequence: SequenceType) where SequenceType.Element == Int {
-    unrolls = Set(sequence)
+    let unrolls = Set(sequence)
     assert(!unrolls.isEmpty)
+    let max = unrolls.max()!
+    let newUnrolls = Set(0...max)
+    if newUnrolls != unrolls {
+      print("Extended loop unrolls")
+    }
+    self.unrolls = newUnrolls
   }
   
   // MARK: Querying if unrolls are possible
@@ -140,6 +156,10 @@ public struct LoopUnrollEntry: Hashable, CustomStringConvertible, ExpressibleByA
   
   public static func +(lhs: LoopUnrollEntry, rhs: LoopUnrollEntry) -> LoopUnrollEntry {
     return LoopUnrollEntry(lhs.unrolls.union(rhs.unrolls))
+  }
+  
+  public func intersection(other: LoopUnrollEntry) -> LoopUnrollEntry {
+    return LoopUnrollEntry(self.unrolls.intersection(other.unrolls))
   }
 }
 

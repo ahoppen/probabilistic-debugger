@@ -104,6 +104,14 @@ public class IRProgram: Equatable, CustomStringConvertible {
     return _immediatePostdominator!
   }
   
+  private var _immediatePredominator: [BasicBlockName: BasicBlockName?]?
+  public var immediatePredominator: [BasicBlockName: BasicBlockName?] {
+    if _immediatePredominator == nil {
+      _immediatePredominator = IRAnalysis.immediateDominator(properDominators: properPredominators)
+    }
+    return _immediatePredominator!
+  }
+  
   private var _loopInducingBlocks: Set<BasicBlockName>?
   public var loopInducingBlocks: Set<BasicBlockName> {
     if _loopInducingBlocks == nil {

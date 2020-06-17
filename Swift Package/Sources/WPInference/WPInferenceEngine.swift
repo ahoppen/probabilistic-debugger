@@ -41,7 +41,7 @@ public class WPInferenceEngine {
   }
   
   /// Given a state that is pointed to the first instruction in a basic block and a predecessor block of this state, move the instruction position to the predecessor block and perform WP-inference for the branch or jump instruction in the predecessor block.
-  private func inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> WPInferenceState? {
+  private func _inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> WPInferenceState? {
     var state = state
     
     if let remainingLoopUnrolls = state.remainingLoopUnrolls[conditionBlock: state.position.basicBlock],
@@ -140,7 +140,7 @@ public class WPInferenceEngine {
   }
   
   /// Given a state that is positioned right after a Phi Instruction, perform WP-inference for all Phi instructions in the current block assuming that the previous block was `predecessorBlock`
-  private func evalutePhiInstructions(in state: WPInferenceState, predecessorBlock: BasicBlockName) -> WPInferenceState {
+  private func _evalutePhiInstructions(in state: WPInferenceState, predecessorBlock: BasicBlockName) -> WPInferenceState {
     var state = state
     while state.position.instructionIndex > 0 {
       let newPosition = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
@@ -153,15 +153,15 @@ public class WPInferenceEngine {
   
   /// Given an inference state, return all the components of `WPInferenceState` at which inference should continue. Note that the instruction at `position` has **not** been executed yet.
   /// The final inference result is determined by summing the values retrieved by inferring all the returned branches.
-  private func branchesToInfer(before state: WPInferenceState) -> [WPInferenceState] {
+  private func _branchesToInfer(before state: WPInferenceState) -> [WPInferenceState] {
     if state.position.instructionIndex > 0 {
       let previousPosition = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
       
       if program.instruction(at: previousPosition) is PhiInstruction {
         // Evaluate all Phi instructions in the current block and jump to the predecessor blocks.
         return program.directPredecessors[state.position.basicBlock]!.sorted().compactMap({ (predecessor) -> WPInferenceState? in
-          let stateAtBeginningOfBlock = evalutePhiInstructions(in: state, predecessorBlock: predecessor)
-          return inferAcrossBlockBoundary(state: stateAtBeginningOfBlock, predecessor: predecessor)
+          let stateAtBeginningOfBlock = _evalutePhiInstructions(in: state, predecessorBlock: predecessor)
+          return _inferAcrossBlockBoundary(state: stateAtBeginningOfBlock, predecessor: predecessor)
         })
       } else {
         // We are at a normal instruction, just adjust the position to the previous one and return all the values
@@ -172,7 +172,7 @@ public class WPInferenceEngine {
     } else {
       // We have reached the start of a block. Continue inference in the predecessor blocks.
       return program.directPredecessors[state.position.basicBlock]!.sorted().compactMap({ (predecessor) in
-        return inferAcrossBlockBoundary(state: state, predecessor: predecessor)
+        return _inferAcrossBlockBoundary(state: state, predecessor: predecessor)
       })
     }
   }
@@ -181,7 +181,7 @@ public class WPInferenceEngine {
   /// If no entry exists in the cache yet, compute the inference result and store it in the cache.
   /// It is assumed that the `state`s terms aren't very complex and that thus hashValue calculation is not a performance bottleneck
   /// The current instruction of `stateToInfer` has **not** been inferred yet.
-  private func loadInferenceResultFromCacheOrPopulateCache(_ state: WPInferenceState) -> WPInferenceState? {
+  private func _loadInferenceResultFromCacheOrPopulateCache(_ state: WPInferenceState) -> WPInferenceState? {
     // Try normalizing the state so that e.g. queries for 0.5 * [%1 = 1] and 0.25 * [%1 = 1] will be able to use the same cache entry.
     // For this, if the query is a multipliation, normalize the contant factor to 1.
     // If the query is an addition list, normalize is so the maximum factor is 1.
@@ -221,7 +221,7 @@ public class WPInferenceEngine {
     if let cachedReuslt = inferenceCache[normalizedState] {
       result = cachedReuslt
     } else {
-      result = self.performInference(for: performInferenceStep(normalizedState))
+      result = self._performInference(for: _performInferenceStep(normalizedState))
       inferenceCache[normalizedState] = result
     }
     
@@ -237,7 +237,7 @@ public class WPInferenceEngine {
   
   /// Perform a single inference step.
   /// The current instruction of `stateToInfer` has **not** been inferred yet.
-  private func performInferenceStep(_ state: WPInferenceState) -> WPInferenceState {
+  private func _performInferenceStep(_ state: WPInferenceState) -> WPInferenceState {
     var state = state
     let position = state.position
     let instruction = program.instruction(at: position)!
@@ -285,7 +285,7 @@ public class WPInferenceEngine {
     return state
   }
   
-  private func performInference(for initialState: WPInferenceState) -> WPInferenceState? {
+  private func _performInference(for initialState: WPInferenceState) -> WPInferenceState? {
     let programStartState = InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0)
     
     var inferenceStatesWorklist = [initialState]
@@ -300,16 +300,16 @@ public class WPInferenceEngine {
     
     while let worklistEntry = inferenceStatesWorklist.popLast() {
       // Pop one entry of the worklist and perform WP-inference for it
-      for stateToInfer in self.branchesToInfer(before: worklistEntry) {
+      for stateToInfer in self._branchesToInfer(before: worklistEntry) {
         if stateToInfer.observeAndDeliberateBranchIgnoringFocusRate.isZero {
           continue
         }
         
         let inferredState: WPInferenceState?
         if cachableIntermediateProgramPositions.contains(stateToInfer.position) {
-          inferredState = loadInferenceResultFromCacheOrPopulateCache(stateToInfer)
+          inferredState = _loadInferenceResultFromCacheOrPopulateCache(stateToInfer)
         } else {
-          inferredState = performInferenceStep(stateToInfer)
+          inferredState = _performInferenceStep(stateToInfer)
         }
         
         if let inferredState = inferredState {
@@ -361,6 +361,208 @@ public class WPInferenceEngine {
     )
   }
   
+  
+  /// Perform a single inference step.
+  /// The current instruction of `stateToInfer` has **not** been inferred yet.
+  /// `previousBlock` is the block that has been inferred before this block. It must be specified when inferring a `BranchInstruction`. For all other instructions, it can be omitted.
+  private func performInferenceStep(_ state: WPInferenceState, previousBlock: BasicBlockName?) -> WPInferenceState? {
+    var state = state
+    let position = state.position
+    let instruction = program.instruction(at: position)!
+    switch instruction {
+    case let instruction as AssignInstruction:
+      state.replace(variable: instruction.assignee, by: WPTerm(instruction.value))
+    case let instruction as AddInstruction:
+      state.replace(variable: instruction.assignee, by: WPTerm(instruction.lhs) + WPTerm(instruction.rhs))
+    case let instruction as SubtractInstruction:
+      state.replace(variable: instruction.assignee, by: WPTerm(instruction.lhs) - WPTerm(instruction.rhs))
+    case let instruction as CompareInstruction:
+      switch instruction.comparison {
+      case .equal:
+        state.replace(variable: instruction.assignee, by: .equal(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+      case .lessThan:
+        state.replace(variable: instruction.assignee, by: .lessThan(lhs: WPTerm(instruction.lhs), rhs: WPTerm(instruction.rhs)))
+      }
+    case let instruction as DiscreteDistributionInstruction:
+      state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: true) { (term) in
+        let terms = instruction.distribution.map({ (value, probability) in
+          return .double(probability) * (term.replacing(variable: instruction.assignee, with: .integer(value)) ?? term)
+        })
+        return .add(terms: terms)
+      }
+    case let instruction as ObserveInstruction:
+      let observeDependency: IRVariable?
+      if case .variable(let observedVariable) = instruction.observation {
+        observeDependency = observedVariable
+      } else {
+        observeDependency = nil
+      }
+      state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false, isObserveDependency: true, observeDependency: observeDependency) {
+        return .boolToInt(WPTerm(instruction.observation)) * $0
+      }
+    case is JumpInstruction:
+      // Jump is a no-op as far as the WP-terms are concerned
+      break
+    case let instruction as BranchInstruction:
+      guard let previousBlock = previousBlock else {
+        fatalError("previousBlock must be specified when inferring a BranchInstruction")
+      }
+      let takenBranch: Bool
+      if previousBlock == instruction.targetTrue {
+        takenBranch = true
+      } else {
+        assert(previousBlock == instruction.targetFalse)
+        takenBranch = false
+      }
+
+      let cleanedBranchingHistory: BranchingHistory
+      // If we are leaving an any BranchingChoice to the top, shave it off the branching history to allow consuming a deliberate branch underneath it.
+      if case .any(predominatedBy: let predominator) = state.branchingHistory.lastChoice, !program.predominators[state.position.basicBlock]!.contains(predominator) {
+        cleanedBranchingHistory = state.branchingHistory.droppingLastChoice()
+      } else {
+        cleanedBranchingHistory = state.branchingHistory
+      }
+      
+      let controlFlowDependency: IRVariable?
+      if case .variable(let conditionVariable) = instruction.condition {
+        controlFlowDependency = conditionVariable
+      } else {
+        controlFlowDependency = nil
+      }
+
+      switch cleanedBranchingHistory.lastChoice {
+      case .choice(source: state.position.basicBlock, target: previousBlock):
+        // We are taking a deliberate choice. Consider it taken care of by removing it off the list
+        state.branchingHistory = cleanedBranchingHistory.droppingLastChoice()
+        state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false, controlFlowDependency: controlFlowDependency) {
+          return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
+        }
+        return state
+      case .any(predominatedBy: let predominator) where program.predominators[state.position.basicBlock]!.contains(predominator):
+        // We are taking an `any` branching choice. Keep it in the list since we might take it again.
+        // Note that predominators contains the block itself.
+
+        state.branchingHistory = cleanedBranchingHistory
+        state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: true, controlFlowDependency: controlFlowDependency) {
+          return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
+        }
+        return state
+      default:
+        return nil
+      }
+    case is ReturnInstruction:
+      fatalError("WP inference is initialised at the ReturnInstruction which means the ReturnInstruction has already been inferred")
+    case is PhiInstruction:
+      fatalError("Should always be jumped over by branchesToInfer")
+    case let unknownInstruction:
+      fatalError("Unknown instruction: \(type(of: unknownInstruction))")
+    }
+    return state
+  }
+  
+  private func performInferenceStepForSpecificBlockBoundary(for state: WPInferenceState, towards predecessor: BasicBlockName) -> WPInferenceState? {
+    var state = state
+    // Check if loop unrolls prevent us from performing inference across this block boundary
+    let loop = IRLoop(conditionBlock: predecessor, bodyStartBlock: state.position.basicBlock)
+    if let loopUnrolling = state.remainingLoopUnrolls[loop] {
+      if !loopUnrolling.canUnrollOnceMore {
+        return nil
+      }
+      state.remainingLoopUnrolls = state.remainingLoopUnrolls.recordingTraversalOfUnrolledLoopBody(loop)
+    }
+    
+
+    let cleanedBranchingHistory: BranchingHistory
+    // If we are leaving an any BranchingChoice to the top, shave it off the branching history to allow consuming a deliberate branch underneath it.
+    if case .any(predominatedBy: let predominator) = state.branchingHistory.lastChoice, !program.predominators[predecessor]!.contains(predominator) {
+      cleanedBranchingHistory = state.branchingHistory.droppingLastChoice()
+    } else {
+      cleanedBranchingHistory = state.branchingHistory
+    }
+    
+    // Check if we would render a branching history entry invalid
+    switch cleanedBranchingHistory.lastChoice {
+    case .choice(source: let source, target: _) where program.predominators[predecessor]!.contains(source):
+      break
+    case .any(predominatedBy: let predominator) where program.predominators[predecessor]!.contains(predominator):
+      break
+    case nil:
+      break
+    default:
+      return nil
+    }
+    
+    // Evaluate Phi-instructions
+    while state.position.instructionIndex > 0 {
+      state.position = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
+      guard let instruction = program.instruction(at: state.position) as? PhiInstruction else {
+        fatalError("Inferring across a block boundary can only handle Phi-instructions. All other instructions should have been handled before.")
+      }
+      state.replace(variable: instruction.assignee, by: .variable(instruction.choices[predecessor]!))
+    }
+    
+    // Actually perform the inference across the block boundary
+    let predominator = program.immediatePredominator[state.position.basicBlock]!!
+    let lastInstructionPositionInPredominator = InstructionPosition(basicBlock: predominator, instructionIndex: program.basicBlocks[predominator]!.instructions.count - 1)
+    let previousBlock = state.position.basicBlock
+    state.position = InstructionPosition(basicBlock: predecessor, instructionIndex: program.basicBlocks[predecessor]!.instructions.count - 1)
+    if let inferredState = performInferenceStep(state, previousBlock: previousBlock) {
+      return performInference(for: inferredState, upTo: lastInstructionPositionInPredominator)
+    } else {
+      return nil
+    }
+  }
+  
+  private func performInferenceStepForAllBlockBoundaries(for state: WPInferenceState) -> WPInferenceState? {
+    var inferredSubStates = [WPInferenceState]()
+    for predecessor in program.directPredecessors[state.position.basicBlock]!.sorted() {
+      if let inferredState = performInferenceStepForSpecificBlockBoundary(for: state, towards: predecessor) {
+        inferredSubStates.append(inferredState)
+      }
+    }
+    assert(inferredSubStates.map(\.branchingHistory).allEqual)
+    guard !inferredSubStates.isEmpty else {
+      return nil
+    }
+    
+    let mergedLoopUnrolls = LoopUnrolls.intersection(inferredSubStates.map(\.remainingLoopUnrolls))
+    
+    guard let mergedState = WPInferenceState.merged(states: inferredSubStates, remainingLoopUnrolls: mergedLoopUnrolls, branchingHistory: inferredSubStates.first!.branchingHistory) else {
+      return nil
+    }
+    return mergedState
+  }
+  
+  private func performInference(for state: WPInferenceState, upTo inferenceStopPosition: InstructionPosition) -> WPInferenceState? {
+    var state = state
+    while state.position != inferenceStopPosition {
+      if state.position.instructionIndex > 0 {
+        let previousPosition = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
+        if program.instruction(at: previousPosition) is PhiInstruction {
+          if let inferredState = performInferenceStepForAllBlockBoundaries(for: state) {
+            state = inferredState
+          } else {
+            return nil
+          }
+        } else {
+          state.position = previousPosition
+          if let newState = performInferenceStep(state, previousBlock: nil) {
+            state = newState
+          } else {
+            return nil
+          }
+        }
+      } else {
+        if let inferredState = performInferenceStepForAllBlockBoundaries(for: state) {
+          state = inferredState
+        } else {
+          return nil
+        }
+      }
+    }
+    return state
+  }
+  
   /// Perform WP-inference on the given `term` using the program for which this inference engine was constructed.
   /// If the program contains loops, `loopRepetitionBounds` need to be specified that bound the number of loop iterations the WP-inference should perform.
   /// The function returns the following values:
@@ -398,7 +600,7 @@ public class WPInferenceEngine {
     if let cachedReuslt = inferenceCache[initialState] {
       inferredStateOrNil = cachedReuslt
     } else {
-      inferredStateOrNil = self.performInference(for: initialState)
+      inferredStateOrNil = self.performInference(for: initialState, upTo: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0))
       inferenceCache[initialState] = inferredStateOrNil
     }
     
@@ -432,7 +634,8 @@ public class WPInferenceEngine {
     if let cachedReuslt = inferenceCache[initialState] {
       inferredStateOrNil = cachedReuslt
     } else {
-      inferredStateOrNil = self.performInference(for: initialState)
+      inferredStateOrNil = self._performInference(for: initialState)
+//      inferredStateOrNil = self.performInference(for: initialState, upTo: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0))
       inferenceCache[initialState] = inferredStateOrNil
     }
     
