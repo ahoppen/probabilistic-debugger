@@ -385,15 +385,6 @@ public class WPInferenceEngine {
     }
     #endif
     
-    // Generate lost states for all blocks that predominate the block until which inferrence is performed but which are not postdominated by the inferenceStopPosition
-    var generateLostStatesForBlocks: Set<BasicBlockName> = []
-    for block in program.transitivePredecessors[inferenceStopPosition.basicBlock]! {
-      if !program.postdominators[block]!.contains(inferenceStopPosition.basicBlock),
-        !program.predominators[block]!.contains(inferenceStopPosition.basicBlock) {
-        generateLostStatesForBlocks.insert(block)
-      }
-    }
-    
     let initialState = WPInferenceState(
       initialInferenceStateAtPosition: inferenceStopPosition,
       term: term,
