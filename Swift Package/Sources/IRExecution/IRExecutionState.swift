@@ -64,7 +64,7 @@ public struct IRExecutionState {
     return IRExecutionState(position: position, samples: samples, loopUnrolls: loopUnrolls, branchingHistories: branchingHistories)
   }
   
-  public func settingLoopUnrolls(loop: IRLoop, unrolls: LoopUnrollEntry) -> IRExecutionState {
+  public func settingLoopUnrolls(loop: IRLoop, unrolls: Int) -> IRExecutionState {
     let newLoopUnrolls = self.loopUnrolls.settingLoopUnrolls(for: loop, unrolls: unrolls)
     return IRExecutionState(position: position, samples: samples, loopUnrolls: newLoopUnrolls, branchingHistories: branchingHistories)
   }

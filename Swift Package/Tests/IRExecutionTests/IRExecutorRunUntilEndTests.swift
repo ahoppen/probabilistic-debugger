@@ -252,7 +252,7 @@ class IRExecutorRunUntilEndTests: XCTestCase {
       let onlySample = finalState.samples.only
       
       XCTAssertEqual(onlySample.values[var1], .integer(1))
-      XCTAssertEqual(finalState.loopUnrolls[loop], [1])
+      XCTAssertEqual(finalState.loopUnrolls[loop], 1)
     }())
   }
   

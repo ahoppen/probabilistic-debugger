@@ -4,10 +4,10 @@ import IR
 /// For deterministic program, each loop is unrolled a fixed number of times.
 /// For probabilistic programs, the number of loop unrolls is not clearly defined and a loop can be simultaneously unrolled e.g. 1, 2 and 3 times because there are execution branches that iterate the loop exactly this number of times
 public struct LoopUnrolls: Hashable, CustomStringConvertible {
-  private let context: [IRLoop: LoopUnrollEntry]
+  private let context: [IRLoop: Int]
   
   /// The loops for which the number of unrolls is known
-  public var loops: Dictionary<IRLoop, LoopUnrollEntry>.Keys {
+  public var loops: Dictionary<IRLoop, Int>.Keys {
     return context.keys
   }
   
@@ -15,33 +15,33 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
   
   /// Create a new `LoopUnrolls` in which the given `loops` have not been unrolled at all.
   public init(noIterationsForLoops loops: [IRLoop]) {
-    var context: [IRLoop: LoopUnrollEntry] = [:]
+    var context: [IRLoop: Int] = [:]
     for loop in loops {
       assert(!context.keys.contains(where: { $0.conditionBlock == loop.conditionBlock }), "Cannot have two loops with the same condition block")
-      context[loop] = [0]
+      context[loop] = 0
     }
     self.context = context
   }
   
-  public init(_ context: [IRLoop: LoopUnrollEntry]) {
+  public init(_ context: [IRLoop: Int]) {
     self.context = context
   }
   
   public static func merged<SequenceType: Sequence>(_ contexts: SequenceType) -> LoopUnrolls where SequenceType.Element == LoopUnrolls {
-    var mergedContext: [IRLoop: LoopUnrollEntry] = [:]
+    var mergedContext: [IRLoop: Int] = [:]
     for contextToMerge in contexts {
-      mergedContext.merge(contextToMerge.context, uniquingKeysWith: { (lhs, rhs) -> LoopUnrollEntry in
-        return lhs + rhs
+      mergedContext.merge(contextToMerge.context, uniquingKeysWith: { (lhs, rhs) -> Int in
+        return max(lhs, rhs)
       })
     }
     return LoopUnrolls(mergedContext)
   }
   
   public static func intersection<SequenceType: Sequence>(_ contexts: SequenceType) -> LoopUnrolls where SequenceType.Element == LoopUnrolls {
-    var mergedContext: [IRLoop: LoopUnrollEntry] = [:]
+    var mergedContext: [IRLoop: Int] = [:]
     for contextToMerge in contexts {
-      mergedContext.merge(contextToMerge.context, uniquingKeysWith: { (lhs, rhs) -> LoopUnrollEntry in
-        return lhs.intersection(other: rhs)
+      mergedContext.merge(contextToMerge.context, uniquingKeysWith: { (lhs, rhs) -> Int in
+        return min(lhs, rhs)
       })
     }
     return LoopUnrolls(mergedContext)
@@ -49,13 +49,13 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
   
   // MARK: Querying for loop unrolls
   
-  public subscript(conditionBlock conditionBlock: BasicBlockName) -> LoopUnrollEntry? {
+  public subscript(conditionBlock conditionBlock: BasicBlockName) -> Int? {
     let unrollsWithThisConditionBlock = context.filter({ $0.key.conditionBlock == conditionBlock })
     assert(unrollsWithThisConditionBlock.count <= 1)
     return unrollsWithThisConditionBlock.first?.value
   }
   
-  public subscript(loop: IRLoop) -> LoopUnrollEntry? {
+  public subscript(loop: IRLoop) -> Int? {
     return context[loop]
   }
   
@@ -66,7 +66,7 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
   public func recordingJumpToBodyBlock(for loop: IRLoop) -> LoopUnrolls {
     if let currentUnrolls = self[loop] {
       var newContext = self.context
-      newContext[loop] = currentUnrolls.increased()
+      newContext[loop] = currentUnrolls + 1
       return LoopUnrolls(newContext)
     } else {
       return self
@@ -78,14 +78,14 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
   public func recordingTraversalOfUnrolledLoopBody(_ loop: IRLoop) -> LoopUnrolls {
     if let currentUnrolls = self[loop] {
       var newContext = self.context
-      newContext[loop] = currentUnrolls.decreased()
+      newContext[loop] = currentUnrolls - 1
       return LoopUnrolls(newContext)
     } else {
       return self
     }
   }
   
-  public func settingLoopUnrolls(for loop: IRLoop, unrolls: LoopUnrollEntry) -> LoopUnrolls {
+  public func settingLoopUnrolls(for loop: IRLoop, unrolls: Int) -> LoopUnrolls {
     var newContext = self.context
     newContext[loop] = unrolls
     return LoopUnrolls(newContext)
@@ -97,69 +97,3 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
     }).joined(separator: "\n")
   }
 }
-
-/// For a given loop, keeps track of how many times the loop has been unrolled
-public struct LoopUnrollEntry: Hashable, CustomStringConvertible, ExpressibleByArrayLiteral {
-  public typealias ArrayLiteralElement = Int
-  
-  private let unrolls: Set<Int>
-  
-  // MARK: Initialization
-  
-  public init(arrayLiteral elements: Int...) {
-    unrolls = Set(elements)
-    assert(!unrolls.isEmpty)
-  }
-  
-  public init<SequenceType: Sequence>(_ sequence: SequenceType) where SequenceType.Element == Int {
-    let unrolls = Set(sequence)
-    assert(!unrolls.isEmpty)
-    let max = unrolls.max()!
-    let newUnrolls = Set(0...max)
-    if newUnrolls != unrolls {
-      print("Extended loop unrolls")
-    }
-    self.unrolls = newUnrolls
-  }
-  
-  // MARK: Querying if unrolls are possible
-  
-  /// During WP-inference (backwards execution), check if the loop has been unrolled sufficiently often that we can leave the loop to it predominator block.
-  public var canStopUnrolling: Bool {
-    return unrolls.contains(0)
-  }
-  
-  /// During WP-inference (backwards execution), check if we can traverse the loop's body once more.
-  public var canUnrollOnceMore: Bool {
-    return unrolls.contains(where: { $0 > 0 })
-  }
-  
-  public var max: Int {
-    return unrolls.max()!
-  }
-  
-  // MARK: Increasing and decreasing the counts
-  
-  fileprivate func increased() -> LoopUnrollEntry {
-    return LoopUnrollEntry(unrolls.map({ $0 + 1 }))
-  }
-  
-  fileprivate func decreased() -> LoopUnrollEntry {
-    return LoopUnrollEntry(unrolls.map({ $0 - 1 }).filter({ $0 >= 0 }))
-  }
-  
-  // MARK: Miscellaneous
-  
-  public var description: String {
-    return unrolls.sorted().description
-  }
-  
-  public static func +(lhs: LoopUnrollEntry, rhs: LoopUnrollEntry) -> LoopUnrollEntry {
-    return LoopUnrollEntry(lhs.unrolls.union(rhs.unrolls))
-  }
-  
-  public func intersection(other: LoopUnrollEntry) -> LoopUnrollEntry {
-    return LoopUnrollEntry(self.unrolls.intersection(other.unrolls))
-  }
-}
-

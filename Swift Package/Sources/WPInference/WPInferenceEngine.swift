@@ -44,16 +44,6 @@ public class WPInferenceEngine {
   private func _inferAcrossBlockBoundary(state: WPInferenceState, predecessor: BasicBlockName) -> WPInferenceState? {
     var state = state
     
-    if let remainingLoopUnrolls = state.remainingLoopUnrolls[conditionBlock: state.position.basicBlock],
-      program.properPredominators[state.position.basicBlock]!.contains(predecessor) {
-      // We want to leave a loop to the top. Check if the loop has been unrolled a sufficient number of times
-      
-      if !remainingLoopUnrolls.canStopUnrolling {
-        // All execution branches require at least one more loop unroll. We can't exit the loop to the top yet.
-        return nil
-      }
-    }
-    
     assert(state.position.instructionIndex == 0)
     assert(program.directPredecessors[state.position.basicBlock]!.contains(predecessor))
     
@@ -76,8 +66,8 @@ public class WPInferenceEngine {
       // We might have have jumped from the body of a loop
       // Check if we are at a loop for which we have have an upper bound on the number of iterations
       let loop = IRLoop(conditionBlock: predecessorBlockPosition.basicBlock, bodyStartBlock: state.position.basicBlock)
-      if let loopUnrolling = remainingLoopUnrolls[loop] {
-        if !loopUnrolling.canUnrollOnceMore {
+      if let loopUnrollsRemaining = remainingLoopUnrolls[loop] {
+        if loopUnrollsRemaining == 0 {
           return nil
         }
         remainingLoopUnrolls = remainingLoopUnrolls.recordingTraversalOfUnrolledLoopBody(loop)
@@ -464,8 +454,8 @@ public class WPInferenceEngine {
     var state = state
     // Check if loop unrolls prevent us from performing inference across this block boundary
     let loop = IRLoop(conditionBlock: predecessor, bodyStartBlock: state.position.basicBlock)
-    if let loopUnrolling = state.remainingLoopUnrolls[loop] {
-      if !loopUnrolling.canUnrollOnceMore {
+    if let loopUnrollsRemaining = state.remainingLoopUnrolls[loop] {
+      if loopUnrollsRemaining == 0 {
         return nil
       }
       state.remainingLoopUnrolls = state.remainingLoopUnrolls.recordingTraversalOfUnrolledLoopBody(loop)
