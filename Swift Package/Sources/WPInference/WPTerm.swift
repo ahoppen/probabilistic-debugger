@@ -133,7 +133,7 @@ public indirect enum WPTerm: Hashable, CustomStringConvertible {
     case ._lessThan(lhs: let lhs, rhs: let rhs):
       return "(\(lhs.description) < \(rhs.description))"
     case ._additionList(let list):
-      return "(\(list.entries.map({ "(\($0.factor) (*) [\($0.conditions.map({ $0.description }).joined(separator: " && "))] (*) \($0.term.description)" }).joined(separator: " + ")))"
+      return "(\(list.entries.map({ "\($0.factor) (*) [\($0.conditions.map({ $0.description }).joined(separator: " && "))] (*) \($0.term.description)" }).joined(separator: " + ")))"
     case ._sub(lhs: let lhs, rhs: let rhs):
       return "\(lhs.description) - \(rhs.description)"
     case ._mul(terms: let terms):

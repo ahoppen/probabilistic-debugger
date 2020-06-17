@@ -115,7 +115,6 @@ public class WPInferenceEngine {
         state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false, controlFlowDependency: controlFlowDependency) {
           return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
         }
-        return state
       case .any(predominatedBy: let predominator) where program.predominators[state.position.basicBlock]!.contains(predominator):
         // We are taking an `any` branching choice. Keep it in the list since we might take it again.
         // Note that predominators contains the block itself.
@@ -124,7 +123,6 @@ public class WPInferenceEngine {
         state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: true, controlFlowDependency: controlFlowDependency) {
           return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
         }
-        return state
       default:
         return nil
       }
