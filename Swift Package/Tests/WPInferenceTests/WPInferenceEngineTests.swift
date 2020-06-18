@@ -1403,7 +1403,7 @@ class WPInferenceEngineTests: XCTestCase {
     ])
   }
   
-  func testSliceAwayBranchIfOnlyOneBranchIsViable() {
+  func testKeepBranchEvenIfOnlyOneBranchIsViable() {
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .int)
     let var3 = IRVariable(name: "3", type: .bool)
@@ -1448,11 +1448,13 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(sliced, [
       InstructionPosition(basicBlock: bb1Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb2Name, instructionIndex: 0),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 1),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 2),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 0)
     ])
   }
   
-  func testSliceAwayLoopConditionIfLoopHasAFixedNumberOfUnrolls() {
+  func testKeepAwayLoopConditionEvenIfLoopHasAFixedNumberOfUnrolls() {
     let var1 = IRVariable(name: "1", type: .int)
     let var3 = IRVariable(name: "3", type: .bool)
     let var4 = IRVariable(name: "4", type: .int)
@@ -1500,12 +1502,14 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(valueOfXAtTheEndSlice, [
       InstructionPosition(basicBlock: bb1Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb2Name, instructionIndex: 0),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 1),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 2),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 1),
     ])
   }
   
-  func testSliceAwayLoopWithSingleIteration() {
+  func testKeepLoopConditionForLoopWithSingleIteration() {
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .int)
     let var3 = IRVariable(name: "3", type: .bool)
@@ -1594,13 +1598,15 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(valueOfXAtTheEndSlice, [
       InstructionPosition(basicBlock: bb1Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb2Name, instructionIndex: 0),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 1),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 2),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 1),
       InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),
     ])
   }
   
-  func testSliceAwayLoopWithFixedNumberOfIterations() {
+  func testKeepLoopWhenLoopHasAFixedNumberOfIterations() {
     let var1 = IRVariable(name: "1", type: .int)
     let var2 = IRVariable(name: "2", type: .int)
     let var3 = IRVariable(name: "3", type: .bool)
@@ -1689,6 +1695,8 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(valueOfXAtTheEndSlice, [
       InstructionPosition(basicBlock: bb1Name, instructionIndex: 1),
       InstructionPosition(basicBlock: bb2Name, instructionIndex: 0),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 1),
+      InstructionPosition(basicBlock: bb2Name, instructionIndex: 2),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 0),
       InstructionPosition(basicBlock: bb3Name, instructionIndex: 1),
       InstructionPosition(basicBlock: bb4Name, instructionIndex: 0),

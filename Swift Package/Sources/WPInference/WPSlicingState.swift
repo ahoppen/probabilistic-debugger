@@ -230,6 +230,19 @@ struct WPSlicingState: Hashable {
       return term
     }))
     
+    if self.influencingInstructionsForTerms[resultTerm] == nil {
+      // Just because two WPTerms aren't equal does not mean they are not equivalent.
+      // Fire up SymPy to check if we already know of an equivalent term. If we do,
+      // replace our current resultTerm with the existing one, so a lookup into
+      // influencingInstructionsForTerms returns the results for the term that's already known.
+      for existingResultTerm in self.influencingInstructionsForTerms.keys {
+        if resultTerm.equalsUsingSymPy(existingResultTerm) {
+          resultTerm = existingResultTerm
+          break
+        }
+      }
+    }
+    
     // Add a new entry for influencing instructions
     self.influencingInstructionsForTerms[resultTerm, default: Set()].formUnion(Set(previousInfluencingInstructions.map({ Set($0 + [position]) })))
     assert(!self.influencingInstructionsForTerms[resultTerm]!.isEmpty)

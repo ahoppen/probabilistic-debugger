@@ -624,8 +624,7 @@ public class WPInferenceEngine {
     if let cachedReuslt = inferenceCache[initialState] {
       inferredStateOrNil = cachedReuslt
     } else {
-      inferredStateOrNil = self._performInference(for: initialState)
-//      inferredStateOrNil = self.performInference(for: initialState, upTo: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0))
+      inferredStateOrNil = self.performInference(for: initialState, upTo: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0))
       inferenceCache[initialState] = inferredStateOrNil
     }
     
