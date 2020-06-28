@@ -12,6 +12,7 @@ internal struct WPInferenceState: Hashable {
     var remainingLoopUnrolls: LoopUnrolls
     var branchingHistory: BranchingHistory
     var slicingStates: [WPTerm: WPSlicingState]
+    var previousBlock: BasicBlockName?
     
     init(
       position: InstructionPosition,
@@ -20,7 +21,8 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: WPTerm,
       remainingLoopUnrolls: LoopUnrolls,
       branchingHistory: BranchingHistory,
-      slicingStates: [WPTerm: WPSlicingState]
+      slicingStates: [WPTerm: WPSlicingState],
+      previousBlock: BasicBlockName?
     ) {
       self.position = position
       self.term = term
@@ -29,6 +31,7 @@ internal struct WPInferenceState: Hashable {
       self.remainingLoopUnrolls = remainingLoopUnrolls
       self.branchingHistory = branchingHistory
       self.slicingStates = slicingStates
+      self.previousBlock = previousBlock
     }
     
     init(_ other: Storage) {
@@ -39,6 +42,7 @@ internal struct WPInferenceState: Hashable {
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
       self.branchingHistory = other.branchingHistory
       self.slicingStates = other.slicingStates
+      self.previousBlock = other.previousBlock
     }
     
     func hash(into hasher: inout Hasher) {
@@ -162,6 +166,19 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
+  /// The name of the basic block from that was previously inferred. `nil` if no block was previously inferred.
+  var previousBlock: BasicBlockName? {
+    get {
+      return storage.previousBlock
+    }
+    set {
+      if !isKnownUniquelyReferenced(&storage) {
+        storage = Storage(storage)
+      }
+      storage.previousBlock = newValue
+    }
+  }
+  
   // MARK: - Initialization
   
   private init(
@@ -171,7 +188,8 @@ internal struct WPInferenceState: Hashable {
     observeAndDeliberateBranchIgnoringFocusRate: WPTerm,
     remainingLoopUnrolls: LoopUnrolls,
     branchingHistory: BranchingHistory,
-    slicingStates: [WPTerm: WPSlicingState]
+    slicingStates: [WPTerm: WPSlicingState],
+    previousBlock: BasicBlockName?
   ) {
     self.storage = Storage(
       position: position,
@@ -180,7 +198,8 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: observeAndDeliberateBranchIgnoringFocusRate,
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
-      slicingStates: slicingStates
+      slicingStates: slicingStates,
+      previousBlock: previousBlock
     )
   }
   
@@ -203,25 +222,8 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: .integer(1),
       remainingLoopUnrolls: loopUnrolls,
       branchingHistory: branchingHistory,
-      slicingStates: slicingStates
-    )
-  }
-  
-  /// Create a `WPInferenceState` that tracks an execution rate that has been explicitly lost.
-  init(
-    lostStateAtPosition position: InstructionPosition,
-    lostRate: WPTerm,
-    remainingLoopUnrolls: LoopUnrolls,
-    branchingHistory: BranchingHistory
-  ) {
-    self.init(
-      position: position,
-      term: .integer(0),
-      focusRate: .integer(0),
-      observeAndDeliberateBranchIgnoringFocusRate: .integer(0),
-      remainingLoopUnrolls: remainingLoopUnrolls,
-      branchingHistory: branchingHistory,
-      slicingStates: [:]
+      slicingStates: slicingStates,
+      previousBlock: nil
     )
   }
   
@@ -239,7 +241,8 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: WPTerm.add(terms: states.map(\.observeAndDeliberateBranchIgnoringFocusRate)),
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
-      slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged($0, $1) })
+      slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged($0, $1) }),
+      previousBlock: nil
     )
   }
   

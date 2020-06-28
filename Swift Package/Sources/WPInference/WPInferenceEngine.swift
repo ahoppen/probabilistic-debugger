@@ -43,7 +43,7 @@ public class WPInferenceEngine {
   /// Perform a single inference step.
   /// The current instruction of `stateToInfer` has **not** been inferred yet.
   /// `previousBlock` is the block that has been inferred before this block. It must be specified when inferring a `BranchInstruction`. For all other instructions, it can be omitted.
-  private func performInferenceStep(_ state: WPInferenceState, previousBlock: BasicBlockName?) -> WPInferenceState? {
+  private func performInferenceStep(_ state: WPInferenceState) -> WPInferenceState? {
     var state = state
     let position = state.position
     let instruction = program.instruction(at: position)!
@@ -82,7 +82,7 @@ public class WPInferenceEngine {
       // Jump is a no-op as far as the WP-terms are concerned
       break
     case let instruction as BranchInstruction:
-      guard let previousBlock = previousBlock else {
+      guard let previousBlock = state.previousBlock else {
         fatalError("previousBlock must be specified when inferring a BranchInstruction")
       }
       let takenBranch: Bool
@@ -181,12 +181,10 @@ public class WPInferenceEngine {
     let predominator = program.immediatePredominator[state.position.basicBlock]!!
     let lastInstructionPositionInPredominator = InstructionPosition(basicBlock: predominator, instructionIndex: program.basicBlocks[predominator]!.instructions.count - 1)
     let previousBlock = state.position.basicBlock
-    state.position = InstructionPosition(basicBlock: predecessor, instructionIndex: program.basicBlocks[predecessor]!.instructions.count - 1)
-    if let inferredState = performInferenceStep(state, previousBlock: previousBlock) {
-      return performInference(for: inferredState, upTo: lastInstructionPositionInPredominator)
-    } else {
-      return nil
-    }
+    // Start inference from a virtual instruction just after the last instruction in the predecessor block
+    state.position = InstructionPosition(basicBlock: predecessor, instructionIndex: program.basicBlocks[predecessor]!.instructions.count)
+    state.previousBlock = previousBlock
+    return performInference(for: state, upTo: lastInstructionPositionInPredominator)
   }
   
   private func performInferenceStepForAllBlockBoundaries(for state: WPInferenceState) -> WPInferenceState? {
@@ -228,7 +226,7 @@ public class WPInferenceEngine {
           }
         } else {
           state.position = previousPosition
-          if let newState = performInferenceStep(state, previousBlock: nil) {
+          if let newState = performInferenceStep(state) {
             state = newState
           } else {
             return nil
