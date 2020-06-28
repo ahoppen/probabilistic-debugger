@@ -37,16 +37,6 @@ public struct LoopUnrolls: Hashable, CustomStringConvertible {
     return LoopUnrolls(mergedContext)
   }
   
-  public static func intersection<SequenceType: Sequence>(_ contexts: SequenceType) -> LoopUnrolls where SequenceType.Element == LoopUnrolls {
-    var mergedContext: [IRLoop: Int] = [:]
-    for contextToMerge in contexts {
-      mergedContext.merge(contextToMerge.context, uniquingKeysWith: { (lhs, rhs) -> Int in
-        return min(lhs, rhs)
-      })
-    }
-    return LoopUnrolls(mergedContext)
-  }
-  
   // MARK: Querying for loop unrolls
   
   public subscript(conditionBlock conditionBlock: BasicBlockName) -> Int? {

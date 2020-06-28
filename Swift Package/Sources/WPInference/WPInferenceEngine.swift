@@ -191,7 +191,14 @@ public class WPInferenceEngine {
   
   private func performInferenceStepForAllBlockBoundaries(for state: WPInferenceState) -> WPInferenceState? {
     var inferredSubStates = [WPInferenceState]()
+    var remainingLoopUnrolls = state.remainingLoopUnrolls
     for predecessor in program.directPredecessors[state.position.basicBlock]!.sorted() {
+      let loop = IRLoop(conditionBlock: predecessor, bodyStartBlock: state.position.basicBlock)
+      if let loopUnrollsRemaining = remainingLoopUnrolls[loop] {
+        if loopUnrollsRemaining > 0 {
+          remainingLoopUnrolls = remainingLoopUnrolls.recordingTraversalOfUnrolledLoopBody(loop)
+        }
+      }
       if let inferredState = performInferenceStepForSpecificBlockBoundary(for: state, towards: predecessor) {
         inferredSubStates.append(inferredState)
       }
@@ -201,9 +208,8 @@ public class WPInferenceEngine {
       return nil
     }
     
-    let mergedLoopUnrolls = LoopUnrolls.intersection(inferredSubStates.map(\.remainingLoopUnrolls))
     
-    guard let mergedState = WPInferenceState.merged(states: inferredSubStates, remainingLoopUnrolls: mergedLoopUnrolls, branchingHistory: inferredSubStates.first!.branchingHistory) else {
+    guard let mergedState = WPInferenceState.merged(states: inferredSubStates, remainingLoopUnrolls: remainingLoopUnrolls, branchingHistory: inferredSubStates.first!.branchingHistory) else {
       return nil
     }
     return mergedState
