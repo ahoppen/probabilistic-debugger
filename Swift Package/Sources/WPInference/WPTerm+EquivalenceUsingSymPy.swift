@@ -64,11 +64,18 @@ internal extension WPResultTerm {
   }
 }
 
+fileprivate struct WPTermPair: Hashable {
+  let lhs: WPTerm
+  let rhs: WPTerm
+}
+
 fileprivate class WPTermSymPyComparisonEngine {
   private let pythonProcess: Process
   private let stdOutPipe: Pipe
   private let stdErrPipe: Pipe
   private let stdInPipe: Pipe
+  
+  private var cache: [WPTermPair: Bool] = [:]
   
   public static var instance = WPTermSymPyComparisonEngine()
   
@@ -105,6 +112,9 @@ fileprivate class WPTermSymPyComparisonEngine {
   }
 
   fileprivate func equal(lhs: WPTerm, rhs: WPTerm) -> Bool {
+    if let cacheHit = cache[WPTermPair(lhs: lhs, rhs: rhs)] {
+      return cacheHit
+    }
     var variableNameMap: [WPTerm: Int] = [:]
     let lhsTermForSymPy = lhs.descriptionForSymPy(variableNameMap: &variableNameMap)
     let rhsTermForSymPy = rhs.descriptionForSymPy(variableNameMap: &variableNameMap)
@@ -115,6 +125,8 @@ fileprivate class WPTermSymPyComparisonEngine {
     exec("rhsEq = \(rhsTermForSymPy)", resultLength: 0)
     let output = exec("print(1 if simplify(Eq(lhsEq, rhsEq)) == True else 0)", resultLength: 2)
     
-    return output == "1\n"
+    let result = (output == "1\n")
+    cache[WPTermPair(lhs: lhs, rhs: rhs)] = result
+    return result
   }
 }
