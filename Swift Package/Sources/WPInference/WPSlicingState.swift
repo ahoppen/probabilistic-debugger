@@ -210,23 +210,23 @@ struct WPSlicingState: Hashable {
   
   // MARK: Updating the slicing state
   
-  mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, focusRate updatefocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateobserveAndDeliberateBranchIgnoringFocusRate: Bool, controlFlowDependency: IRVariable?, isObserveDependency: Bool, observeDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(position: InstructionPosition, term updateTerm: Bool, focusRate updateFocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateObserveAndDeliberateBranchIgnoringFocusRate: Bool, controlFlowDependency: IRVariable?, isObserveDependency: Bool, observeDependency: IRVariable?, update: (WPTerm) -> WPTerm?) {
     
     let termBeforeUpdate = self.resultTerm
     
     // Update all terms
     let previousInfluencingInstructions = influencingInstructionsForTerms[self.resultTerm]!
-    self.resultTerm.updateTerms(term: updateTerm, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateobserveAndDeliberateBranchIgnoringFocusRate, update: update)
+    self.resultTerm.updateTerms(term: updateTerm, focusRate: updateFocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateObserveAndDeliberateBranchIgnoringFocusRate, update: update)
     self.potentialControlFlowDependencies = self.potentialControlFlowDependencies.mapValues({ branchingTerms in
       Set(branchingTerms.map({ (term: WPResultTerm) -> WPResultTerm in
         var term = term
-        term.updateTerms(term: updateTerm, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateobserveAndDeliberateBranchIgnoringFocusRate, update: update)
+        term.updateTerms(term: updateTerm, focusRate: updateFocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateObserveAndDeliberateBranchIgnoringFocusRate, update: update)
         return term
       }))
     })
     self.observeTerms = Set(self.observeTerms.map({ term in
       var term = term
-      term.updateTerms(term: false, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateobserveAndDeliberateBranchIgnoringFocusRate, update: update)
+      term.updateTerms(term: false, focusRate: updateFocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateObserveAndDeliberateBranchIgnoringFocusRate, update: update)
       return term
     }))
     
