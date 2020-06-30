@@ -59,12 +59,24 @@ struct WPSlicingState: Hashable {
   /// Thus, at the end of WP-inference, all positions with more than one resultTerm had an influence on the resultTerm
   private var potentialControlFlowDependencies: [InstructionPosition: Set<WPResultTerm>]
   
+  /// For each control flow position, the variable that determined the branch, so that its influencing instructions can also be added to this state's influencing instructions.
+  private(set) var controlFlowConditions: [InstructionPosition: IRVariable]
+  
+  /// All instruction positions that have an influence on the slice that's tracked by this slicing state.
+  var controlFlowDependencies: Set<InstructionPosition> {
+    let conrolFlowDependencies = potentialControlFlowDependencies.compactMap({ (key, value) -> InstructionPosition? in
+      if value.count > 1 {
+        return key
+      } else {
+        return nil
+      }
+    })
+    return Set(conrolFlowDependencies)
+  }
+  
   private(set) var observeTerms: Set<WPResultTerm>
   
   private(set) var potentialObserveDependencies: Set<InstructionPosition>
-  
-  /// For each control flow position, the variable that determined the branch, so that its influencing instructions can also be added to this state's influencing instructions.
-  private(set) var controlFlowConditions: [InstructionPosition: IRVariable]
   
   /// Build the result term that is used for `potentialControlFlowDependencies` and `influencingInstructionsForTerms`.
   private static func buildResultTerm(term: WPResultTerm) -> WPTerm {
@@ -87,18 +99,6 @@ struct WPSlicingState: Hashable {
     let minimalSlices = slices.filter({ $0.count == minimalSliceSize })
     assert(minimalSlices.count == 1)
     return minimalSlices.first!
-  }
-  
-  /// All instruction positions that have an influence on the slice that's tracked by this slicing state.
-  var controlFlowDependencies: Set<InstructionPosition> {
-    let conrolFlowDependencies = potentialControlFlowDependencies.compactMap({ (key, value) -> InstructionPosition? in
-      if value.count > 1 {
-        return key
-      } else {
-        return nil
-      }
-    })
-    return Set(conrolFlowDependencies)
   }
   
   // MARK: Constructors
