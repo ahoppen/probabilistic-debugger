@@ -136,7 +136,7 @@ public class WPInferenceEngine {
     return state
   }
   
-  private func performInferenceStepForSpecificBlockBoundary(for state: WPInferenceState, towards predecessor: BasicBlockName) -> WPInferenceState? {
+  private func performInferenceStepForSpecificBlockBoundary(for state: WPInferenceState, towards predecessor: BasicBlockName, upTo inferenceStopPosition: InstructionPosition) -> WPInferenceState? {
     var state = state
     // Check if loop unrolls prevent us from performing inference across this block boundary
     let loop = IRLoop(conditionBlock: predecessor, bodyStartBlock: state.position.basicBlock)
@@ -179,7 +179,7 @@ public class WPInferenceEngine {
     
     // Actually perform the inference across the block boundary
     let predominator = program.immediatePredominator[state.position.basicBlock]!!
-    let lastInstructionPositionInPredominator = InstructionPosition(basicBlock: predominator, instructionIndex: program.basicBlocks[predominator]!.instructions.count - 1)
+    let lastInstructionPositionInPredominator = InstructionPosition(basicBlock: predominator, instructionIndex: program.basicBlocks[predominator]!.instructions.count)
     let previousBlock = state.position.basicBlock
     // Start inference from a virtual instruction just after the last instruction in the predecessor block
     state.position = InstructionPosition(basicBlock: predecessor, instructionIndex: program.basicBlocks[predecessor]!.instructions.count)
@@ -187,7 +187,7 @@ public class WPInferenceEngine {
     return performInference(for: state, upTo: lastInstructionPositionInPredominator)
   }
   
-  private func performInferenceStepForAllBlockBoundaries(for state: WPInferenceState) -> WPInferenceState? {
+  private func performInferenceStepForAllBlockBoundaries(for state: WPInferenceState, upTo inferenceStopPosition: InstructionPosition) -> WPInferenceState? {
     var inferredSubStates = [WPInferenceState]()
     var remainingLoopUnrolls = state.remainingLoopUnrolls
     for predecessor in program.directPredecessors[state.position.basicBlock]!.sorted() {
@@ -197,20 +197,29 @@ public class WPInferenceEngine {
           remainingLoopUnrolls = remainingLoopUnrolls.recordingTraversalOfUnrolledLoopBody(loop)
         }
       }
-      if let inferredState = performInferenceStepForSpecificBlockBoundary(for: state, towards: predecessor) {
+      if let inferredState = performInferenceStepForSpecificBlockBoundary(for: state, towards: predecessor, upTo: inferenceStopPosition) {
         inferredSubStates.append(inferredState)
       }
     }
+    inferredSubStates = inferredSubStates.compactMap({ (inferredSubState: WPInferenceState) -> WPInferenceState? in
+      var inferredSubState = inferredSubState
+      if inferredSubState.position == inferenceStopPosition {
+        return inferredSubState
+      }
+      let previousPosition = InstructionPosition(basicBlock: inferredSubState.position.basicBlock, instructionIndex: inferredSubState.position.instructionIndex - 1)
+      inferredSubState.position = previousPosition
+      return performInferenceStep(inferredSubState)
+    })
+    
     assert(inferredSubStates.map(\.branchingHistory).allEqual)
-    guard !inferredSubStates.isEmpty else {
+    switch inferredSubStates.count {
+    case 0:
       return nil
+    case 1:
+      return inferredSubStates.first!
+    default:
+      return WPInferenceState.merged(states: inferredSubStates, remainingLoopUnrolls: remainingLoopUnrolls, branchingHistory: inferredSubStates.first!.branchingHistory)
     }
-    
-    
-    guard let mergedState = WPInferenceState.merged(states: inferredSubStates, remainingLoopUnrolls: remainingLoopUnrolls, branchingHistory: inferredSubStates.first!.branchingHistory) else {
-      return nil
-    }
-    return mergedState
   }
   
   private func performInference(for state: WPInferenceState, upTo inferenceStopPosition: InstructionPosition) -> WPInferenceState? {
@@ -219,7 +228,7 @@ public class WPInferenceEngine {
       if state.position.instructionIndex > 0 {
         let previousPosition = InstructionPosition(basicBlock: state.position.basicBlock, instructionIndex: state.position.instructionIndex - 1)
         if program.instruction(at: previousPosition) is PhiInstruction {
-          if let inferredState = performInferenceStepForAllBlockBoundaries(for: state) {
+          if let inferredState = performInferenceStepForAllBlockBoundaries(for: state, upTo: inferenceStopPosition) {
             state = inferredState
           } else {
             return nil
@@ -233,7 +242,7 @@ public class WPInferenceEngine {
           }
         }
       } else {
-        if let inferredState = performInferenceStepForAllBlockBoundaries(for: state) {
+        if let inferredState = performInferenceStepForAllBlockBoundaries(for: state, upTo: inferenceStopPosition) {
           state = inferredState
         } else {
           return nil
