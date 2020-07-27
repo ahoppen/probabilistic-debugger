@@ -132,22 +132,29 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
   }
   
   // MARK: Managing the debugger
+  
+  func clearExecutionOutlineSelection() {
+    executionOutlineView.selectRowIndexes([], byExtendingSelection: false)
+  }
 
   @IBAction func stepOver(_ sender: Any) {
     do {
       try debuggerCentral.stepOver()
+      clearExecutionOutlineSelection()
     } catch {}
   }
   
   @IBAction func stepIntoTrue(_ sender: Any) {
     do {
       try debuggerCentral.stepInto(branch: true)
+      clearExecutionOutlineSelection()
     } catch {}
   }
   
   @IBAction func stepIntoFalse(_ sender: Any) {
     do {
       try debuggerCentral.stepInto(branch: false)
+      clearExecutionOutlineSelection()
     } catch {}
   }
 }
