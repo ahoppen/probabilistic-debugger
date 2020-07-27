@@ -1,6 +1,7 @@
 import Debugger
 import IR
 import SimpleLanguageIRGen
+import Utils
 
 extension Array where Element: Hashable {
     func histogram() -> [Element: Int] {
@@ -230,11 +231,12 @@ class DebuggerConsole {
     }
     let focusedOnRuns = Double(debugger.samples.count) / Double(initialSampleCount)
     if focusedOnRuns != 1 {
-      print("Currently focused on \(focusedOnRuns * 100)% of all initially started runs.")
+      print("Currently focused on \((focusedOnRuns * 100).rounded(decimalPlaces: 4))% of all initially started runs.")
     }
     print("Variable values:")
+    let variableValues = debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)
     for variable in firstSample.values.keys.sorted() {
-      let histogram = debugger.samples.map({ $0.values[variable]! }).histogram()
+      let histogram = variableValues[variable]!
       
       let value: String
       if histogram.count == 1 {
@@ -243,7 +245,7 @@ class DebuggerConsole {
       } else {
         // Print the frequencies of the values
         value = histogram.sorted(by: { $0.key < $1.key }).map({ (value, frequency) in
-          "\(value): \(Double(frequency) / Double(debugger.samples.count) * 100)%"
+          "\(value): \((Double(frequency) * 100).rounded(decimalPlaces: 4))%"
         }).joined(separator: ", ")
       }
       print("\(variable) | \(value)")

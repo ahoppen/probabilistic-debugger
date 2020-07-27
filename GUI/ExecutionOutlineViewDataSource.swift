@@ -29,13 +29,6 @@ enum ExecutionOutlineRow {
   }
 }
 
-extension Double {
-  func rounded(decimalPlaces: Int) -> Double {
-    let padding = pow(10, Double(decimalPlaces))
-    return (self * padding).rounded() / padding
-  }
-}
-
 fileprivate extension String {
   subscript(sourceCodeRange: Range<SourceCodeLocation>) -> String {
     let sourceLine = self.split(separator: "\n", omittingEmptySubsequences: false)[sourceCodeRange.lowerBound.line - 1]
