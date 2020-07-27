@@ -125,7 +125,7 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       return (value.description, probability)
     })
     let probabilitySum = probabilityHistogram.map(\.probability).reduce(0, { $0 + $1 })
-    if probabilitySum < 1 {
+    if probabilitySum < 1 - pow(10, -8) /* ignore numerical instabilities */ {
       probabilityHistogram.append((label: "?", probability: 1 - probabilitySum))
     }
     return probabilityHistogram
