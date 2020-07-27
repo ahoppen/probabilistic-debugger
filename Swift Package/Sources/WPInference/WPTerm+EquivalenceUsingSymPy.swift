@@ -99,7 +99,7 @@ fileprivate class WPTermSymPyComparisonEngine {
       sys.stdout.flush()
     """
     
-    pythonProcess.launchPath = "/usr/local/Cellar/python/3.7.7/bin/python3"
+    pythonProcess.launchPath = "/usr/local/bin/python3"
     pythonProcess.arguments = ["-c", pythonCode]
     pythonProcess.launch()
   }
