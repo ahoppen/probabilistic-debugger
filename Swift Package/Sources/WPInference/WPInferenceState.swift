@@ -11,7 +11,6 @@ internal struct WPInferenceState: Hashable {
     var observeAndDeliberateBranchIgnoringFocusRate: WPTerm
     var remainingLoopUnrolls: LoopUnrolls
     var branchingHistory: BranchingHistory
-    var slicingStates: [WPTerm: WPSlicingState]
     var previousBlock: BasicBlockName?
     
     init(
@@ -21,7 +20,6 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: WPTerm,
       remainingLoopUnrolls: LoopUnrolls,
       branchingHistory: BranchingHistory,
-      slicingStates: [WPTerm: WPSlicingState],
       previousBlock: BasicBlockName?
     ) {
       self.position = position
@@ -30,7 +28,6 @@ internal struct WPInferenceState: Hashable {
       self.observeAndDeliberateBranchIgnoringFocusRate = observeAndDeliberateBranchIgnoringFocusRate
       self.remainingLoopUnrolls = remainingLoopUnrolls
       self.branchingHistory = branchingHistory
-      self.slicingStates = slicingStates
       self.previousBlock = previousBlock
     }
     
@@ -41,7 +38,6 @@ internal struct WPInferenceState: Hashable {
       self.observeAndDeliberateBranchIgnoringFocusRate = other.observeAndDeliberateBranchIgnoringFocusRate
       self.remainingLoopUnrolls = other.remainingLoopUnrolls
       self.branchingHistory = other.branchingHistory
-      self.slicingStates = other.slicingStates
       self.previousBlock = other.previousBlock
     }
     
@@ -52,7 +48,6 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate.hash(into: &hasher)
       remainingLoopUnrolls.hash(into: &hasher)
       branchingHistory.hash(into: &hasher)
-      slicingStates.hash(into: &hasher)
     }
     
     static func ==(lhs: WPInferenceState.Storage, rhs: WPInferenceState.Storage) -> Bool {
@@ -61,8 +56,7 @@ internal struct WPInferenceState: Hashable {
         lhs.focusRate == rhs.focusRate &&
         lhs.observeAndDeliberateBranchIgnoringFocusRate == rhs.observeAndDeliberateBranchIgnoringFocusRate &&
         lhs.remainingLoopUnrolls == rhs.remainingLoopUnrolls &&
-        lhs.branchingHistory == rhs.branchingHistory &&
-        lhs.slicingStates == rhs.slicingStates
+        lhs.branchingHistory == rhs.branchingHistory
     }
   }
   
@@ -153,19 +147,6 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  /// For the slicing queries that are tracked by this inference state, the corresponding slicing states.
-  private(set) var slicingStates: [WPTerm: WPSlicingState] {
-    get {
-      return storage.slicingStates
-    }
-    set {
-      if !isKnownUniquelyReferenced(&storage) {
-        storage = Storage(storage)
-      }
-      storage.slicingStates = newValue
-    }
-  }
-  
   /// The name of the basic block from that was previously inferred. `nil` if no block was previously inferred.
   var previousBlock: BasicBlockName? {
     get {
@@ -188,7 +169,6 @@ internal struct WPInferenceState: Hashable {
     observeAndDeliberateBranchIgnoringFocusRate: WPTerm,
     remainingLoopUnrolls: LoopUnrolls,
     branchingHistory: BranchingHistory,
-    slicingStates: [WPTerm: WPSlicingState],
     previousBlock: BasicBlockName?
   ) {
     self.storage = Storage(
@@ -198,7 +178,6 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: observeAndDeliberateBranchIgnoringFocusRate,
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
-      slicingStates: slicingStates,
       previousBlock: previousBlock
     )
   }
@@ -208,13 +187,8 @@ internal struct WPInferenceState: Hashable {
     initialInferenceStateAtPosition position: InstructionPosition,
     term: WPTerm,
     loopUnrolls: LoopUnrolls,
-    branchingHistory: BranchingHistory,
-    slicingForTerms slicingTerms: [WPTerm]
+    branchingHistory: BranchingHistory
   ) {
-    var slicingStates: [WPTerm: WPSlicingState] = [:]
-    for slicingTerm in slicingTerms {
-      slicingStates[slicingTerm] = WPSlicingState(initialStateFor: slicingTerm)
-    }
     self.init(
       position: position,
       term: term,
@@ -222,7 +196,6 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: .integer(1),
       remainingLoopUnrolls: loopUnrolls,
       branchingHistory: branchingHistory,
-      slicingStates: slicingStates,
       previousBlock: nil
     )
   }
@@ -241,7 +214,6 @@ internal struct WPInferenceState: Hashable {
       observeAndDeliberateBranchIgnoringFocusRate: WPTerm.add(terms: states.map(\.observeAndDeliberateBranchIgnoringFocusRate)),
       remainingLoopUnrolls: remainingLoopUnrolls,
       branchingHistory: branchingHistory,
-      slicingStates: Dictionary.merged(states.map(\.slicingStates), uniquingKeysWith: { WPSlicingState.merged($0, $1) }),
       previousBlock: nil
     )
   }
@@ -254,7 +226,7 @@ internal struct WPInferenceState: Hashable {
     }
   }
   
-  mutating func updateTerms(term updateTerm: Bool, focusRate updatefocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateObserveAndDeliberateBranchIgnoringFocusRate: Bool, controlFlowDependency: IRVariable? = nil, isObserveDependency: Bool = false, observeDependency: IRVariable? = nil, update: (WPTerm) -> WPTerm?) {
+  mutating func updateTerms(term updateTerm: Bool, focusRate updatefocusRate: Bool, observeAndDeliberateBranchIgnoringFocusRate updateObserveAndDeliberateBranchIgnoringFocusRate: Bool, update: (WPTerm) -> WPTerm?) {
     if updateTerm, let updatedTerm = update(self.term) {
       self.term = updatedTerm
     }
@@ -264,55 +236,5 @@ internal struct WPInferenceState: Hashable {
     if updateObserveAndDeliberateBranchIgnoringFocusRate, let updatedobserveAndDeliberateBranchIgnoringFocusRate = update(self.observeAndDeliberateBranchIgnoringFocusRate) {
       self.observeAndDeliberateBranchIgnoringFocusRate = updatedobserveAndDeliberateBranchIgnoringFocusRate
     }
-    for key in slicingStates.keys {
-      slicingStates[key]!.updateTerms(position: position, term: updateTerm, focusRate: updatefocusRate, observeAndDeliberateBranchIgnoringFocusRate: updateObserveAndDeliberateBranchIgnoringFocusRate, controlFlowDependency: controlFlowDependency, isObserveDependency: isObserveDependency, observeDependency: observeDependency, update: update)
-    }
-    
-    // If we are slicing and a new control flow dependency got introduce, also compute the slice for this control flow dependency.
-    if !slicingStates.isEmpty, let controlFlowDependency = controlFlowDependency, slicingStates[.variable(controlFlowDependency)] == nil {
-      slicingStates[.variable(controlFlowDependency)] = WPSlicingState(initialStateFor: .variable(controlFlowDependency))
-    }
-    // If we are slicing and a new control flow dependency got introduce, also compute the slice for this control flow dependency.
-    if !slicingStates.isEmpty, let observeDependency = observeDependency, slicingStates[.variable(observeDependency)] == nil {
-      slicingStates[.variable(observeDependency)] = WPSlicingState(initialStateFor: .variable(observeDependency))
-    }
-  }
-
-  // MARK: Slicing
-
-  /// Return all instructions that have influenced the value of `term` at the end of the program.
-  /// `term` must be specified in `slicingForTerms` when this state was created, otherwise the behaviour of this method is undefined.
-  func influencingInstructions(of term: WPTerm) -> Set<InstructionPosition> {
-    assert(slicingStates[term] != nil, "No slicing information is specified for \(term). It needs to be specified before WP-inference is started")
-    
-    var worklist = [term]
-    var handledTerms: Set<WPTerm> = []
-
-    var influencingInstructions: Set<InstructionPosition> = []
-    while let worklistEntry = worklist.popLast() {
-      if handledTerms.contains(worklistEntry) {
-        continue
-      }
-      handledTerms.insert(worklistEntry)
-      
-      let slicingState = slicingStates[worklistEntry]!
-      
-      influencingInstructions.formUnion(slicingState.minimalSlice)
-      
-      for controlFlowDependency in slicingState.controlFlowDependencies {
-        let controlFlowCondition = slicingState.controlFlowConditions[controlFlowDependency]!
-        influencingInstructions.insert(controlFlowDependency)
-        worklist.append(.variable(controlFlowCondition))
-      }
-      if !slicingState.observeTerms.map({ $0.focusRate / $0.observeAndDeliberateBranchIgnoringFocusRate }).allEqual {
-        for observeDependency in slicingState.potentialObserveDependencies {
-          influencingInstructions.insert(observeDependency)
-          if let observeCondition = slicingState.controlFlowConditions[observeDependency] {
-            worklist.append(.variable(observeCondition))
-          }
-        }
-      }
-    }
-    return influencingInstructions
   }
 }

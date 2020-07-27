@@ -58,12 +58,6 @@ public extension WPTerm {
   }
 }
 
-internal extension WPResultTerm {
-  func equalsUsingSymPy(_ other: WPResultTerm) -> Bool {
-    return WPTermSymPyComparisonEngine.instance.equal(lhs: self.value, rhs: other.value)
-  }
-}
-
 fileprivate struct WPTermPair: Hashable {
   let lhs: WPTerm
   let rhs: WPTerm

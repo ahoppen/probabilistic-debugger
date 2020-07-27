@@ -66,22 +66,10 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
     }
   }
   var cancellables: [AnyCancellable] = []
-  private let variableSelectionDidChange: (_ selectedVariable: String?) -> Void
   
-  func tableViewSelectionDidChange(_ notification: Notification) {
-    if tableView.selectedRow == -1 {
-      variableSelectionDidChange(nil)
-    } else {
-      let firstSample = data.displayedSamples.first!
-      let variableName = firstSample.values.keys.sorted()[tableView.selectedRow]
-      variableSelectionDidChange(variableName)
-    }
-  }
-  
-  init(debugger: DebuggerCentral, survivingSamplesOnly: Published<Bool>.Publisher, refineProbabilitiesUsingWpInference: Published<Bool>.Publisher, distributeApproximationError: Published<Bool>.Publisher, tableView: NSTableView, variableSelectionDidChange: @escaping (_ selectedVariable: String?) -> Void) {
+  init(debugger: DebuggerCentral, survivingSamplesOnly: Published<Bool>.Publisher, refineProbabilitiesUsingWpInference: Published<Bool>.Publisher, distributeApproximationError: Published<Bool>.Publisher, tableView: NSTableView) {
     self.debugger = debugger
     self.tableView = tableView
-    self.variableSelectionDidChange = variableSelectionDidChange
     super.init()
     let combinedPublisher = Publishers.CombineLatest4(debugger.$samples, debugger.survivingSampleIds,  Publishers.CombineLatest(debugger.$variableValuesRefinedUsingWPDroppingApproxmiationError, debugger.$variableValuesRefinedUsingWPDistributingApproximationError), Publishers.CombineLatest3(survivingSamplesOnly, refineProbabilitiesUsingWpInference, distributeApproximationError))
     let delayedLatest = DelayedLatest(upstream: combinedPublisher, wait: .milliseconds(50), queue: .global(qos: .userInitiated))

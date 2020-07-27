@@ -69,13 +69,7 @@ public class WPInferenceEngine {
         return .add(terms: terms)
       }
     case let instruction as ObserveInstruction:
-      let observeDependency: IRVariable?
-      if case .variable(let observedVariable) = instruction.observation {
-        observeDependency = observedVariable
-      } else {
-        observeDependency = nil
-      }
-      state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false, isObserveDependency: true, observeDependency: observeDependency) {
+      state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false) {
         return .boolToInt(WPTerm(instruction.observation)) * $0
       }
     case is JumpInstruction:
@@ -100,19 +94,12 @@ public class WPInferenceEngine {
       } else {
         cleanedBranchingHistory = state.branchingHistory
       }
-      
-      let controlFlowDependency: IRVariable?
-      if case .variable(let conditionVariable) = instruction.condition {
-        controlFlowDependency = conditionVariable
-      } else {
-        controlFlowDependency = nil
-      }
 
       switch cleanedBranchingHistory.lastChoice {
       case .choice(source: state.position.basicBlock, target: previousBlock):
         // We are taking a deliberate choice. Consider it taken care of by removing it off the list
         state.branchingHistory = cleanedBranchingHistory.droppingLastChoice()
-        state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false, controlFlowDependency: controlFlowDependency) {
+        state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: false) {
           return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
         }
       case .any(predominatedBy: let predominator) where program.predominators[state.position.basicBlock]!.contains(predominator):
@@ -120,7 +107,7 @@ public class WPInferenceEngine {
         // Note that predominators contains the block itself.
 
         state.branchingHistory = cleanedBranchingHistory
-        state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: true, controlFlowDependency: controlFlowDependency) {
+        state.updateTerms(term: true, focusRate: true, observeAndDeliberateBranchIgnoringFocusRate: true) {
           return .probability(of: instruction.condition, equalTo: .bool(takenBranch)) * $0
         }
       default:
@@ -280,8 +267,7 @@ public class WPInferenceEngine {
       initialInferenceStateAtPosition: inferenceStopPosition,
       term: term,
       loopUnrolls: loopUnrolls,
-      branchingHistory: branchingHistory,
-      slicingForTerms: []
+      branchingHistory: branchingHistory
     )
     
     let inferredStateOrNil: WPInferenceState?
@@ -307,31 +293,6 @@ public class WPInferenceEngine {
       focusRate: inferredState.focusRate,
       observeAndDeliberateBranchIgnoringFocusRate: inferredState.observeAndDeliberateBranchIgnoringFocusRate
     )
-  }
-  
-  public func slice(term: WPTerm, loopUnrolls: LoopUnrolls, inferenceStopPosition: InstructionPosition, branchingHistory: BranchingHistory) -> Set<InstructionPosition> {
-    let initialState = WPInferenceState(
-      initialInferenceStateAtPosition: inferenceStopPosition,
-      term: .integer(0),
-      loopUnrolls: loopUnrolls,
-      branchingHistory: branchingHistory,
-      slicingForTerms: [term]
-    )
-    
-    let inferredStateOrNil: WPInferenceState?
-    
-    if let cachedReuslt = inferenceCache[initialState] {
-      inferredStateOrNil = cachedReuslt
-    } else {
-      inferredStateOrNil = self.performInference(for: initialState, upTo: InstructionPosition(basicBlock: program.startBlock, instructionIndex: 0))
-      inferenceCache[initialState] = inferredStateOrNil
-    }
-    
-    guard let inferredState = inferredStateOrNil else {
-      // There was no successful inference run of the program. Manually put together the "zero" inference results.
-      return []
-    }
-    return inferredState.influencingInstructions(of: term)
   }
 }
 
