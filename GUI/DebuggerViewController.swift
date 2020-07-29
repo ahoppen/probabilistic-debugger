@@ -30,7 +30,6 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
   
   @Published @objc var survivingSamplesOnlyInVariablesView: Bool = false
   @Published @objc var refineProbabilitiesUsingWpInference: Bool = true
-  @Published @objc var distributeApproximationError: Bool = false
   
   @DelayedImmutable private var debuggerCentral: DebuggerCentral
   @DelayedImmutable private var variablesDataSource: DebuggerVariablesTableViewDataSource!
@@ -98,7 +97,6 @@ class DebuggerViewController: NSViewController, NSTextViewDelegate {
       debugger: self.debuggerCentral,
       survivingSamplesOnly: self.$survivingSamplesOnlyInVariablesView,
       refineProbabilitiesUsingWpInference: self.$refineProbabilitiesUsingWpInference,
-      distributeApproximationError: self.$distributeApproximationError,
       tableView: self.variablesTableView
     )
     self.variablesTableView.dataSource = variablesDataSource

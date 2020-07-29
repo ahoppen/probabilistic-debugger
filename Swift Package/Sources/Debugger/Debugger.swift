@@ -122,7 +122,7 @@ public class Debugger {
     return inferenceEngine.approximationError(of: currentState)
   }
   
-  public func variableValuesRefinedUsingWP(approximationErrorHandling: WPInferenceEngine.ApproximationErrorHandling) -> [String: [IRValue: Double]] {
+  public var variableValuesRefinedUsingWP: [String: [IRValue: Double]] {
     guard let currentState = currentState else {
       return [:]
     }
@@ -141,7 +141,6 @@ public class Debugger {
         variableDistribution[value] = inferenceEngine.inferProbability(
           of: irVariable,
           beingEqualTo: VariableOrValue(value),
-          approximationErrorHandling: approximationErrorHandling,
           loopUnrolls: currentState.loopUnrolls,
           to: currentState.position,
           branchingHistory: currentState.branchingHistories.first!

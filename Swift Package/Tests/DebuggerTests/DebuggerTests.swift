@@ -20,7 +20,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(sample.values, [
       "x": .integer(42)
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(42): 1
     ])
   }
@@ -42,10 +42,10 @@ class DebuggerTests: XCTestCase {
       "x": .integer(41),
       "y": .integer(52),
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(41): 1
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["y"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["y"], [
       .integer(52): 1
     ])
   }
@@ -64,7 +64,7 @@ class DebuggerTests: XCTestCase {
     }
     
     XCTAssertEqual(xValues.average, 1.5, accuracy: 0.2)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 0.5,
       .integer(2): 0.5,
     ])
@@ -89,11 +89,11 @@ class DebuggerTests: XCTestCase {
     }
     
     XCTAssertEqual(yValues.average, 15, accuracy: 1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 0.5,
       .integer(2): 0.5,
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["y"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["y"], [
       .integer(10): 0.5,
       .integer(20): 0.5,
     ])
@@ -119,10 +119,10 @@ class DebuggerTests: XCTestCase {
       "x": .integer(1),
       "x#2": .integer(2),
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 1,
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x#2"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x#2"], [
       .integer(2): 1,
     ])
   }
@@ -139,8 +139,8 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 1)
     XCTAssertNoThrow(try debugger.runUntilEnd())
     XCTAssertEqual(debugger.samples.count, 0)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop), [:])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute), [:])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP, [:])
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP, [:])
   }
   
   func testSteppingThroughStraightLineProgram() {
@@ -159,7 +159,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first!.values, [
       "x": .integer(42),
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(42): 1,
     ])
     
@@ -169,7 +169,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first!.values, [
       "x": .integer(41),
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(41): 1,
     ])
     
@@ -180,10 +180,10 @@ class DebuggerTests: XCTestCase {
       "x": .integer(41),
       "y": .integer(52)
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(41): 1,
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["y"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["y"], [
       .integer(52): 1,
     ])
     
@@ -205,7 +205,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 0.3,
       .integer(2): 0.7,
     ])
@@ -214,7 +214,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 3))
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 1,
     ])
     
@@ -222,7 +222,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 1,
     ])
   }
@@ -242,7 +242,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 0.3,
       .integer(2): 0.7,
     ])
@@ -251,7 +251,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(Double(debugger.samples.count), 7_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 1,
     ])
   }
@@ -271,7 +271,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 0.3,
       .integer(2): 0.7,
     ])
@@ -280,7 +280,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2.3, accuracy: 0.2)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 0.7,
       .integer(3): 0.3,
     ])
@@ -302,7 +302,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(2)
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 1,
     ])
     
@@ -312,7 +312,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(2)
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 1,
     ])
 
@@ -322,7 +322,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(1)
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 1,
     ])
 
@@ -332,7 +332,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.first?.values, [
       "x": .integer(1)
     ])
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 1,
     ])
   }
@@ -352,7 +352,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 4.5, accuracy: 0.2)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(3): 0.25,
       .integer(4): 0.25,
       .integer(5): 0.25,
@@ -363,7 +363,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 1,
     ])
   }
@@ -383,8 +383,8 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"]![.integer(1)]!, 0.3)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"]![.integer(2)]!, 0.7)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(1)]!, 0.3)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(2)]!, 0.7)
     
     debugger.saveState()
     
@@ -392,7 +392,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 3, column: 3))
     XCTAssertEqual(Double(debugger.samples.count), 3_000, accuracy: 300)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 1,
     ])
     
@@ -401,7 +401,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 2, column: 1))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 1.7, accuracy: 0.1)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(1): 0.3,
       .integer(2): 0.7,
     ])
@@ -410,7 +410,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 4, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
-        XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+        XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 1,
     ])
   }
@@ -431,7 +431,7 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.sourceLocation, SourceCodeLocation(line: 5, column: 2))
     XCTAssertEqual(debugger.samples.count, 10_000)
     XCTAssertEqual(debugger.samples.map({ $0.values["x"]!.integerValue! }).average, 2)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["x"], [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"], [
       .integer(2): 1,
     ])
   }
@@ -469,9 +469,9 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1.5, accuracy: 0.1)
     
     // Assert using accuracy since there are some numerical instabilities in the calculation of the WP.
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["turn"]![.integer(1)]!, 0.5, accuracy: 0.001)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["turn"]![.integer(2)]!, 0.5, accuracy: 0.001)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["turn"]![.integer(3)], nil)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(1)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(2)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(3)], nil)
   }
   
   func testCowbodyDuelWithOnlyIfElse() {
@@ -498,8 +498,8 @@ class DebuggerTests: XCTestCase {
     XCTAssertEqual(debugger.samples.map({ $0.values["turn"]!.integerValue! }).average, 1.5, accuracy: 0.1)
     
     // Assert using accuracy since there are some numerical instabilities in the calculation of the WP.
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["turn"]![.integer(1)]!, 0.5, accuracy: 0.001)
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .drop)["turn"]![.integer(2)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(1)]!, 0.5, accuracy: 0.001)
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["turn"]![.integer(2)]!, 0.5, accuracy: 0.001)
   }
   
   func testStepOverBranchIfPostdominatorHasNoDebugInfo() {
@@ -538,7 +538,7 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(1): 0.25,
       .integer(2): 0.25,
       .integer(3): 0.25,
@@ -546,27 +546,27 @@ class DebuggerTests: XCTestCase {
     ])
     // Step into the loop
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(2): 1.0 / 3,
       .integer(3): 1.0 / 3,
       .integer(4): 1.0 / 3,
     ])
     // Step into the if branch
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(4): 1,
     ])
     // Step out of the if branch
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]![.integer(2)]!, 1, accuracy: 0.00001) // Numerical instabilities
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(2)]!, 1, accuracy: 0.00001) // Numerical instabilities
     // Step into the loop
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(2): 1,
     ])
     // Step over the if-else block
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(1): 1,
     ])
   }
@@ -587,26 +587,26 @@ class DebuggerTests: XCTestCase {
     let debugger = Debugger(program: ir.program, debugInfo: ir.debugInfo, sampleCount: 10_000)
 
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(1): 0.25,
       .integer(2): 0.25,
       .integer(3): 0.25,
       .integer(4): 0.25,
     ])
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(2): 1.0 / 3,
       .integer(3): 1.0 / 3,
       .integer(4): 1.0 / 3,
     ])
     XCTAssertNoThrow(try debugger.stepInto(branch: true))
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(4): 1,
     ])
     XCTAssertNoThrow(try debugger.stepOver())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]![.integer(2)]!, 1, accuracy: 0.00001) // Numerical instabilities
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]![.integer(2)]!, 1, accuracy: 0.00001) // Numerical instabilities
     XCTAssertNoThrow(try debugger.runUntilEnd())
-    XCTAssertEqual(debugger.variableValuesRefinedUsingWP(approximationErrorHandling: .distribute)["x"]!, [
+    XCTAssertEqual(debugger.variableValuesRefinedUsingWP["x"]!, [
       .integer(1): 1,
     ])
   }

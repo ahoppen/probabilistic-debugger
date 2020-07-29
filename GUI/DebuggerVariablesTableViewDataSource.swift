@@ -36,18 +36,8 @@ fileprivate extension IRValue {
 
 fileprivate struct DataSourceData {
   let displayedSamples: [SourceCodeSample]
-  let variableValuesRefinedUsingWPDistributingApproximationError: [String: [IRValue: Double]]?
-  let variableValuesRefinedUsingWPDroppingApproxmiationError: [String: [IRValue: Double]]?
+  let variableValuesRefinedUsingWP: [String: [IRValue: Double]]?
   let refineProbabilitiesUsingWpInference: Bool
-  let distributeApproximationError: Bool
-  
-  var variableValuesRefinedUsingWP: [String: [IRValue: Double]]? {
-    if distributeApproximationError {
-      return variableValuesRefinedUsingWPDistributingApproximationError
-    } else {
-      return variableValuesRefinedUsingWPDroppingApproxmiationError
-    }
-  }
 }
 
 class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NSTableViewDelegate {
@@ -55,10 +45,8 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
   weak var tableView: NSTableView!
   private var data = DataSourceData(
     displayedSamples: [],
-    variableValuesRefinedUsingWPDistributingApproximationError: nil,
-    variableValuesRefinedUsingWPDroppingApproxmiationError: nil,
-    refineProbabilitiesUsingWpInference: false,
-    distributeApproximationError: false
+    variableValuesRefinedUsingWP: nil,
+    refineProbabilitiesUsingWpInference: false
   ) {
     didSet {
       Dispatch.dispatchPrecondition(condition: .onQueue(.main))
@@ -67,19 +55,17 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
   }
   var cancellables: [AnyCancellable] = []
   
-  init(debugger: DebuggerCentral, survivingSamplesOnly: Published<Bool>.Publisher, refineProbabilitiesUsingWpInference: Published<Bool>.Publisher, distributeApproximationError: Published<Bool>.Publisher, tableView: NSTableView) {
+  init(debugger: DebuggerCentral, survivingSamplesOnly: Published<Bool>.Publisher, refineProbabilitiesUsingWpInference: Published<Bool>.Publisher, tableView: NSTableView) {
     self.debugger = debugger
     self.tableView = tableView
     super.init()
-    let combinedPublisher = Publishers.CombineLatest4(debugger.$samples, debugger.survivingSampleIds,  Publishers.CombineLatest(debugger.$variableValuesRefinedUsingWPDroppingApproxmiationError, debugger.$variableValuesRefinedUsingWPDistributingApproximationError), Publishers.CombineLatest3(survivingSamplesOnly, refineProbabilitiesUsingWpInference, distributeApproximationError))
+    let combinedPublisher = Publishers.CombineLatest4(debugger.$samples, debugger.survivingSampleIds, debugger.$variableValuesRefinedUsingWP, Publishers.CombineLatest(survivingSamplesOnly, refineProbabilitiesUsingWpInference))
     let delayedLatest = DelayedLatest(upstream: combinedPublisher, wait: .milliseconds(50), queue: .global(qos: .userInitiated))
     cancellables += delayedLatest.sink { [unowned self] (samples, survivingSampleIds, variableValuesRefinedUsingWP, options) in
       let survivingSamplesOnly = options.0
       let refineProbabilitiesUsingWpInference = options.1
-      let distributeApproximationError = options.2
       
-      let variableValuesRefinedUsingWPDroppingApproxmiationError = variableValuesRefinedUsingWP.0
-      let variableValuesRefinedUsingWPDistributingApproximationError = variableValuesRefinedUsingWP.1
+      let variableValuesRefinedUsingWP = variableValuesRefinedUsingWP
       
       let displayedSamples: [SourceCodeSample]
       if survivingSamplesOnly {
@@ -91,10 +77,8 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       DispatchQueue.main.async {
         self.data = DataSourceData(
           displayedSamples: displayedSamples,
-          variableValuesRefinedUsingWPDistributingApproximationError: variableValuesRefinedUsingWPDistributingApproximationError,
-          variableValuesRefinedUsingWPDroppingApproxmiationError: variableValuesRefinedUsingWPDroppingApproxmiationError,
-          refineProbabilitiesUsingWpInference: refineProbabilitiesUsingWpInference,
-          distributeApproximationError: distributeApproximationError
+          variableValuesRefinedUsingWP: variableValuesRefinedUsingWP,
+          refineProbabilitiesUsingWpInference: refineProbabilitiesUsingWpInference
         )
       }
     }
@@ -149,7 +133,7 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       return textView
     case "average":
       let average: Double
-      if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWPDistributingApproximationError {
+      if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
         average = variableValuesRefinedUsingWP[variableName]!.map({ value, probability in
           return value.doubleValue * probability
         }).reduce(0, { $0 + $1 })

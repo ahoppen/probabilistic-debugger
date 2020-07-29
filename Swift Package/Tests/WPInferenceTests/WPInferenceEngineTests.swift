@@ -29,8 +29,8 @@ class WPInferenceEngineTests: XCTestCase {
     
     let inferenceEngine = WPInferenceEngine(program: irProgram)
     
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(1), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
   }
   
   func testInferProbabilisticStraightLineProgram() {
@@ -52,9 +52,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
     
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.6)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.4)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
   }
 
   func testInferProgramWithJump() {
@@ -84,9 +84,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
 
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.6)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.4)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
   }
   
   func testInferProgramWithTwoSuccessiveJump() {
@@ -124,9 +124,9 @@ class WPInferenceEngineTests: XCTestCase {
     //   return
 
     let inferenceEngine = WPInferenceEngine(program: irProgram)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.6)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.4)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(2), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(3), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(4), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: []), 0)
   }
   
   func testInferProgramWithIf() {
@@ -195,9 +195,9 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(inferred.focusRate.doubleValue, 1)
     XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
     
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0.6)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(20), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0.4)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(16), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0.6)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(20), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0.4)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(16), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.any(predominatedBy: irProgram.startBlock)]), 0)
   }
   
   func testFoo() {
@@ -267,13 +267,13 @@ class WPInferenceEngineTests: XCTestCase {
     let loopUnrolls = LoopUnrolls([whileLoopBranch: 5])
 
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(5), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(6), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(5), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(6), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
   }
   
   func testInferFiniteDeterministicLoop() {
@@ -343,13 +343,13 @@ class WPInferenceEngineTests: XCTestCase {
     let loopUnrolls = LoopUnrolls([whileLoopBranch: 5])
 
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(5), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(6), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(5), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(6), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
   }
 
   func testInferGeometricDistribution() {
@@ -426,11 +426,11 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 0.9375)
     
     
-//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.5)
-//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.25)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.125)
-//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.0625)
-//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
+//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.5)
+//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.25)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.125)
+//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0.0625)
+//    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)]), 0)
   }
 
   func testInferWithMultiplePhiInstructions() {
@@ -455,8 +455,8 @@ class WPInferenceEngineTests: XCTestCase {
     let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1, bb2])
 
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var2, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: program.returnPosition, branchingHistory: []), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var3, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: program.returnPosition, branchingHistory: []), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var2, beingEqualTo: .integer(1), loopUnrolls: .empty, to: program.returnPosition, branchingHistory: []), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var3, beingEqualTo: .integer(1), loopUnrolls: .empty, to: program.returnPosition, branchingHistory: []), 1)
   }
 
   func testInferWithObserveInstruction() {
@@ -475,7 +475,7 @@ class WPInferenceEngineTests: XCTestCase {
     let program = IRProgram(startBlock: bb1Name, basicBlocks: [bb1])
 
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: program.returnPosition, branchingHistory: []), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var1, beingEqualTo: .integer(1), loopUnrolls: .empty, to: program.returnPosition, branchingHistory: []), 1)
   }
 
   func testUnrollALoopAnExactNumberOfTimes() {
@@ -546,12 +546,12 @@ class WPInferenceEngineTests: XCTestCase {
     let branchingHistory: BranchingHistory = [.choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb4Name)]
 
     let inferenceEngine = WPInferenceEngine(program: program)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 1.0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), approximationErrorHandling: .drop, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(0), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 1.0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(2), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(3), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(4), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: branchingHistory), 0)
   }
 
 
@@ -623,7 +623,7 @@ class WPInferenceEngineTests: XCTestCase {
     let inferenceEngine = WPInferenceEngine(program: program)
     self.measure {
       let loopUnrolls = LoopUnrolls([whileLoopBranch: 50])
-      _ = inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)])
+      _ = inferenceEngine.inferProbability(of: var6, beingEqualTo: .integer(1), loopUnrolls: loopUnrolls, to: program.returnPosition, branchingHistory: [.any(predominatedBy: program.startBlock)])
     }
   }
 
@@ -673,7 +673,7 @@ class WPInferenceEngineTests: XCTestCase {
     let loopUnrolls = LoopUnrolls([
       IRLoop(conditionBlock: bb2Name, bodyStartBlock: bb3Name): 1
     ])
-    let prob = inferenceEngine.inferProbability(of: var3, beingEqualTo: .bool(true), approximationErrorHandling: .distribute, loopUnrolls: loopUnrolls, to: InstructionPosition(basicBlock: bb3Name, instructionIndex: 0), branchingHistory: [.any(predominatedBy: program.startBlock)])
+    let prob = inferenceEngine.inferProbability(of: var3, beingEqualTo: .bool(true), loopUnrolls: loopUnrolls, to: InstructionPosition(basicBlock: bb3Name, instructionIndex: 0), branchingHistory: [.any(predominatedBy: program.startBlock)])
 
     XCTAssertEqual(prob, 1)
   }
@@ -747,39 +747,39 @@ class WPInferenceEngineTests: XCTestCase {
     let inferenceEngine = WPInferenceEngine(program: program)
     // After 1 iteration
     let branchingHistory1Unroll: BranchingHistory = [.choice(source: bb2Name, target: bb3Name)]
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), loopUnrolls: LoopUnrolls([whileLoopBranch: 1]), to: position, branchingHistory: branchingHistory1Unroll), 1)
     
     // After 2 iterations
     let branchingHistory2Unrolls: BranchingHistory = [.choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name)]
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), loopUnrolls: LoopUnrolls([whileLoopBranch: 2]), to: position, branchingHistory: branchingHistory2Unrolls), 0)
     
     // After 3 iterations
     let branchingHistory3Unrolls: BranchingHistory = [.choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name)]
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), loopUnrolls: LoopUnrolls([whileLoopBranch: 3]), to: position, branchingHistory: branchingHistory3Unrolls), 0)
     
     // After 4 iterations
     let branchingHistory4Unrolls: BranchingHistory = [.choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name), .choice(source: bb2Name, target: bb3Name)]
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 1)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
-    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), approximationErrorHandling: .distribute, loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(0), loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(1), loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(2), loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 1)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(3), loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(4), loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
+    XCTAssertEqual(inferenceEngine.inferProbability(of: var5, beingEqualTo: .integer(5), loopUnrolls: LoopUnrolls([whileLoopBranch: 4]), to: position, branchingHistory: branchingHistory4Unrolls), 0)
   }
   
   func testInferWithBranchingHistory() {
@@ -848,7 +848,7 @@ class WPInferenceEngineTests: XCTestCase {
     XCTAssertEqual(inferred.focusRate.doubleValue, 0.6)
     XCTAssertEqual(inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue, 1)
     
-//    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), approximationErrorHandling: .distribute, loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.choice(source: bb0Name, target: bb1Name)]), 1)
+//    XCTAssertEqual(inferenceEngine.inferProbability(of: var4, beingEqualTo: .integer(10), loopUnrolls: .empty, to: irProgram.returnPosition, branchingHistory: [.choice(source: bb0Name, target: bb1Name)]), 1)
   }
   
   func testInferWithBranchingHistoryInLoopAndLoopIterationBound() {
