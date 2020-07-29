@@ -87,19 +87,15 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
   private func histogram(for variableName: String) -> [(label: String, probability: Double)] {
     let sampleHistogram = data.displayedSamples.map({ $0.values[variableName]! }).histogram()
       .sorted(by: { $0.key.description.localizedStandardCompare($1.key.description) == .orderedAscending })
-    var probabilityHistogram = sampleHistogram.map({ (value, numSamples) -> (label: String, probability: Double) in
+    let probabilityHistogram = sampleHistogram.map({ (value, numSamples) -> (label: String, probability: Double) in
       let probability: Double
       if data.refineProbabilitiesUsingWpInference, let variableValuesRefinedUsingWP = data.variableValuesRefinedUsingWP {
         probability = variableValuesRefinedUsingWP[variableName]?[value] ?? 0
       } else {
-        probability = Double(numSamples) / Double(data.displayedSamples.count)
+        probability = Double(numSamples) / Double(debugger.initialSamples)
       }
       return (value.description, probability)
     })
-    let probabilitySum = probabilityHistogram.map(\.probability).reduce(0, { $0 + $1 })
-    if probabilitySum < 0.9999 /* don't show a '?' value if it would show up with 0.0% probability */ {
-      probabilityHistogram.append((label: "?", probability: 1 - probabilitySum))
-    }
     return probabilityHistogram
   }
 
@@ -140,7 +136,7 @@ class DebuggerVariablesTableViewDataSource: NSObject, NSTableViewDataSource, NST
       } else {
         average = data.displayedSamples.map({ (sample) -> Double in
           return sample.values[variableName]!.doubleValue
-        }).reduce(0, { $0 + $1}) / Double(data.displayedSamples.count)
+        }).reduce(0, { $0 + $1}) / Double(debugger.initialSamples)
       }
       let textView = NSTextField(labelWithString: "\(average.rounded(decimalPlaces: 4))")
       return textView
