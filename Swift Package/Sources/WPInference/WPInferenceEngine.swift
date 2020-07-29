@@ -327,6 +327,6 @@ public extension WPInferenceEngine {
     // FIXME: Support WP inference for IRExecutionStates with multiple branching histories
     assert(state.branchingHistories.count == 1)
     let inferred = self.infer(term: .integer(0), loopUnrolls: state.loopUnrolls, inferenceStopPosition: state.position, branchingHistory: state.branchingHistories.first!)
-    return 1 - inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue
+    return (1 - inferred.observeAndDeliberateBranchIgnoringFocusRate.doubleValue) / inferred.focusRate.doubleValue
   }
 }

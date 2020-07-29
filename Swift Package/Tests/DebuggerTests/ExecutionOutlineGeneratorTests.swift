@@ -618,13 +618,13 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       XCTAssertEqual(debugger.approximationError, 0)
       
       debugger.jumpToState(exitStates[0])
-      XCTAssertEqual(debugger.approximationError, 0.5)
+      XCTAssertEqual(debugger.approximationError, (1 - 0.5) / 0.5)
       
       debugger.jumpToState(exitStates[1])
-      XCTAssertEqual(debugger.approximationError, 0.25)
+      XCTAssertEqual(debugger.approximationError, (1 - 0.75) / 0.75)
       
       debugger.jumpToState(exitStates[2])
-      XCTAssertEqual(debugger.approximationError, 0.125)
+      XCTAssertEqual(debugger.approximationError, (1 - 0.875) / 0.875)
     }())
   }
   
@@ -663,10 +663,10 @@ class ExecutionOutlineGeneratorTests: XCTestCase {
       XCTAssertEqual(debugger.approximationError, 0)
       
       debugger.jumpToState(exitStates[0])
-      XCTAssertEqual(debugger.approximationError, 0.5)
+      XCTAssertEqual(debugger.approximationError, (1 - 0.5) / 0.5)
       
       debugger.jumpToState(exitStates[1])
-      XCTAssertEqual(debugger.approximationError, 0.25)
+      XCTAssertEqual(debugger.approximationError, (1 - 0.75) / 0.75)
     }())
   }
   
